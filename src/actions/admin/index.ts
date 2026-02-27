@@ -66,9 +66,14 @@ export async function upsertProjectAction(formData: FormData): Promise<ActionRes
     completed_at: formData.get("completed_at") || undefined,
     duration_days: formData.get("duration_days") || undefined,
     status: formData.get("status"),
+    privacy_level: formData.get("privacy_level") || "public",
     is_featured: parseFormBoolean(formData.get("is_featured")),
     cover_image: formData.get("cover_image"),
     images: formData.get("images") || "",
+    blurred_images: formData.get("blurred_images") || "",
+    private_client_name: formData.get("private_client_name") || undefined,
+    private_location: formData.get("private_location") || undefined,
+    private_notes: formData.get("private_notes") || undefined,
   });
 
   if (!parsed.success) {
@@ -88,9 +93,14 @@ export async function upsertProjectAction(formData: FormData): Promise<ActionRes
     completed_at: parsed.data.completed_at || null,
     duration_days: parsed.data.duration_days || null,
     status: parsed.data.status,
+    privacy_level: parsed.data.privacy_level,
     is_featured: parsed.data.is_featured,
     cover_image: parsed.data.cover_image,
     images: splitList(parsed.data.images),
+    blurred_images: splitList(parsed.data.blurred_images),
+    private_client_name: parsed.data.private_client_name || null,
+    private_location: parsed.data.private_location || null,
+    private_notes: parsed.data.private_notes || null,
   };
 
   const { error } = await supabase.from("projects").upsert(payload);

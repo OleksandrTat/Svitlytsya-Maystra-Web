@@ -13,9 +13,14 @@ export const projectFormSchema = z.object({
   completed_at: z.string().optional(),
   duration_days: z.coerce.number().int().min(1).max(365).optional(),
   status: z.enum(["public", "nda", "concept"]),
+  privacy_level: z.enum(["public", "nda_partial", "nda_full"]).default("public"),
   is_featured: z.boolean().default(false),
   cover_image: z.string().url(),
   images: z.string().default(""),
+  blurred_images: z.string().default(""),
+  private_client_name: z.string().optional(),
+  private_location: z.string().optional(),
+  private_notes: z.string().optional(),
 });
 
 export const serviceFormSchema = z.object({

@@ -6,6 +6,7 @@ import { Resend } from "resend";
 import { inquirySchema, type InquirySchema } from "@/lib/validation/inquiry";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { env, hasResend } from "@/lib/env";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 type InquiryActionResult = {
   success: boolean;
@@ -106,6 +107,7 @@ export async function submitInquiryAction(
     source_page: formData.get("source_page"),
     project_ref_id: formData.get("project_ref_id"),
     honeypot: formData.get("honeypot"),
+    turnstile_token: formData.get("cf-turnstile-response") ?? formData.get("turnstile_token"),
   });
 
   if (!parsed.success) {
@@ -120,6 +122,16 @@ export async function submitInquiryAction(
     return {
       success: true,
       message: "Дякуємо! Ми зв'яжемось найближчим часом.",
+    };
+  }
+
+  const turnstileResult = await verifyTurnstileToken(parsed.data.turnstile_token, identity);
+
+  if (!turnstileResult.success) {
+    return {
+      success: false,
+      message: "Підтвердіть, що ви не робот, і спробуйте ще раз.",
+      fieldErrors: { turnstile_token: ["Turnstile verification failed"] },
     };
   }
 

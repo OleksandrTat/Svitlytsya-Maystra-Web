@@ -23,9 +23,14 @@ export interface Database {
           completed_at: string | null;
           duration_days: number | null;
           status: "public" | "nda" | "concept";
+          privacy_level: "public" | "nda_partial" | "nda_full";
           is_featured: boolean;
           cover_image: string;
           images: string[];
+          blurred_images: string[];
+          private_client_name: string | null;
+          private_location: string | null;
+          private_notes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -42,9 +47,14 @@ export interface Database {
           completed_at?: string | null;
           duration_days?: number | null;
           status?: "public" | "nda" | "concept";
+          privacy_level?: "public" | "nda_partial" | "nda_full";
           is_featured?: boolean;
           cover_image: string;
           images?: string[];
+          blurred_images?: string[];
+          private_client_name?: string | null;
+          private_location?: string | null;
+          private_notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -455,6 +465,344 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["email_sequences"]["Insert"]>;
         Relationships: [];
       };
+      orders: {
+        Row: {
+          id: string;
+          order_number: string;
+          inquiry_id: string | null;
+          user_id: string | null;
+          status:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived";
+          expected_date: string | null;
+          actual_date: string | null;
+          internal_notes: string | null;
+          priority: "normal" | "urgent";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_number?: string;
+          inquiry_id?: string | null;
+          user_id?: string | null;
+          status?:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived";
+          expected_date?: string | null;
+          actual_date?: string | null;
+          internal_notes?: string | null;
+          priority?: "normal" | "urgent";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
+        Relationships: [];
+      };
+      order_status_history: {
+        Row: {
+          id: string;
+          order_id: string;
+          from_status:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived"
+            | null;
+          to_status:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived";
+          comment: string | null;
+          is_visible_to_client: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          from_status?:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived"
+            | null;
+          to_status:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived";
+          comment?: string | null;
+          is_visible_to_client?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_status_history"]["Insert"]>;
+        Relationships: [];
+      };
+      order_photos: {
+        Row: {
+          id: string;
+          order_id: string;
+          image_url: string;
+          caption: string | null;
+          stage:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          image_url: string;
+          caption?: string | null;
+          stage?:
+            | "new"
+            | "consulting"
+            | "design"
+            | "approved"
+            | "production"
+            | "ready"
+            | "installation"
+            | "completed"
+            | "archived";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_photos"]["Insert"]>;
+        Relationships: [];
+      };
+      order_documents: {
+        Row: {
+          id: string;
+          order_id: string;
+          type: "contract" | "act";
+          file_url: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          type: "contract" | "act";
+          file_url: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_documents"]["Insert"]>;
+        Relationships: [];
+      };
+      order_messages: {
+        Row: {
+          id: string;
+          order_id: string;
+          sender_type: "client" | "admin";
+          sender_id: string | null;
+          content: string;
+          attachment_url: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          sender_type: "client" | "admin";
+          sender_id?: string | null;
+          content: string;
+          attachment_url?: string | null;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      order_notifications: {
+        Row: {
+          id: string;
+          order_id: string;
+          user_id: string;
+          type: "status_changed" | "photo_added" | "message_received" | "order_ready";
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          user_id: string;
+          type: "status_changed" | "photo_added" | "message_received" | "order_ready";
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      price_presets: {
+        Row: {
+          id: string;
+          name: string;
+          category: "material" | "consumable" | "labor" | "overhead";
+          unit: string;
+          value: number;
+          currency: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          category: "material" | "consumable" | "labor" | "overhead";
+          unit: string;
+          value: number;
+          currency?: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["price_presets"]["Insert"]>;
+        Relationships: [];
+      };
+      price_formulas: {
+        Row: {
+          id: string;
+          name: string;
+          product_type: "door" | "furniture" | "window" | "restoration";
+          description: string | null;
+          input_schema: Json;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          product_type: "door" | "furniture" | "window" | "restoration";
+          description?: string | null;
+          input_schema?: Json;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["price_formulas"]["Insert"]>;
+        Relationships: [];
+      };
+      formula_components: {
+        Row: {
+          id: string;
+          formula_id: string;
+          type: "material" | "consumable" | "labor" | "overhead" | "tax" | "margin";
+          label: string;
+          preset_id: string | null;
+          expression: string;
+          condition: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          formula_id: string;
+          type: "material" | "consumable" | "labor" | "overhead" | "tax" | "margin";
+          label: string;
+          preset_id?: string | null;
+          expression: string;
+          condition?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["formula_components"]["Insert"]>;
+        Relationships: [];
+      };
+      order_calculations: {
+        Row: {
+          id: string;
+          order_id: string;
+          formula_id: string;
+          input_params: Json;
+          breakdown: Json;
+          total: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          formula_id: string;
+          input_params?: Json;
+          breakdown?: Json;
+          total: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_calculations"]["Insert"]>;
+        Relationships: [];
+      };
+      audit_log: {
+        Row: {
+          id: string;
+          actor_id: string | null;
+          actor_type: "admin" | "client" | "system" | "anonymous";
+          action: "INSERT" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "EXPORT";
+          table_name: string;
+          record_id: string | null;
+          old_value: Json | null;
+          new_value: Json | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_id?: string | null;
+          actor_type?: "admin" | "client" | "system" | "anonymous";
+          action: "INSERT" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "EXPORT";
+          table_name: string;
+          record_id?: string | null;
+          old_value?: Json | null;
+          new_value?: Json | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["audit_log"]["Insert"]>;
+        Relationships: [];
+      };
       site_settings: {
         Row: {
           key: string;
@@ -494,7 +842,30 @@ export interface Database {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      projects_public: {
+        Row: {
+          id: string;
+          title: string;
+          slug: string;
+          description: string;
+          category: "doors" | "furniture" | "windows";
+          style: string[];
+          materials: string[];
+          dimensions: string | null;
+          location: string | null;
+          cover_image: string | null;
+          images: string[];
+          status: "public" | "nda" | "concept";
+          privacy_level: "public" | "nda_partial" | "nda_full";
+          is_featured: boolean;
+          completed_at: string | null;
+          completed_year: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+    };
     Functions: Record<string, never>;
     Enums: {
       project_category: "doors" | "furniture" | "windows";
@@ -505,6 +876,26 @@ export interface Database {
       blog_comment_status: "pending" | "approved" | "rejected";
       email_subscriber_status: "subscribed" | "unsubscribed" | "bounced" | "complained";
       email_campaign_status: "draft" | "scheduled" | "sending" | "sent" | "failed";
+      order_status:
+        | "new"
+        | "consulting"
+        | "design"
+        | "approved"
+        | "production"
+        | "ready"
+        | "installation"
+        | "completed"
+        | "archived";
+      order_priority: "normal" | "urgent";
+      order_message_sender_type: "client" | "admin";
+      order_document_type: "contract" | "act";
+      order_notification_type: "status_changed" | "photo_added" | "message_received" | "order_ready";
+      price_preset_category: "material" | "consumable" | "labor" | "overhead";
+      pricing_product_type: "door" | "furniture" | "window" | "restoration";
+      formula_component_type: "material" | "consumable" | "labor" | "overhead" | "tax" | "margin";
+      project_privacy_level: "public" | "nda_partial" | "nda_full";
+      audit_actor_type: "admin" | "client" | "system" | "anonymous";
+      audit_action: "INSERT" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "EXPORT";
     };
     CompositeTypes: Record<string, never>;
   };

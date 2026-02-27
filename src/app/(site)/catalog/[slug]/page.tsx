@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProjectCard } from "@/components/catalog/project-card";
@@ -7,11 +7,7 @@ import { ProjectInfo } from "@/components/catalog/project-info";
 import { FinalCtaSection } from "@/components/sections/final-cta";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  getAllPublicProjectSlugs,
-  getProjectBySlug,
-  getRelatedProjects,
-} from "@/lib/data/queries";
+import { getAllPublicProjectSlugs, getProjectBySlug, getRelatedProjects } from "@/lib/data/queries";
 import { env } from "@/lib/env";
 
 export const revalidate = 60;
@@ -33,19 +29,27 @@ export async function generateMetadata({
   const { slug } = await params;
   const project = await getProjectBySlug(slug);
 
-  if (!project) {
+  if (!project || project.status === "concept") {
     return {
       title: "Проєкт не знайдено",
     };
   }
 
+  const isNdaFull = project.privacy_level === "nda_full";
+
   return {
-    title: `${project.title}`,
+    title: project.title,
     description: project.description.slice(0, 160),
+    robots: isNdaFull
+      ? {
+          index: false,
+          follow: false,
+        }
+      : undefined,
     openGraph: {
       title: project.title,
       description: project.description,
-      images: [{ url: project.cover_image }],
+      images: project.cover_image ? [{ url: project.cover_image }] : [],
       type: "article",
     },
   };
@@ -59,10 +63,16 @@ export default async function ProjectPage({
   const { slug } = await params;
   const project = await getProjectBySlug(slug);
 
-  if (!project || project.status === "nda") {
+  if (!project || project.status === "concept") {
     notFound();
   }
 
+  const isNdaFull = project.privacy_level === "nda_full";
+  const galleryImages = isNdaFull
+    ? ["/window.svg"]
+    : project.images.length
+      ? project.images
+      : [project.cover_image];
   const related = await getRelatedProjects(project, 4);
 
   const schema = {
@@ -70,7 +80,7 @@ export default async function ProjectPage({
     "@type": "CreativeWork",
     name: project.title,
     description: project.description,
-    image: project.images,
+    image: galleryImages,
     dateCreated: project.created_at,
     datePublished: project.completed_at,
     creator: {
@@ -85,7 +95,7 @@ export default async function ProjectPage({
       <section className="py-14 md:py-20">
         <Container>
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <ProjectGallery images={project.images.length ? project.images : [project.cover_image]} title={project.title} />
+            <ProjectGallery images={galleryImages} title={project.title} />
             <ProjectInfo project={project} />
           </div>
 
@@ -94,7 +104,7 @@ export default async function ProjectPage({
               href={`/contact?projectRef=${project.id}`}
               className="rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white"
             >
-              Запросити подібний проєкт
+              Замовити подібний проєкт
             </Link>
             <Link
               href="/catalog"
@@ -121,11 +131,7 @@ export default async function ProjectPage({
 
       <FinalCtaSection projectRefId={project.id} />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
     </>
   );
 }
-

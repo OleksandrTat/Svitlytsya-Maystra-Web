@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,6 +40,7 @@ function normalizeStoredMessages(value: string | null) {
 
   try {
     const parsed = JSON.parse(value) as ChatMessage[];
+
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return [GREETING_MESSAGE];
     }
@@ -84,6 +85,7 @@ export function AIChatWidget() {
     const storedMessages = normalizeStoredMessages(
       window.localStorage.getItem(CHAT_STORAGE_MESSAGES_KEY),
     );
+
     setMessages(storedMessages);
   }, []);
 
@@ -103,6 +105,14 @@ export function AIChatWidget() {
     panelRef.current.scrollTop = panelRef.current.scrollHeight;
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    if (!open || !panelRef.current) {
+      return;
+    }
+
+    panelRef.current.scrollTop = panelRef.current.scrollHeight;
+  }, [open]);
+
   const userMessagesCount = useMemo(
     () => messages.filter((message) => message.role === "user").length,
     [messages],
@@ -111,18 +121,21 @@ export function AIChatWidget() {
   const onToggle = () => {
     setOpen((current) => {
       const next = !current;
+
       if (next) {
         capturePosthogEvent("chat_opened", {
           page: pathname,
           session_id: sessionIdRef.current || null,
         });
       }
+
       return next;
     });
   };
 
   const onSend = async () => {
     const value = input.trim();
+
     if (!value || isLoading || !sessionIdRef.current) {
       return;
     }
@@ -132,6 +145,7 @@ export function AIChatWidget() {
       role: "user",
       content: value,
     };
+
     const assistantMessageId = `assistant-${Date.now() + 1}`;
     const placeholder: ChatMessage = {
       id: assistantMessageId,
@@ -163,6 +177,7 @@ export function AIChatWidget() {
 
       if (!response.ok) {
         const fallbackText = await response.text();
+
         setMessages((current) =>
           current.map((message) =>
             message.id === assistantMessageId
@@ -175,6 +190,7 @@ export function AIChatWidget() {
               : message,
           ),
         );
+
         return;
       }
 
@@ -189,6 +205,7 @@ export function AIChatWidget() {
               : message,
           ),
         );
+
         return;
       }
 
@@ -203,6 +220,7 @@ export function AIChatWidget() {
 
         if (chunk.value) {
           assistantText += decoder.decode(chunk.value, { stream: !done });
+
           setMessages((current) =>
             current.map((message) =>
               message.id === assistantMessageId
@@ -237,7 +255,7 @@ export function AIChatWidget() {
         <button
           type="button"
           onClick={onToggle}
-          className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-lg transition hover:bg-[var(--color-primary-700)]"
+          className="fixed bottom-5 right-5 z-[70] inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-lg transition hover:bg-[var(--color-primary-700)]"
           aria-label="Open chat"
         >
           <MessageCircle className="h-6 w-6" />
@@ -245,97 +263,96 @@ export function AIChatWidget() {
         </button>
       ) : null}
 
-      <section
-        className={cn(
-          "fixed z-50 border border-[var(--color-border)] bg-white shadow-2xl transition-all",
-          open
-            ? "inset-0 flex flex-col sm:bottom-5 sm:right-5 sm:inset-auto sm:h-[520px] sm:w-[380px] sm:rounded-3xl"
-            : "pointer-events-none opacity-0",
-        )}
-      >
-        <header className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Svitlytsya Maystra
-            </p>
-            <p className="text-xs text-[var(--color-text-secondary)]">AI assistant</p>
-          </div>
-          <button
-            type="button"
-            onClick={onToggle}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)]"
-            aria-label="Close chat"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </header>
-
-        <div ref={panelRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
-                message.role === "assistant"
-                  ? "bg-[var(--color-surface)] text-[var(--color-text-primary)]"
-                  : "ml-auto bg-[var(--color-primary)] text-white",
-              )}
-            >
-              {message.content || (message.role === "assistant" && isLoading ? "..." : "")}
+      {open ? (
+        <section
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[70] flex flex-col border border-[var(--color-border)] bg-white shadow-2xl sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[520px] sm:w-[380px] sm:rounded-3xl"
+        >
+          <header className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                Svitlytsya Maystra
+              </p>
+              <p className="text-xs text-[var(--color-text-secondary)]">AI assistant</p>
             </div>
-          ))}
-
-          {isLoading ? (
-            <div className="inline-flex items-center gap-1 rounded-2xl bg-[var(--color-surface)] px-3 py-2 text-xs text-[var(--color-text-secondary)]">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-text-secondary)] [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-text-secondary)] [animation-delay:120ms]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-text-secondary)] [animation-delay:240ms]" />
-            </div>
-          ) : null}
-        </div>
-
-        <div className="space-y-3 border-t border-[var(--color-border)] p-4">
-          {userMessagesCount >= 3 ? (
-            <Link
-              href="/contact"
-              onClick={() =>
-                capturePosthogEvent("chat_inquiry_triggered", {
-                  page: pathname,
-                  session_id: sessionIdRef.current || null,
-                  messages_count: userMessagesCount,
-                })
-              }
-            >
-              <Button className="h-10 w-full">Залишити заявку</Button>
-            </Link>
-          ) : null}
-
-          <div className="flex items-end gap-2">
-            <textarea
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void onSend();
-                }
-              }}
-              placeholder="Напишіть питання..."
-              className="max-h-28 min-h-11 flex-1 resize-none rounded-2xl border border-[var(--color-border)] px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-secondary)]"
-              disabled={isLoading}
-            />
             <button
               type="button"
-              onClick={() => void onSend()}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-white disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isLoading || input.trim().length === 0}
-              aria-label="Send message"
+              onClick={onToggle}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)]"
+              aria-label="Close chat"
             >
-              <Send className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
+          </header>
+
+          <div ref={panelRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
+                  message.role === "assistant"
+                    ? "bg-[var(--color-surface)] text-[var(--color-text-primary)]"
+                    : "ml-auto bg-[var(--color-primary)] text-white",
+                )}
+              >
+                {message.content || (message.role === "assistant" && isLoading ? "..." : "")}
+              </div>
+            ))}
+
+            {isLoading ? (
+              <div className="inline-flex items-center gap-1 rounded-2xl bg-[var(--color-surface)] px-3 py-2 text-xs text-[var(--color-text-secondary)]">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-text-secondary)] [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-text-secondary)] [animation-delay:120ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-text-secondary)] [animation-delay:240ms]" />
+              </div>
+            ) : null}
           </div>
-        </div>
-      </section>
+
+          <div className="space-y-3 border-t border-[var(--color-border)] p-4">
+            {userMessagesCount >= 3 ? (
+              <Link
+                href="/contact"
+                onClick={() =>
+                  capturePosthogEvent("chat_inquiry_triggered", {
+                    page: pathname,
+                    session_id: sessionIdRef.current || null,
+                    messages_count: userMessagesCount,
+                  })
+                }
+              >
+                <Button className="h-10 w-full">Залишити заявку</Button>
+              </Link>
+            ) : null}
+
+            <div className="flex items-end gap-2">
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void onSend();
+                  }
+                }}
+                placeholder="Напишіть питання..."
+                className="max-h-28 min-h-11 flex-1 resize-none rounded-2xl border border-[var(--color-border)] px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-secondary)]"
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => void onSend()}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isLoading || input.trim().length === 0}
+                aria-label="Send message"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

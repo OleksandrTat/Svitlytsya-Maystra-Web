@@ -23,6 +23,7 @@ export const inquirySchema = z.object({
   source_page: z.string().trim().optional(),
   project_ref_id: z.string().uuid().optional().or(z.literal("")),
   honeypot: z.string().optional(),
+  turnstile_token: z.string().optional(),
 });
 
 export type InquirySchema = z.infer<typeof inquirySchema>;

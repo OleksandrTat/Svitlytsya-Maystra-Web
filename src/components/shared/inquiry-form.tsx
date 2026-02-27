@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Script from "next/script";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { submitInquiryAction } from "@/actions/inquiries";
@@ -29,6 +30,7 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
   const pathname = usePathname();
   const [lastSubmitted, setLastSubmitted] = useState<InquirySchema | null>(null);
   const [state, submit, isPending] = useActionState(submitInquiryAction, initialState);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const {
     register,
@@ -46,6 +48,7 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
       source_page: pathname,
       project_ref_id: projectRefId ?? "",
       honeypot: "",
+      turnstile_token: "",
     },
   });
 
@@ -60,6 +63,7 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
         source_page: pathname,
         project_ref_id: projectRefId ?? "",
         honeypot: "",
+        turnstile_token: "",
       });
     }
   }, [state.success, reset, pathname, projectRefId]);
@@ -76,8 +80,10 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
     });
   }, [lastSubmitted, pathname, projectRefId, state.success]);
 
-  const onSubmit = handleSubmit(async (values) => {
-    const formData = new FormData();
+  const onSubmit = handleSubmit(async (values, event) => {
+    const formTarget = event?.target;
+    const formData =
+      formTarget instanceof HTMLFormElement ? new FormData(formTarget) : new FormData();
     const payload = {
       ...values,
       source_page: pathname,
@@ -135,11 +141,22 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
 
       <input {...register("source_page")} type="hidden" value={pathname} />
       <input {...register("project_ref_id")} type="hidden" value={projectRefId ?? ""} />
+      <input {...register("turnstile_token")} type="hidden" defaultValue="" />
 
       <div className="hidden" aria-hidden>
         <label htmlFor="website">Website</label>
         <input id="website" {...register("honeypot")} autoComplete="off" tabIndex={-1} />
       </div>
+
+      {turnstileSiteKey ? (
+        <>
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            strategy="lazyOnload"
+          />
+          <div className="cf-turnstile" data-sitekey={turnstileSiteKey} />
+        </>
+      ) : null}
 
       {state.message ? (
         <p className={cn("text-sm", state.success ? "text-emerald-700" : "text-red-600")}>{state.message}</p>

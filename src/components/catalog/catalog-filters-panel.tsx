@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -59,14 +59,14 @@ export function CatalogFiltersPanel({ filters }: Props) {
   return (
     <aside className="space-y-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Категорія</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">РљР°С‚РµРіРѕСЂС–СЏ</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setParam("category", undefined)}
             className={`rounded-full px-3 py-1 text-sm ${!filters.category ? "bg-[var(--color-primary)] text-white" : "bg-white text-[var(--color-text-secondary)]"}`}
           >
-            Всі
+            Р’СЃС–
           </button>
           {categoryOptions.map((option) => (
             <button
@@ -82,7 +82,7 @@ export function CatalogFiltersPanel({ filters }: Props) {
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Стиль</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">РЎС‚РёР»СЊ</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {CATALOG_STYLES.map((style) => (
             <button
@@ -98,7 +98,7 @@ export function CatalogFiltersPanel({ filters }: Props) {
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Матеріал</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">РњР°С‚РµСЂС–Р°Р»</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {CATALOG_MATERIALS.map((material) => (
             <button
@@ -114,32 +114,33 @@ export function CatalogFiltersPanel({ filters }: Props) {
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Статус</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">РЎС‚Р°С‚СѓСЃ</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setParam("status", undefined)}
             className={`rounded-full px-3 py-1 text-sm ${!filters.status ? "bg-[var(--color-primary)] text-white" : "bg-white text-[var(--color-text-secondary)]"}`}
           >
-            Всі
+            Р’СЃС–
           </button>
           <button
             type="button"
             onClick={() => setParam("status", "public")}
             className={`rounded-full px-3 py-1 text-sm ${filters.status === "public" ? "bg-[var(--color-primary)] text-white" : "bg-white text-[var(--color-text-secondary)]"}`}
           >
-            Публічний
+            РџСѓР±Р»С–С‡РЅРёР№
           </button>
           <button
             type="button"
-            onClick={() => setParam("status", "concept")}
-            className={`rounded-full px-3 py-1 text-sm ${filters.status === "concept" ? "bg-[var(--color-primary)] text-white" : "bg-white text-[var(--color-text-secondary)]"}`}
+            onClick={() => setParam("status", "nda")}
+            className={`rounded-full px-3 py-1 text-sm ${filters.status === "nda" ? "bg-[var(--color-primary)] text-white" : "bg-white text-[var(--color-text-secondary)]"}`}
           >
-            Концепт
+            NDA
           </button>
         </div>
       </div>
     </aside>
   );
 }
+
 

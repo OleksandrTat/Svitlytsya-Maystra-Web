@@ -2,10 +2,17 @@ import { cache } from "react";
 import { mockInquiries, mockProjects, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
 import type {
   ActivityLog,
+  AuditLogRecord,
   AIChatMessage,
   AIChatSession,
   CatalogFilters,
+  FormulaComponent,
   Inquiry,
+  Order,
+  OrderMessage,
+  OrderStatusHistory,
+  PriceFormula,
+  PricePreset,
   Project,
   Service,
   SiteSetting,
@@ -117,7 +124,7 @@ export const getFeaturedProjects = cache(async (limit = 6): Promise<Project[]> =
     .from("projects")
     .select("*")
     .eq("is_featured", true)
-    .in("status", ["public", "concept"])
+    .neq("status", "concept")
     .order("completed_at", { ascending: false })
     .limit(limit);
 
@@ -170,7 +177,7 @@ export async function getCatalogProjects(
   let query = supabase
     .from("projects")
     .select("*", { count: "exact" })
-    .neq("status", "nda")
+    .neq("status", "concept")
     .order("completed_at", { ascending: false });
 
   if (filters.category) {
@@ -196,7 +203,7 @@ export async function getCatalogProjects(
 
   if (error || !data) {
     const filtered = applyCatalogFilters(
-      mockProjects.filter((item) => item.status !== "nda"),
+      mockProjects.filter((item) => item.status !== "concept"),
       filters,
     );
 
@@ -237,7 +244,7 @@ export async function getRelatedProjects(project: Project, limit = 4): Promise<P
 
   if (!supabase) {
     return mockProjects
-      .filter((item) => item.category === project.category && item.slug !== project.slug)
+      .filter((item) => item.category === project.category && item.slug !== project.slug && item.status !== "concept")
       .slice(0, limit);
   }
 
@@ -246,13 +253,13 @@ export async function getRelatedProjects(project: Project, limit = 4): Promise<P
     .select("*")
     .eq("category", project.category)
     .neq("slug", project.slug)
-    .neq("status", "nda")
+    .neq("status", "concept")
     .order("completed_at", { ascending: false })
     .limit(limit);
 
   if (error || !data) {
     return mockProjects
-      .filter((item) => item.category === project.category && item.slug !== project.slug)
+      .filter((item) => item.category === project.category && item.slug !== project.slug && item.status !== "concept")
       .slice(0, limit);
   }
 
@@ -264,18 +271,18 @@ export const getAllPublicProjectSlugs = cache(async () => {
 
   if (!supabase) {
     return mockProjects
-      .filter((project) => project.status !== "nda")
+      .filter((project) => project.status !== "concept")
       .map((project) => project.slug);
   }
 
   const { data, error } = await supabase
     .from("projects")
     .select("slug")
-    .neq("status", "nda");
+    .neq("status", "concept");
 
   if (error || !data) {
     return mockProjects
-      .filter((project) => project.status !== "nda")
+      .filter((project) => project.status !== "concept")
       .map((project) => project.slug);
   }
 
@@ -492,8 +499,8 @@ export async function getContactSettings() {
   return {
     phone: "+380 (67) 000-00-00",
     email: "info@svitlytsya.ua",
-    address: "Україна, м. Київ, вул. Майстерна, 12",
-    hours: "Пн-Пт: 09:00-18:00",
+    address: "РЈРєСЂР°С—РЅР°, Рј. РљРёС—РІ, РІСѓР». РњР°Р№СЃС‚РµСЂРЅР°, 12",
+    hours: "РџРЅ-РџС‚: 09:00-18:00",
   };
 }
 
@@ -557,4 +564,348 @@ export async function getChatMessagesForAdmin(chatSessionId: string, limit = 100
   }
 
   return data as AIChatMessage[];
+}
+export type ClientSummary = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  account_types: string[];
+  created_at: string;
+  last_seen_at: string;
+  orders_count: number;
+};
+
+async function getSupabaseForAdminQueries() {
+  return createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+}
+
+export async function getClientOrders(
+  userId: string,
+  filter: "active" | "completed" | "all" = "active",
+): Promise<Order[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase || !userId) {
+    return [];
+  }
+
+  let query = supabase
+    .from("orders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (filter === "active") {
+    query = query.not("status", "in", "(completed,archived)");
+  }
+
+  if (filter === "completed") {
+    query = query.eq("status", "completed");
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as Order[];
+}
+
+export async function getClientOrderById(orderId: string, userId: string): Promise<Order | null> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase || !orderId || !userId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as Order;
+}
+
+export async function getClientOrderTimeline(
+  orderId: string,
+  userId: string,
+): Promise<OrderStatusHistory[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase || !orderId || !userId) {
+    return [];
+  }
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("id", orderId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!order) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("order_status_history")
+    .select("*")
+    .eq("order_id", orderId)
+    .eq("is_visible_to_client", true)
+    .order("created_at", { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as OrderStatusHistory[];
+}
+
+export async function getClientOrderMessages(orderId: string, userId: string): Promise<OrderMessage[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase || !orderId || !userId) {
+    return [];
+  }
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("id", orderId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!order) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("order_messages")
+    .select("*")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true })
+    .limit(300);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as OrderMessage[];
+}
+
+export async function getClientUnreadOrderNotificationsCount(userId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase || !userId) {
+    return 0;
+  }
+
+  const { count } = await supabase
+    .from("order_notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_read", false);
+
+  return count ?? 0;
+}
+
+export async function getOrdersForAdmin(limit = 200): Promise<Order[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as Order[];
+}
+
+export async function getOrderByIdForAdmin(orderId: string): Promise<Order | null> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase || !orderId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as Order;
+}
+
+export async function getOrderTimelineForAdmin(orderId: string): Promise<OrderStatusHistory[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase || !orderId) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("order_status_history")
+    .select("*")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as OrderStatusHistory[];
+}
+
+export async function getOrderMessagesByOrderForAdmin(orderId: string): Promise<OrderMessage[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase || !orderId) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("order_messages")
+    .select("*")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true })
+    .limit(300);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as OrderMessage[];
+}
+
+export async function getPricePresetsForAdmin(): Promise<PricePreset[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("price_presets")
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as PricePreset[];
+}
+
+export async function getPriceFormulasForAdmin(): Promise<PriceFormula[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("price_formulas")
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as PriceFormula[];
+}
+
+export async function getFormulaComponentsForAdmin(formulaId: string): Promise<FormulaComponent[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase || !formulaId) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("formula_components")
+    .select("*")
+    .eq("formula_id", formulaId)
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as FormulaComponent[];
+}
+
+export async function getClientsForAdmin(limit = 200): Promise<ClientSummary[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const [{ data: profiles, error: profilesError }, { data: orders, error: ordersError }] =
+    await Promise.all([
+      supabase
+        .from("user_profiles")
+        .select("id, display_name, avatar_url, account_types, created_at, last_seen_at")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+      supabase.from("orders").select("user_id"),
+    ]);
+
+  if (profilesError || !profiles || ordersError || !orders) {
+    return [];
+  }
+
+  const orderCountMap = new Map<string, number>();
+  for (const order of orders) {
+    if (!order.user_id) {
+      continue;
+    }
+    orderCountMap.set(order.user_id, (orderCountMap.get(order.user_id) ?? 0) + 1);
+  }
+
+  return profiles.map((profile) => ({
+    ...profile,
+    orders_count: orderCountMap.get(profile.id) ?? 0,
+  })) as ClientSummary[];
+}
+
+export async function getAuditLogForAdmin(limit = 500): Promise<AuditLogRecord[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("audit_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as AuditLogRecord[];
 }
