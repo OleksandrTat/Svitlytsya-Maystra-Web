@@ -1,0 +1,470 @@
+import { cache } from "react";
+import { mockInquiries, mockProjects, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
+import type { ActivityLog, CatalogFilters, Inquiry, Project, Service, SiteSetting, Testimonial } from "@/lib/types";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/types/database";
+
+function splitCsvParam(value?: string) {
+  return value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
+export function parseCatalogFilters(searchParams: Record<string, string | string[] | undefined>): CatalogFilters {
+  const category = typeof searchParams.category === "string" ? searchParams.category : undefined;
+  const status = typeof searchParams.status === "string" ? searchParams.status : undefined;
+  const styles = splitCsvParam(typeof searchParams.style === "string" ? searchParams.style : undefined);
+  const materials = splitCsvParam(typeof searchParams.material === "string" ? searchParams.material : undefined);
+  const page = Number(typeof searchParams.page === "string" ? searchParams.page : "1") || 1;
+
+  return {
+    category: category as CatalogFilters["category"],
+    status: status as CatalogFilters["status"],
+    styles,
+    materials,
+    page: page > 0 ? page : 1,
+    pageSize: 9,
+  };
+}
+
+function applyCatalogFilters(items: Project[], filters: CatalogFilters) {
+  return items.filter((project) => {
+    if (filters.category && project.category !== filters.category) {
+      return false;
+    }
+
+    if (filters.status && project.status !== filters.status) {
+      return false;
+    }
+
+    if (filters.styles.length > 0) {
+      const hasStyle = filters.styles.every((style) => project.style.includes(style));
+      if (!hasStyle) {
+        return false;
+      }
+    }
+
+    if (filters.materials.length > 0) {
+      const hasMaterial = filters.materials.every((material) => project.materials.includes(material));
+      if (!hasMaterial) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function parseServiceSteps(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => (typeof item === "string" ? item : ""))
+    .filter(Boolean);
+}
+
+function mapService(row: Database["public"]["Tables"]["services"]["Row"]): Service {
+  return {
+    ...row,
+    process_steps: parseServiceSteps(row.process_steps),
+  };
+}
+
+export const getFeaturedProjects = cache(async (limit = 6): Promise<Project[]> => {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockProjects
+      .filter((project) => project.is_featured)
+      .slice(0, limit);
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("is_featured", true)
+    .in("status", ["public", "concept"])
+    .order("completed_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return mockProjects
+      .filter((project) => project.is_featured)
+      .slice(0, limit);
+  }
+
+  return data;
+});
+
+export const getVisibleTestimonials = cache(async (limit = 3): Promise<Testimonial[]> => {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockTestimonials.filter((item) => item.is_visible).slice(0, limit);
+  }
+
+  const { data, error } = await supabase
+    .from("testimonials")
+    .select("*")
+    .eq("is_visible", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return mockTestimonials.filter((item) => item.is_visible).slice(0, limit);
+  }
+
+  return data;
+});
+
+export async function getCatalogProjects(
+  filters: CatalogFilters,
+): Promise<{ items: Project[]; total: number }> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    const filtered = applyCatalogFilters(mockProjects, filters);
+    const start = (filters.page - 1) * filters.pageSize;
+    const end = start + filters.pageSize;
+
+    return {
+      items: filtered.slice(start, end),
+      total: filtered.length,
+    };
+  }
+
+  let query = supabase
+    .from("projects")
+    .select("*", { count: "exact" })
+    .neq("status", "nda")
+    .order("completed_at", { ascending: false });
+
+  if (filters.category) {
+    query = query.eq("category", filters.category);
+  }
+
+  if (filters.status) {
+    query = query.eq("status", filters.status);
+  }
+
+  if (filters.styles.length > 0) {
+    query = query.contains("style", filters.styles);
+  }
+
+  if (filters.materials.length > 0) {
+    query = query.contains("materials", filters.materials);
+  }
+
+  const start = (filters.page - 1) * filters.pageSize;
+  const end = start + filters.pageSize - 1;
+
+  const { data, count, error } = await query.range(start, end);
+
+  if (error || !data) {
+    const filtered = applyCatalogFilters(
+      mockProjects.filter((item) => item.status !== "nda"),
+      filters,
+    );
+
+    return {
+      items: filtered.slice(start, start + filters.pageSize),
+      total: filtered.length,
+    };
+  }
+
+  return {
+    items: data,
+    total: count ?? data.length,
+  };
+}
+
+export const getProjectBySlug = cache(async (slug: string): Promise<Project | null> => {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockProjects.find((project) => project.slug === slug) ?? null;
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !data) {
+    return mockProjects.find((project) => project.slug === slug) ?? null;
+  }
+
+  return data;
+});
+
+export async function getRelatedProjects(project: Project, limit = 4): Promise<Project[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockProjects
+      .filter((item) => item.category === project.category && item.slug !== project.slug)
+      .slice(0, limit);
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("category", project.category)
+    .neq("slug", project.slug)
+    .neq("status", "nda")
+    .order("completed_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return mockProjects
+      .filter((item) => item.category === project.category && item.slug !== project.slug)
+      .slice(0, limit);
+  }
+
+  return data;
+}
+
+export const getAllPublicProjectSlugs = cache(async () => {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockProjects
+      .filter((project) => project.status !== "nda")
+      .map((project) => project.slug);
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("slug")
+    .neq("status", "nda");
+
+  if (error || !data) {
+    return mockProjects
+      .filter((project) => project.status !== "nda")
+      .map((project) => project.slug);
+  }
+
+  return data.map((project) => project.slug);
+});
+
+export const getServices = cache(async (): Promise<Service[]> => {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [...mockServices].sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  const { data, error } = await supabase
+    .from("services")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) {
+    return [...mockServices].sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  return data.map(mapService);
+});
+
+export const getServiceBySlug = cache(async (slug: string): Promise<Service | null> => {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockServices.find((service) => service.slug === slug) ?? null;
+  }
+
+  const { data, error } = await supabase
+    .from("services")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !data) {
+    return mockServices.find((service) => service.slug === slug) ?? null;
+  }
+
+  return mapService(data);
+});
+
+export async function getDashboardStats() {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      totalProjects: mockProjects.length,
+      totalInquiries: mockInquiries.length,
+      newInquiriesToday: mockInquiries.filter((item) => item.created_at.startsWith(today)).length,
+    };
+  }
+
+  const [projectsResult, inquiriesResult, inquiriesTodayResult] = await Promise.all([
+    supabase.from("projects").select("id", { count: "exact", head: true }),
+    supabase.from("inquiries").select("id", { count: "exact", head: true }),
+    supabase
+      .from("inquiries")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", new Date().toISOString().slice(0, 10)),
+  ]);
+
+  return {
+    totalProjects: projectsResult.count ?? 0,
+    totalInquiries: inquiriesResult.count ?? 0,
+    newInquiriesToday: inquiriesTodayResult.count ?? 0,
+  };
+}
+
+export async function getRecentInquiries(limit = 5): Promise<Inquiry[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockInquiries.slice(0, limit);
+  }
+
+  const { data, error } = await supabase
+    .from("inquiries")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return mockInquiries.slice(0, limit);
+  }
+
+  return data;
+}
+
+export async function getAllProjectsForAdmin(): Promise<Project[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [...mockProjects];
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    return [...mockProjects];
+  }
+
+  return data;
+}
+
+export async function getAllServicesForAdmin(): Promise<Service[]> {
+  const services = await getServices();
+  return services;
+}
+
+export async function getAllTestimonialsForAdmin(): Promise<Testimonial[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [...mockTestimonials];
+  }
+
+  const { data, error } = await supabase
+    .from("testimonials")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    return [...mockTestimonials];
+  }
+
+  return data;
+}
+
+export async function getAllInquiriesForAdmin(): Promise<Inquiry[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [...mockInquiries];
+  }
+
+  const { data, error } = await supabase
+    .from("inquiries")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    return [...mockInquiries];
+  }
+
+  return data;
+}
+
+export async function getSiteSettingsForAdmin(): Promise<SiteSetting[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [...mockSiteSettings];
+  }
+
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("*")
+    .order("key", { ascending: true });
+
+  if (error || !data) {
+    return [...mockSiteSettings];
+  }
+
+  return data;
+}
+
+export async function getContactSettings() {
+  const settings = await getSiteSettingsForAdmin();
+  const contacts = settings.find((setting) => setting.key === "contacts")?.value;
+
+  if (
+    contacts &&
+    typeof contacts === "object" &&
+    !Array.isArray(contacts) &&
+    "phone" in contacts &&
+    "email" in contacts
+  ) {
+    return contacts as {
+      phone: string;
+      email: string;
+      address: string;
+      hours: string;
+    };
+  }
+
+  return {
+    phone: "+380 (67) 000-00-00",
+    email: "info@svitlytsya.ua",
+    address: "Україна, м. Київ, вул. Майстерна, 12",
+    hours: "Пн-Пт: 09:00-18:00",
+  };
+}
+
+
+export async function getActivityLogsForAdmin(limit = 100): Promise<ActivityLog[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("activity_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as ActivityLog[];
+}
