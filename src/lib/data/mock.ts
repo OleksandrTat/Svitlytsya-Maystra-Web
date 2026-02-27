@@ -267,6 +267,8 @@ export const mockInquiries: Inquiry[] = [
     message: "Потрібні вхідні двері для будинку, цікавить дуб.",
     source_page: "/catalog/dubovi-vkhidni-dveri-kyiv",
     project_ref_id: mockProjects[0]?.id ?? null,
+    configuration: null,
+    chat_session_id: null,
     status: "new",
     created_at: now,
   },

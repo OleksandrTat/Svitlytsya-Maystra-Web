@@ -1,7 +1,18 @@
 import { cache } from "react";
 import { mockInquiries, mockProjects, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
-import type { ActivityLog, CatalogFilters, Inquiry, Project, Service, SiteSetting, Testimonial } from "@/lib/types";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type {
+  ActivityLog,
+  AIChatMessage,
+  AIChatSession,
+  CatalogFilters,
+  Inquiry,
+  Project,
+  Service,
+  SiteSetting,
+  Testimonial,
+} from "@/lib/types";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
+import { DEFAULT_CHAT_SYSTEM_PROMPT } from "@/lib/chat/constants";
 import type { Database } from "@/lib/types/database";
 
 function splitCsvParam(value?: string) {
@@ -66,6 +77,24 @@ function parseServiceSteps(value: unknown): string[] {
   return value
     .map((item) => (typeof item === "string" ? item : ""))
     .filter(Boolean);
+}
+
+function extractStringSetting(value: unknown) {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "prompt" in value &&
+    typeof value.prompt === "string"
+  ) {
+    return value.prompt;
+  }
+
+  return null;
 }
 
 function mapService(row: Database["public"]["Tables"]["services"]["Row"]): Service {
@@ -421,6 +450,26 @@ export async function getSiteSettingsForAdmin(): Promise<SiteSetting[]> {
   return data;
 }
 
+export async function getChatSystemPrompt() {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+
+  if (!supabase) {
+    return DEFAULT_CHAT_SYSTEM_PROMPT;
+  }
+
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "ai_chat_system_prompt")
+    .maybeSingle();
+
+  if (error) {
+    return DEFAULT_CHAT_SYSTEM_PROMPT;
+  }
+
+  return extractStringSetting(data?.value) ?? DEFAULT_CHAT_SYSTEM_PROMPT;
+}
+
 export async function getContactSettings() {
   const settings = await getSiteSettingsForAdmin();
   const contacts = settings.find((setting) => setting.key === "contacts")?.value;
@@ -467,4 +516,45 @@ export async function getActivityLogsForAdmin(limit = 100): Promise<ActivityLog[
   }
 
   return data as ActivityLog[];
+}
+
+export async function getChatSessionsForAdmin(limit = 100): Promise<AIChatSession[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("ai_chat_sessions")
+    .select("*")
+    .order("last_message_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as AIChatSession[];
+}
+
+export async function getChatMessagesForAdmin(chatSessionId: string, limit = 100): Promise<AIChatMessage[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("ai_chat_messages")
+    .select("*")
+    .eq("chat_session_id", chatSessionId)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as AIChatMessage[];
 }

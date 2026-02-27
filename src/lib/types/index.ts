@@ -1,6 +1,9 @@
 export type ProjectCategory = "doors" | "furniture" | "windows";
 export type ProjectStatus = "public" | "nda" | "concept";
 export type InquiryStatus = "new" | "in_progress" | "done" | "archived";
+export type ChatRole = "user" | "assistant";
+export type ProductType = "door" | "furniture" | "window";
+export type BlogCommentStatus = "pending" | "approved" | "rejected";
 
 export interface Project {
   id: string;
@@ -55,7 +58,30 @@ export interface Inquiry {
   message: string | null;
   source_page: string | null;
   project_ref_id: string | null;
+  configuration: Record<string, unknown> | null;
+  chat_session_id: string | null;
   status: InquiryStatus;
+  created_at: string;
+}
+
+export interface AIChatSession {
+  id: string;
+  session_id: string;
+  user_id: string | null;
+  language: string;
+  messages_count: number;
+  resulted_in_inquiry: boolean;
+  inquiry_id: string | null;
+  created_at: string;
+  last_message_at: string;
+}
+
+export interface AIChatMessage {
+  id: string;
+  chat_session_id: string;
+  role: ChatRole;
+  content: string;
+  tokens_used: number;
   created_at: string;
 }
 

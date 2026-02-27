@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { initPosthog } from "@/lib/posthog/client";
+import { initPosthog, optOutPosthog } from "@/lib/posthog/client";
 
 const STORAGE_KEY = "cookie-consent";
 
@@ -26,6 +26,8 @@ export function CookieBanner() {
     window.localStorage.setItem(STORAGE_KEY, value);
     if (value === "accepted") {
       initPosthog();
+    } else {
+      optOutPosthog();
     }
     setVisible(false);
   };

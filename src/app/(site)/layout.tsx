@@ -2,6 +2,7 @@ import { SiteHeader } from "@/components/shared/header";
 import { SiteFooter } from "@/components/shared/footer";
 import { CookieBanner } from "@/components/shared/cookie-banner";
 import { PosthogPageView } from "@/components/shared/posthog-pageview";
+import { AIChatWidget } from "@/components/chat/ai-chat-widget";
 import { Suspense } from "react";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       </Suspense>
       <main>{children}</main>
       <SiteFooter />
+      <AIChatWidget />
       <CookieBanner />
     </div>
   );

@@ -10,6 +10,7 @@ const items = [
   { href: "/admin/services", label: "Послуги" },
   { href: "/admin/testimonials", label: "Відгуки" },
   { href: "/admin/inquiries", label: "Заявки" },
+  { href: "/admin/chat", label: "AI Chat" },
   { href: "/admin/settings", label: "Налаштування" },
   { href: "/admin/logs", label: "Журнал" },
 ];

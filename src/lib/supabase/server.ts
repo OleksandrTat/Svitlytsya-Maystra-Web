@@ -8,7 +8,22 @@ export async function createSupabaseServerClient() {
     return null;
   }
 
-  const cookieStore = await cookies();
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
+
+  try {
+    cookieStore = await cookies();
+  } catch {
+    cookieStore = null;
+  }
+
+  if (!cookieStore) {
+    return createClient(env.supabaseUrl!, env.supabaseAnonKey!, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+  }
 
   return createServerClient(env.supabaseUrl!, env.supabaseAnonKey!, {
     cookies: {

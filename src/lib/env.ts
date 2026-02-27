@@ -2,6 +2,7 @@ export const env = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  openAiApiKey: process.env.OPENAI_API_KEY,
   resendApiKey: process.env.RESEND_API_KEY,
   resendFromEmail: process.env.RESEND_FROM_EMAIL,
   adminEmail: process.env.ADMIN_EMAIL,
@@ -18,4 +19,6 @@ export const hasServiceRoleKey =
 
 export const hasResend =
   Boolean(env.resendApiKey) && Boolean(env.resendFromEmail) && Boolean(env.adminEmail);
+
+export const hasOpenAi = Boolean(env.openAiApiKey);
 

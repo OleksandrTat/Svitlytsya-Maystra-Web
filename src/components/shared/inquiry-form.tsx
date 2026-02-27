@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { submitInquiryAction } from "@/actions/inquiries";
 import { SERVICE_TYPES } from "@/lib/constants";
+import { capturePosthogEvent } from "@/lib/posthog/client";
 import { inquirySchema, type InquirySchema } from "@/lib/validation/inquiry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ type Props = {
 
 export function InquiryForm({ projectRefId, className, compact = false }: Props) {
   const pathname = usePathname();
+  const [lastSubmitted, setLastSubmitted] = useState<InquirySchema | null>(null);
   const [state, submit, isPending] = useActionState(submitInquiryAction, initialState);
 
   const {
@@ -62,14 +64,29 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
     }
   }, [state.success, reset, pathname, projectRefId]);
 
+  useEffect(() => {
+    if (!state.success || !lastSubmitted) {
+      return;
+    }
+
+    capturePosthogEvent("inquiry_submitted", {
+      service_type: lastSubmitted.service_type,
+      source_page: lastSubmitted.source_page || pathname,
+      has_project_ref: Boolean(lastSubmitted.project_ref_id || projectRefId),
+    });
+  }, [lastSubmitted, pathname, projectRefId, state.success]);
+
   const onSubmit = handleSubmit(async (values) => {
     const formData = new FormData();
-
-    Object.entries({
+    const payload = {
       ...values,
       source_page: pathname,
       project_ref_id: projectRefId ?? values.project_ref_id ?? "",
-    }).forEach(([key, value]) => {
+    };
+
+    setLastSubmitted(payload);
+
+    Object.entries(payload).forEach(([key, value]) => {
       formData.set(key, value ?? "");
     });
 
