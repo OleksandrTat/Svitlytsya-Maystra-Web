@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BlogCard } from "@/components/blog/blog-card";
 import { BlogFilters } from "@/components/blog/blog-filters";
 import { Container } from "@/components/ui/container";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Блог компанії",
@@ -21,7 +21,7 @@ export default async function BlogPage({
   const params = await searchParams;
   const activeCategory = typeof params.category === "string" ? params.category : undefined;
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
   let posts: {
     id: string;

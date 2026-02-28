@@ -1,4 +1,4 @@
-import { cache } from "react";
+﻿import { cache } from "react";
 import { mockInquiries, mockProjects, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
 import type {
   ActivityLog,
@@ -384,6 +384,34 @@ export async function getDashboardStats() {
   };
 }
 
+export async function getAdminWorkspaceCounts() {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return {
+      unreadMessages: 0,
+      newInquiries: 0,
+    };
+  }
+
+  const [messagesResult, inquiriesResult] = await Promise.all([
+    supabase
+      .from("order_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("sender_type", "client")
+      .eq("is_read", false),
+    supabase
+      .from("inquiries")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "new"),
+  ]);
+
+  return {
+    unreadMessages: messagesResult.count ?? 0,
+    newInquiries: inquiriesResult.count ?? 0,
+  };
+}
+
 export async function getRecentInquiries(limit = 5): Promise<Inquiry[]> {
   const supabase = await createSupabaseServerClient();
 
@@ -528,7 +556,7 @@ export async function getContactSettings() {
     phone: "+380 (67) 000-00-00",
     email: "info@svitlytsya.ua",
     address: "Вул. Сонячна, 22, Слобідка, Тернопільська область, Україна, 47632",
-    hours: "РџРЅ-РџС‚: 09:00-18:00",
+    hours: "Пн-Пт: 09:00-18:00",
   };
 }
 
@@ -937,3 +965,5 @@ export async function getAuditLogForAdmin(limit = 500): Promise<AuditLogRecord[]
 
   return data as AuditLogRecord[];
 }
+
+

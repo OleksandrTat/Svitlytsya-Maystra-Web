@@ -1,6 +1,7 @@
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
 import {
   deleteTestimonialAction,
   upsertTestimonialAction,
@@ -57,7 +58,7 @@ export default async function AdminTestimonialsPage() {
                   <span className="rounded-full bg-white px-2 py-1">{item.is_visible ? "Видимий" : "Прихований"}</span>
                   <form action={deleteTestimonialAction as unknown as (formData: FormData) => Promise<void>}>
                     <input type="hidden" name="id" value={item.id} />
-                    <button type="submit" className="text-red-600">Видалити</button>
+                    <ConfirmDeleteButton confirmMessage="Delete testimonial?" className="text-sm" />
                   </form>
                 </div>
               </div>

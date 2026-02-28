@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { BlogPostForm } from "@/components/admin/blog/blog-post-form";
 import { Container } from "@/components/ui/container";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
 type Params = {
   id: string;
@@ -13,7 +13,7 @@ export default async function AdminBlogEditPage({
   params: Promise<Params>;
 }) {
   const { id } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
   if (!supabase) {
     redirect("/admin/blog");

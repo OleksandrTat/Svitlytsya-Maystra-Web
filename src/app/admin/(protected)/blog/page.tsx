@@ -5,11 +5,12 @@ import {
 } from "@/actions/admin/blog";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { formatInquiryDate } from "@/lib/utils";
 
 export default async function AdminBlogPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   const { data: posts } = supabase
     ? await supabase
         .from("blog_posts")
@@ -89,9 +90,7 @@ export default async function AdminBlogPage() {
                       </form>
                       <form action={deletePost}>
                         <input type="hidden" name="id" value={post.id} />
-                        <button type="submit" className="text-xs text-red-600">
-                          Видалити
-                        </button>
+                        <ConfirmDeleteButton confirmMessage="Delete blog post?" />
                       </form>
                     </div>
                   </td>

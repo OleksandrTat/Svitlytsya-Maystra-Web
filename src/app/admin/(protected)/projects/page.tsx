@@ -1,6 +1,7 @@
-﻿import { AdminActionForm } from "@/components/admin/admin-action-form";
+import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
 import { deleteProjectAction, upsertProjectAction } from "@/actions/admin";
 import {
   PROJECT_CATEGORY_LABELS,
@@ -178,9 +179,7 @@ export default async function AdminProjectsPage() {
                   <td className="px-2 py-2">
                     <form action={deleteProjectAction as unknown as (formData: FormData) => Promise<void>}>
                       <input type="hidden" name="id" value={project.id} />
-                      <button type="submit" className="text-xs text-red-600">
-                        Видалити
-                      </button>
+                      <ConfirmDeleteButton confirmMessage="Delete project?" />
                     </form>
                   </td>
                 </tr>

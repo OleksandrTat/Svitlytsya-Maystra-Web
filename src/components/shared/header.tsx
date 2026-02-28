@@ -44,12 +44,6 @@ export function SiteHeader() {
           >
             Увійти
           </Link>
-          <Link
-            href="/admin"
-            className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-          >
-            Адмін
-          </Link>
           <Link href="/contact">
             <Button className="h-10 px-5 text-xs">Отримати розрахунок</Button>
           </Link>
@@ -82,15 +76,10 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <Link href="/auth/login" onClick={() => setOpen(false)}>
               <Button variant="secondary" className="w-full">
                 Увійти
-              </Button>
-            </Link>
-            <Link href="/admin" onClick={() => setOpen(false)}>
-              <Button variant="secondary" className="w-full">
-                Адмін
               </Button>
             </Link>
           </div>
@@ -102,3 +91,4 @@ export function SiteHeader() {
     </header>
   );
 }
+

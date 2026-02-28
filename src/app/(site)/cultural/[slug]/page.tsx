@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/blog/comment-section";
 import { Container } from "@/components/ui/container";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
 type Params = {
   slug: string;
@@ -13,7 +13,7 @@ type Params = {
 export const revalidate = 300;
 
 export async function generateStaticParams() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
     return [];
   }
@@ -32,7 +32,7 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
     return {};
   }
@@ -65,7 +65,7 @@ export default async function CulturalArticlePage({
   params: Promise<Params>;
 }) {
   const { slug } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
     notFound();
   }

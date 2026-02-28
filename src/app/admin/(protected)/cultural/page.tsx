@@ -1,12 +1,20 @@
 import Link from "next/link";
+import {
+  deleteCulturalPostAction,
+  togglePublishCulturalPostAction,
+} from "@/actions/admin/cultural";
 import { approveCommentAction, rejectCommentAction } from "@/actions/comments";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceClient,
+} from "@/lib/supabase/server";
 import { formatInquiryDate } from "@/lib/utils";
 
 export default async function AdminCulturalPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
   const [{ data: postsRaw }, { data: commentsRaw }] = supabase
     ? await Promise.all([
@@ -46,35 +54,77 @@ export default async function AdminCulturalPage() {
     await rejectCommentAction(formData);
   };
 
+  const togglePublish = async (formData: FormData) => {
+    "use server";
+    await togglePublishCulturalPostAction(formData);
+  };
+
+  const deletePost = async (formData: FormData) => {
+    "use server";
+    await deleteCulturalPostAction(formData);
+  };
+
   return (
     <AdminShell
       title="Культурний блог"
       description="Публікації культурного блогу та модерація коментарів."
     >
+      <div className="flex justify-end">
+        <Link
+          href="/admin/cultural/new"
+          className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+        >
+          Нова стаття
+        </Link>
+      </div>
+
       <AdminCard>
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Статті</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] text-left text-[var(--color-text-secondary)]">
-                <th className="px-2 py-2">Назва</th>
+                <th className="px-2 py-2">Заголовок</th>
                 <th className="px-2 py-2">Статус</th>
                 <th className="px-2 py-2">Коментарі</th>
                 <th className="px-2 py-2">Оновлено</th>
-                <th className="px-2 py-2">Перегляд</th>
+                <th className="px-2 py-2">Дії</th>
               </tr>
             </thead>
             <tbody>
               {posts.map((post) => (
-                <tr key={post.id} className="border-b border-[var(--color-border)]/60">
-                  <td className="px-2 py-3">{post.title}</td>
+                <tr key={post.id} className="border-b border-[var(--color-border)]/60 align-top">
+                  <td className="px-2 py-3">
+                    <p className="font-medium text-[var(--color-text-primary)]">{post.title}</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">/cultural/{post.slug}</p>
+                  </td>
                   <td className="px-2 py-3">{post.is_published ? "Опубліковано" : "Чернетка"}</td>
                   <td className="px-2 py-3">{post.comments_count}</td>
                   <td className="px-2 py-3">{formatInquiryDate(post.updated_at)}</td>
                   <td className="px-2 py-3">
-                    <Link href={`/cultural/${post.slug}`} className="text-xs underline">
-                      Відкрити
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Link href={`/admin/cultural/${post.id}/edit`} className="text-xs underline">
+                        Редагувати
+                      </Link>
+                      <form action={togglePublish}>
+                        <input type="hidden" name="id" value={post.id} />
+                        <input
+                          type="hidden"
+                          name="publish"
+                          value={post.is_published ? "false" : "true"}
+                        />
+                        <button type="submit" className="text-xs underline">
+                          {post.is_published ? "Зняти з публікації" : "Опублікувати"}
+                        </button>
+                      </form>
+                      <Link href={`/cultural/${post.slug}`} className="text-xs underline">
+                        Відкрити
+                      </Link>
+                      <form action={deletePost}>
+                        <input type="hidden" name="id" value={post.id} />
+                        <ConfirmDeleteButton confirmMessage="Delete cultural post?" />
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}

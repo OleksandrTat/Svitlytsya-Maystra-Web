@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BlogCardWithPath } from "@/components/blog/blog-card";
 import { Container } from "@/components/ui/container";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Культурний блог",
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function CulturalBlogPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
   const { data: posts } = supabase
     ? await supabase

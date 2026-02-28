@@ -23,9 +23,6 @@ export function SiteFooter() {
             <li>
               <Link href="/contact">Контакти</Link>
             </li>
-            <li>
-              <Link href="/admin">Адмін-панель</Link>
-            </li>
           </ul>
         </div>
 
@@ -51,4 +48,5 @@ export function SiteFooter() {
     </footer>
   );
 }
+
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
 type Params = {
   slug: string;
@@ -12,7 +12,7 @@ type Params = {
 export const revalidate = 300;
 
 export async function generateStaticParams() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
     return [];
   }
@@ -31,7 +31,7 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
   if (!supabase) {
     return {};
@@ -66,7 +66,7 @@ export default async function BlogArticlePage({
   params: Promise<Params>;
 }) {
   const { slug } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
   if (!supabase) {
     notFound();

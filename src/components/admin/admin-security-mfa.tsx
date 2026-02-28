@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+type TotpFactor = {
+  id: string;
+  status?: string;
+};
+
 function toQrSrc(raw: string) {
   if (raw.startsWith("data:")) {
     return raw;
@@ -18,26 +23,37 @@ export function AdminSecurityMfa() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [hasVerifiedFactor, setHasVerifiedFactor] = useState(false);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
+  const loadStatus = async () => {
+    const { data, error: factorsError } = await supabase.auth.mfa.listFactors();
+    if (factorsError) {
+      setError(factorsError.message);
+      return;
+    }
+
+    const totpFactors = ((data?.totp ?? []) as TotpFactor[]).filter(
+      (factor) => factor.status === "verified",
+    );
+
+    const verified = totpFactors.length > 0;
+    setHasVerifiedFactor(verified);
+
+    if (verified) {
+      setStep("done");
+      setStatusMessage("2FA вже активна.");
+    } else {
+      setStep("idle");
+      setStatusMessage(null);
+    }
+  };
+
   useEffect(() => {
-    const loadStatus = async () => {
-      const { data, error: factorsError } = await supabase.auth.mfa.listFactors();
-      if (factorsError) {
-        setError(factorsError.message);
-        return;
-      }
-
-      const existingFactor = data?.totp?.[0];
-      if (existingFactor?.status === "verified") {
-        setStep("done");
-        setStatusMessage("2FA вже активна.");
-      }
-    };
-
     void loadStatus();
-  }, [supabase.auth.mfa]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 
   const startSetup = async () => {
     setLoading(true);
@@ -96,6 +112,47 @@ export function AdminSecurityMfa() {
     setStatusMessage("2FA успішно увімкнено.");
     setToken("");
     setLoading(false);
+    await loadStatus();
+  };
+
+  const disableTwoFactor = async () => {
+    const confirmed = window.confirm("Вимкнути 2FA для цього акаунта?");
+    if (!confirmed) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setStatusMessage(null);
+
+    const { data, error: factorsError } = await supabase.auth.mfa.listFactors();
+    if (factorsError) {
+      setError(factorsError.message);
+      setLoading(false);
+      return;
+    }
+
+    const totpFactors = (data?.totp ?? []) as TotpFactor[];
+
+    for (const factor of totpFactors) {
+      const { error: unenrollError } = await supabase.auth.mfa.unenroll({
+        factorId: factor.id,
+      });
+
+      if (unenrollError) {
+        setError(unenrollError.message);
+        setLoading(false);
+        return;
+      }
+    }
+
+    setFactorId(null);
+    setQrCode(null);
+    setToken("");
+    setStep("idle");
+    setStatusMessage("2FA вимкнено.");
+    setLoading(false);
+    await loadStatus();
   };
 
   return (
@@ -146,7 +203,17 @@ export function AdminSecurityMfa() {
       ) : null}
 
       {step === "done" ? (
-        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">2FA активна.</p>
+        <div className="space-y-3">
+          <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">2FA активна.</p>
+          <button
+            type="button"
+            onClick={() => void disableTwoFactor()}
+            disabled={loading || !hasVerifiedFactor}
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"
+          >
+            {loading ? "Вимкнення..." : "Вимкнути 2FA"}
+          </button>
+        </div>
       ) : null}
 
       {statusMessage ? <p className="text-sm text-emerald-700">{statusMessage}</p> : null}
