@@ -264,7 +264,7 @@ const siteSettings: Row[] = [
     value: {
       phone: "+380 (67) 000-00-00",
       email: "info@svitlytsya.ua",
-      address: "Україна, м. Київ, вул. Майстерна, 12",
+      address: "Вул. Сонячна, 22, Слобідка, Тернопільська область, Україна, 47632",
       hours: "Пн-Пт: 09:00-18:00",
     },
     description: "Контакти",

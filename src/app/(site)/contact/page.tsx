@@ -19,6 +19,12 @@ export default async function ContactPage({
   const params = await searchParams;
   const projectRef = typeof params.projectRef === "string" ? params.projectRef : undefined;
   const contacts = await getContactSettings();
+  const fallbackAddress = "Вул. Сонячна, 22, Слобідка, Тернопільська область, Україна, 47632";
+  const mapAddress =
+    typeof contacts.address === "string" && contacts.address.trim().length > 0
+      ? contacts.address
+      : fallbackAddress;
+  const mapSrc = `https://www.google.com/maps?output=embed&q=${encodeURIComponent(mapAddress)}`;
 
   return (
     <>
@@ -54,10 +60,11 @@ export default async function ContactPage({
               <div className="overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white">
                 <iframe
                   title="Карта майстерні"
-                  src="https://www.google.com/maps?q=Kyiv&output=embed"
+                  src={mapSrc}
                   width="100%"
                   height="280"
                   loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
                   style={{ border: 0 }}
                 />
               </div>

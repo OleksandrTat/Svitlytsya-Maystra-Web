@@ -15,7 +15,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co https://api.openai.com https://app.posthog.com https://challenges.cloudflare.com",
-      "frame-src https://challenges.cloudflare.com",
+      "frame-src 'self' https://challenges.cloudflare.com https://www.google.com https://maps.google.com",
       "base-uri 'self'",
       "form-action 'self'",
     ].join("; "),
