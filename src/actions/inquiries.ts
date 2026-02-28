@@ -34,6 +34,23 @@ function checkRateLimit(identity: string) {
 }
 
 function normalizeInquiryInput(input: InquirySchema) {
+  let configuration: Record<string, unknown> | null = null;
+
+  if (input.configuration?.trim()) {
+    try {
+      const parsedConfiguration = JSON.parse(input.configuration);
+      if (
+        parsedConfiguration &&
+        typeof parsedConfiguration === "object" &&
+        !Array.isArray(parsedConfiguration)
+      ) {
+        configuration = parsedConfiguration as Record<string, unknown>;
+      }
+    } catch {
+      configuration = null;
+    }
+  }
+
   return {
     name: input.name,
     phone: input.phone,
@@ -42,6 +59,7 @@ function normalizeInquiryInput(input: InquirySchema) {
     message: input.message?.trim() || null,
     source_page: input.source_page?.trim() || null,
     project_ref_id: input.project_ref_id?.trim() || null,
+    configuration,
     status: "new" as const,
   };
 }
@@ -66,6 +84,11 @@ async function sendInquiryEmails(payload: ReturnType<typeof normalizeInquiryInpu
       <p><strong>Сторінка:</strong> ${payload.source_page ?? "невідомо"}</p>
       <p><strong>Повідомлення:</strong></p>
       <p>${payload.message ?? "-"}</p>
+      ${
+        payload.configuration
+          ? `<p><strong>Configuration:</strong></p><pre>${JSON.stringify(payload.configuration, null, 2)}</pre>`
+          : ""
+      }
     `,
   });
 
@@ -106,6 +129,7 @@ export async function submitInquiryAction(
     message: formData.get("message"),
     source_page: formData.get("source_page"),
     project_ref_id: formData.get("project_ref_id"),
+    configuration: formData.get("configuration"),
     honeypot: formData.get("honeypot"),
     turnstile_token: formData.get("cf-turnstile-response") ?? formData.get("turnstile_token"),
   });

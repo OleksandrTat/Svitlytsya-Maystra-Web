@@ -22,6 +22,7 @@ export const inquirySchema = z.object({
     .or(z.literal("")),
   source_page: z.string().trim().optional(),
   project_ref_id: z.string().uuid().optional().or(z.literal("")),
+  configuration: z.string().optional().or(z.literal("")),
   honeypot: z.string().optional(),
   turnstile_token: z.string().optional(),
 });

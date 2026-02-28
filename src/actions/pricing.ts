@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import type { FormulaComponentType, PricePresetCategory, PricingProductType } from "@/lib/types";
 
 type ActionResult = {
@@ -11,6 +12,8 @@ type ActionResult = {
 };
 
 export async function upsertPricePresetAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
     return { ok: false, message: "Supabase service client is not configured." };
@@ -49,6 +52,8 @@ export async function upsertPricePresetAction(formData: FormData): Promise<Actio
 }
 
 export async function upsertPriceFormulaAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
     return { ok: false, message: "Supabase service client is not configured." };
@@ -91,6 +96,8 @@ export async function upsertPriceFormulaAction(formData: FormData): Promise<Acti
 }
 
 export async function addFormulaComponentAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
     return { ok: false, message: "Supabase service client is not configured." };

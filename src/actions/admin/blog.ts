@@ -1,0 +1,222 @@
+"use server";
+
+import { randomUUID } from "crypto";
+import { revalidatePath } from "next/cache";
+import { createSupabaseServiceClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
+
+type ActionResult = {
+  ok: boolean;
+  message: string;
+};
+
+function parseTags(raw: string) {
+  return raw
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]+>/g, " ");
+}
+
+function calculateReadingTimeMinutes(content: string) {
+  const words = stripHtml(content)
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean).length;
+
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+function sanitizeHtml(content: string) {
+  return content.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+}
+
+function parseCheckbox(value: FormDataEntryValue | null) {
+  return value === "on" || value === "true";
+}
+
+export async function createBlogPostAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase service client is not configured." };
+  }
+
+  const title = String(formData.get("title") || "").trim();
+  const slug = String(formData.get("slug") || "").trim();
+  const excerpt = String(formData.get("excerpt") || "").trim();
+  const content = sanitizeHtml(String(formData.get("content") || "").trim());
+  const coverImage = String(formData.get("cover_image") || "").trim();
+  const category = String(formData.get("category") || "").trim();
+  const tags = parseTags(String(formData.get("tags") || ""));
+  const seoTitle = String(formData.get("seo_title") || "").trim();
+  const seoDescription = String(formData.get("seo_description") || "").trim();
+  const isPublished = parseCheckbox(formData.get("is_published"));
+
+  if (!title || !slug || !excerpt || !content || !category) {
+    return { ok: false, message: "Заповніть всі обовʼязкові поля статті." };
+  }
+
+  const { error } = await supabase.from("blog_posts").insert({
+    id: randomUUID(),
+    title,
+    slug,
+    excerpt,
+    content,
+    cover_image: coverImage || null,
+    category,
+    tags,
+    reading_time_min: calculateReadingTimeMinutes(content),
+    is_published: isPublished,
+    published_at: isPublished ? new Date().toISOString() : null,
+    seo_title: seoTitle || null,
+    seo_description: seoDescription || null,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/blog");
+  revalidatePath(`/blog/${slug}`);
+  revalidatePath("/admin/blog");
+
+  return { ok: true, message: "Статтю створено." };
+}
+
+export async function updateBlogPostAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase service client is not configured." };
+  }
+
+  const id = String(formData.get("id") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const slug = String(formData.get("slug") || "").trim();
+  const excerpt = String(formData.get("excerpt") || "").trim();
+  const content = sanitizeHtml(String(formData.get("content") || "").trim());
+  const coverImage = String(formData.get("cover_image") || "").trim();
+  const category = String(formData.get("category") || "").trim();
+  const tags = parseTags(String(formData.get("tags") || ""));
+  const seoTitle = String(formData.get("seo_title") || "").trim();
+  const seoDescription = String(formData.get("seo_description") || "").trim();
+  const isPublished = parseCheckbox(formData.get("is_published"));
+
+  if (!id || !title || !slug || !excerpt || !content || !category) {
+    return { ok: false, message: "Заповніть всі обовʼязкові поля статті." };
+  }
+
+  const { data: existing } = await supabase
+    .from("blog_posts")
+    .select("slug,published_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({
+      title,
+      slug,
+      excerpt,
+      content,
+      cover_image: coverImage || null,
+      category,
+      tags,
+      reading_time_min: calculateReadingTimeMinutes(content),
+      is_published: isPublished,
+      published_at: isPublished ? existing?.published_at ?? new Date().toISOString() : null,
+      seo_title: seoTitle || null,
+      seo_description: seoDescription || null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/blog");
+  if (existing?.slug) {
+    revalidatePath(`/blog/${existing.slug}`);
+  }
+  revalidatePath(`/blog/${slug}`);
+  revalidatePath("/admin/blog");
+
+  return { ok: true, message: "Статтю оновлено." };
+}
+
+export async function deleteBlogPostAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase service client is not configured." };
+  }
+
+  const id = String(formData.get("id") || "");
+  if (!id) {
+    return { ok: false, message: "Post ID is required." };
+  }
+
+  const { data: row } = await supabase.from("blog_posts").select("slug").eq("id", id).maybeSingle();
+
+  const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/blog");
+  if (row?.slug) {
+    revalidatePath(`/blog/${row.slug}`);
+  }
+  revalidatePath("/admin/blog");
+
+  return { ok: true, message: "Статтю видалено." };
+}
+
+export async function togglePublishBlogPostAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase service client is not configured." };
+  }
+
+  const id = String(formData.get("id") || "");
+  const publish = parseCheckbox(formData.get("publish"));
+
+  if (!id) {
+    return { ok: false, message: "Post ID is required." };
+  }
+
+  const { data: row } = await supabase
+    .from("blog_posts")
+    .select("slug,published_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({
+      is_published: publish,
+      published_at: publish ? row?.published_at ?? new Date().toISOString() : null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/blog");
+  if (row?.slug) {
+    revalidatePath(`/blog/${row.slug}`);
+  }
+  revalidatePath("/admin/blog");
+
+  return { ok: true, message: publish ? "Статтю опубліковано." : "Статтю переведено в чернетку." };
+}

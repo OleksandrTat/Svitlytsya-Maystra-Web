@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import type { OrderStatus } from "@/lib/types";
 
 type ActionResult = {
@@ -11,6 +12,8 @@ type ActionResult = {
 };
 
 export async function createOrderFromInquiryAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
   const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
@@ -48,6 +51,8 @@ export async function createOrderFromInquiryAction(formData: FormData): Promise<
 }
 
 export async function updateOrderStatusAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
   const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
@@ -99,6 +104,8 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
 }
 
 export async function addAdminOrderMessageAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
   const supabase = createSupabaseServiceClient();
 
   if (!supabase) {

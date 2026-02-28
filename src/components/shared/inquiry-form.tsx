@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useForm } from "react-hook-form";
@@ -22,15 +22,27 @@ const initialState = {
 
 type Props = {
   projectRefId?: string;
+  configuration?: Record<string, unknown> | null;
+  defaultServiceType?: InquirySchema["service_type"];
   className?: string;
   compact?: boolean;
 };
 
-export function InquiryForm({ projectRefId, className, compact = false }: Props) {
+export function InquiryForm({
+  projectRefId,
+  configuration,
+  defaultServiceType = "Двері",
+  className,
+  compact = false,
+}: Props) {
   const pathname = usePathname();
   const [lastSubmitted, setLastSubmitted] = useState<InquirySchema | null>(null);
   const [state, submit, isPending] = useActionState(submitInquiryAction, initialState);
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const serializedConfiguration = useMemo(
+    () => (configuration ? JSON.stringify(configuration) : ""),
+    [configuration],
+  );
 
   const {
     register,
@@ -43,30 +55,41 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
       name: "",
       phone: "+380",
       email: "",
-      service_type: "Двері",
+      service_type: defaultServiceType,
       message: "",
       source_page: pathname,
       project_ref_id: projectRefId ?? "",
+      configuration: serializedConfiguration,
       honeypot: "",
       turnstile_token: "",
     },
   });
 
   useEffect(() => {
-    if (state.success) {
-      reset({
-        name: "",
-        phone: "+380",
-        email: "",
-        service_type: "Двері",
-        message: "",
-        source_page: pathname,
-        project_ref_id: projectRefId ?? "",
-        honeypot: "",
-        turnstile_token: "",
-      });
+    if (!state.success) {
+      return;
     }
-  }, [state.success, reset, pathname, projectRefId]);
+
+    reset({
+      name: "",
+      phone: "+380",
+      email: "",
+      service_type: defaultServiceType,
+      message: "",
+      source_page: pathname,
+      project_ref_id: projectRefId ?? "",
+      configuration: serializedConfiguration,
+      honeypot: "",
+      turnstile_token: "",
+    });
+  }, [
+    state.success,
+    reset,
+    pathname,
+    projectRefId,
+    defaultServiceType,
+    serializedConfiguration,
+  ]);
 
   useEffect(() => {
     if (!state.success || !lastSubmitted) {
@@ -84,10 +107,13 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
     const formTarget = event?.target;
     const formData =
       formTarget instanceof HTMLFormElement ? new FormData(formTarget) : new FormData();
-    const payload = {
+
+    const payload: InquirySchema = {
       ...values,
       source_page: pathname,
+      service_type: values.service_type || defaultServiceType,
       project_ref_id: projectRefId ?? values.project_ref_id ?? "",
+      configuration: serializedConfiguration || values.configuration || "",
     };
 
     setLastSubmitted(payload);
@@ -103,8 +129,8 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
     <form onSubmit={onSubmit} className={cn("space-y-4", className)} noValidate>
       <div className={compact ? "grid gap-4" : "grid gap-4 md:grid-cols-2"}>
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">ім’я *</span>
-          <Input {...register("name")} placeholder="Ваше ім’я" />
+          <span className="text-sm text-[var(--color-text-secondary)]">Імʼя *</span>
+          <Input {...register("name")} placeholder="Ваше імʼя" />
           {errors.name ? <p className="text-xs text-red-600">{errors.name.message}</p> : null}
         </label>
 
@@ -129,18 +155,29 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
               </option>
             ))}
           </Select>
-          {errors.service_type ? <p className="text-xs text-red-600">{errors.service_type.message}</p> : null}
+          {errors.service_type ? (
+            <p className="text-xs text-red-600">{errors.service_type.message}</p>
+          ) : null}
         </label>
       </div>
 
       <label className="space-y-2">
         <span className="text-sm text-[var(--color-text-secondary)]">Повідомлення</span>
-        <Textarea {...register("message")} rows={4} placeholder="Коротко опишіть задачу" />
+        <Textarea
+          {...register("message")}
+          rows={4}
+          placeholder="Коротко опишіть задачу"
+        />
         {errors.message ? <p className="text-xs text-red-600">{errors.message.message}</p> : null}
       </label>
 
       <input {...register("source_page")} type="hidden" value={pathname} />
       <input {...register("project_ref_id")} type="hidden" value={projectRefId ?? ""} />
+      <input
+        {...register("configuration")}
+        type="hidden"
+        value={serializedConfiguration}
+      />
       <input {...register("turnstile_token")} type="hidden" defaultValue="" />
 
       <div className="hidden" aria-hidden>
@@ -159,7 +196,14 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
       ) : null}
 
       {state.message ? (
-        <p className={cn("text-sm", state.success ? "text-emerald-700" : "text-red-600")}>{state.message}</p>
+        <p
+          className={cn(
+            "text-sm",
+            state.success ? "text-emerald-700" : "text-red-600",
+          )}
+        >
+          {state.message}
+        </p>
       ) : null}
 
       <Button type="submit" disabled={isPending}>
@@ -168,5 +212,3 @@ export function InquiryForm({ projectRefId, className, compact = false }: Props)
     </form>
   );
 }
-
-

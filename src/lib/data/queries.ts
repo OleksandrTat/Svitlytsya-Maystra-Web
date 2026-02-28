@@ -86,6 +86,15 @@ function parseServiceSteps(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function normalizeSlugValue(value: string) {
+  const trimmed = value.trim();
+  try {
+    return decodeURIComponent(trimmed);
+  } catch {
+    return trimmed;
+  }
+}
+
 function extractStringSetting(value: unknown) {
   if (typeof value === "string") {
     return value;
@@ -220,23 +229,42 @@ export async function getCatalogProjects(
 }
 
 export const getProjectBySlug = cache(async (slug: string): Promise<Project | null> => {
+  const normalizedSlug = normalizeSlugValue(slug);
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return mockProjects.find((project) => project.slug === slug) ?? null;
+    return (
+      mockProjects.find(
+        (project) => project.slug === normalizedSlug || project.slug.toLowerCase() === normalizedSlug.toLowerCase(),
+      ) ?? null
+    );
   }
 
   const { data, error } = await supabase
     .from("projects")
     .select("*")
-    .eq("slug", slug)
-    .single();
+    .eq("slug", normalizedSlug)
+    .maybeSingle();
 
-  if (error || !data) {
-    return mockProjects.find((project) => project.slug === slug) ?? null;
+  if (!error && data) {
+    return data;
   }
 
-  return data;
+  const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
+    .from("projects")
+    .select("*")
+    .ilike("slug", normalizedSlug)
+    .maybeSingle();
+
+  if (!caseInsensitiveError && caseInsensitiveData) {
+    return caseInsensitiveData;
+  }
+
+  return (
+    mockProjects.find(
+      (project) => project.slug === normalizedSlug || project.slug.toLowerCase() === normalizedSlug.toLowerCase(),
+    ) ?? null
+  );
 });
 
 export async function getRelatedProjects(project: Project, limit = 4): Promise<Project[]> {

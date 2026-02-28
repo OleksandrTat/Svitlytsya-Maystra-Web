@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "Головна" },
-  { href: "/catalog", label: "Роботи" },
+  { href: "/catalog", label: "Каталог" },
   { href: "/services", label: "Послуги" },
+  { href: "/blog", label: "Блог" },
+  { href: "/cultural", label: "Культурний блог" },
   { href: "/contact", label: "Контакти" },
 ];
 
@@ -23,16 +25,29 @@ export function SiteHeader() {
           Svitlytsya Maystra
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-6 md:flex">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="text-sm text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-sm text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]"
+            >
               {link.label}
             </Link>
           ))}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link href="/admin/login" className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">
+          <Link
+            href="/auth/login"
+            className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+          >
+            Увійти
+          </Link>
+          <Link
+            href="/admin/login"
+            className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+          >
             Адмін
           </Link>
           <Link href="/contact">
@@ -50,13 +65,35 @@ export function SiteHeader() {
         </button>
       </div>
 
-      <div className={cn("border-t border-[var(--color-border)] bg-[var(--color-background)] px-4 py-4 md:hidden", open ? "block" : "hidden")}>
+      <div
+        className={cn(
+          "border-t border-[var(--color-border)] bg-[var(--color-background)] px-4 py-4 md:hidden",
+          open ? "block" : "hidden",
+        )}
+      >
         <div className="flex flex-col gap-4">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="text-sm text-[var(--color-text-secondary)]" onClick={() => setOpen(false)}>
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-sm text-[var(--color-text-secondary)]"
+              onClick={() => setOpen(false)}
+            >
               {link.label}
             </Link>
           ))}
+          <div className="grid grid-cols-2 gap-2">
+            <Link href="/auth/login" onClick={() => setOpen(false)}>
+              <Button variant="secondary" className="w-full">
+                Увійти
+              </Button>
+            </Link>
+            <Link href="/admin/login" onClick={() => setOpen(false)}>
+              <Button variant="secondary" className="w-full">
+                Адмін
+              </Button>
+            </Link>
+          </div>
           <Link href="/contact" onClick={() => setOpen(false)}>
             <Button className="w-full">Отримати розрахунок</Button>
           </Link>
@@ -65,4 +102,3 @@ export function SiteHeader() {
     </header>
   );
 }
-

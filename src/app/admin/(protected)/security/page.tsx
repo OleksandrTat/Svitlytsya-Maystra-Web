@@ -1,5 +1,6 @@
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminSecurityMfa } from "@/components/admin/admin-security-mfa";
 
 export default function AdminSecurityPage() {
   return (
@@ -9,10 +10,9 @@ export default function AdminSecurityPage() {
     >
       <AdminCard>
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">2FA (TOTP)</h2>
-        <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-          Увімкніть MFA у Supabase Auth для адмін-акаунтів. На цьому етапі сторінка відображає
-          операційний чеклист безпеки.
-        </p>
+        <div className="mt-3">
+          <AdminSecurityMfa />
+        </div>
       </AdminCard>
 
       <AdminCard>

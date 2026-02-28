@@ -41,6 +41,18 @@ export async function POST(request: Request) {
     );
   }
 
+  let configuration: Record<string, unknown> | null = null;
+  if (parsed.data.configuration?.trim()) {
+    try {
+      const value = JSON.parse(parsed.data.configuration);
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        configuration = value as Record<string, unknown>;
+      }
+    } catch {
+      configuration = null;
+    }
+  }
+
   const { error } = await supabase.from("inquiries").insert({
     name: parsed.data.name,
     phone: parsed.data.phone,
@@ -49,6 +61,7 @@ export async function POST(request: Request) {
     message: parsed.data.message?.trim() || null,
     source_page: parsed.data.source_page?.trim() || null,
     project_ref_id: parsed.data.project_ref_id?.trim() || null,
+    configuration,
     status: "new",
   });
 

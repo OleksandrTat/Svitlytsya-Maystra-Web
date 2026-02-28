@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env, hasSupabaseEnv } from "@/lib/env";
+import { isAdminUser } from "@/lib/auth/is-admin";
 
 export async function updateSession(request: NextRequest) {
   if (!hasSupabaseEnv) {
@@ -36,7 +37,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (request.nextUrl.pathname === "/admin/login" && user) {
+  if (request.nextUrl.pathname === "/admin/login" && user && isAdminUser(user)) {
     const adminUrl = request.nextUrl.clone();
     adminUrl.pathname = "/admin";
     adminUrl.search = "";

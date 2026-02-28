@@ -38,7 +38,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${playfair.variable} antialiased`}>{children}</body>
+      <body
+        suppressHydrationWarning
+        className={`${manrope.variable} ${playfair.variable} antialiased`}
+      >
+        {children}
+      </body>
     </html>
   );
 }

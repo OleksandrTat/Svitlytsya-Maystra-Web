@@ -16,6 +16,21 @@ type PageParams = {
   slug: string;
 };
 
+function isSupportedImageSrc(value: string | null | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  const src = value.trim();
+  return (
+    src.startsWith("/") ||
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("data:") ||
+    src.startsWith("blob:")
+  );
+}
+
 export async function generateStaticParams() {
   const slugs = await getAllPublicProjectSlugs();
   return slugs.map((slug) => ({ slug }));
@@ -68,11 +83,16 @@ export default async function ProjectPage({
   }
 
   const isNdaFull = project.privacy_level === "nda_full";
-  const galleryImages = isNdaFull
+  const baseImages = isNdaFull
     ? ["/window.svg"]
     : project.images.length
       ? project.images
       : [project.cover_image];
+
+  const galleryImages = baseImages.filter((item) => isSupportedImageSrc(item));
+  if (galleryImages.length === 0) {
+    galleryImages.push("/window.svg");
+  }
   const related = await getRelatedProjects(project, 4);
 
   const schema = {
