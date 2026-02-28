@@ -45,7 +45,7 @@ export function SiteHeader() {
             Увійти
           </Link>
           <Link
-            href="/admin/login"
+            href="/admin"
             className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
           >
             Адмін
@@ -88,7 +88,7 @@ export function SiteHeader() {
                 Увійти
               </Button>
             </Link>
-            <Link href="/admin/login" onClick={() => setOpen(false)}>
+            <Link href="/admin" onClick={() => setOpen(false)}>
               <Button variant="secondary" className="w-full">
                 Адмін
               </Button>

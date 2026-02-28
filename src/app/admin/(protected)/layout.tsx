@@ -7,10 +7,11 @@ export default async function AdminProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const loginPath = "/auth/login?next=/admin";
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    redirect("/admin/login");
+    redirect(loginPath);
   }
 
   const {
@@ -18,7 +19,7 @@ export default async function AdminProtectedLayout({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/admin/login");
+    redirect(loginPath);
   }
 
   const isAdmin = isAdminUser(user);

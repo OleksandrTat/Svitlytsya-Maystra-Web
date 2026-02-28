@@ -8,10 +8,11 @@ type RequireAdminOptions = {
 
 export async function requireAdmin(options: RequireAdminOptions = {}) {
   const { enforceMfa = true } = options;
+  const loginPath = "/auth/login?next=/admin";
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    redirect("/admin/login");
+    redirect(loginPath);
   }
 
   const {
@@ -19,7 +20,7 @@ export async function requireAdmin(options: RequireAdminOptions = {}) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/admin/login");
+    redirect(loginPath);
   }
 
   const isAdmin = isAdminUser(user);

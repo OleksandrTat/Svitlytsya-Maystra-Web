@@ -24,7 +24,7 @@ export function SiteFooter() {
               <Link href="/contact">Контакти</Link>
             </li>
             <li>
-              <Link href="/admin/login">Адмін-панель</Link>
+              <Link href="/admin">Адмін-панель</Link>
             </li>
           </ul>
         </div>

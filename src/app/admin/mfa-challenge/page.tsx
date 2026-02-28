@@ -5,10 +5,11 @@ import { isAdminUser } from "@/lib/auth/is-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function AdminMfaChallengePage() {
+  const loginPath = "/auth/login?next=/admin";
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    redirect("/admin/login");
+    redirect(loginPath);
   }
 
   const {
@@ -16,7 +17,7 @@ export default async function AdminMfaChallengePage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/admin/login");
+    redirect(loginPath);
   }
 
   if (!isAdminUser(user)) {

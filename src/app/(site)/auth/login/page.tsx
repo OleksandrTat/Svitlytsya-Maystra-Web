@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
 import { Container } from "@/components/ui/container";
+import { isAdminUser } from "@/lib/auth/is-admin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function LoginPageContent() {
@@ -15,7 +16,8 @@ function LoginPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const redirectTo = searchParams.get("next") || "/profile";
+  const nextParam = searchParams.get("next");
+  const safeNext = nextParam && nextParam.startsWith("/") ? nextParam : null;
   const justReset = searchParams.get("reset") === "success";
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -25,7 +27,7 @@ function LoginPageContent() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
@@ -35,7 +37,14 @@ function LoginPageContent() {
         return;
       }
 
-      router.replace(redirectTo.startsWith("/") ? redirectTo : "/profile");
+      const isAdmin = isAdminUser(data.user);
+      let target = isAdmin ? "/admin" : "/profile";
+
+      if (safeNext) {
+        target = safeNext.startsWith("/admin") && !isAdmin ? "/profile" : safeNext;
+      }
+
+      router.replace(target);
       router.refresh();
     } catch {
       setError("Не вдалося виконати вхід. Спробуйте ще раз.");
