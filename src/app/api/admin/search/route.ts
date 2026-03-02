@@ -68,23 +68,23 @@ export async function GET(request: Request) {
       type: "order" as const,
       icon: "package" as const,
       title: order.order_number,
-      meta: `Р—Р°РјРѕРІР»РµРЅРЅСЏ В· ${order.status}`,
+      meta: `Замовлення • ${order.status}`,
       href: `/admin/orders/${order.id}`,
     })),
     ...(clientsResult.data ?? []).map((client) => ({
       id: client.id,
       type: "client" as const,
       icon: "user" as const,
-      title: client.display_name ?? `РљР»С–С”РЅС‚ ${client.id.slice(0, 8)}`,
-      meta: "РџСЂРѕС„С–Р»СЊ РєР»С–С”РЅС‚Р°",
+      title: client.display_name ?? `Клієнт ${client.id.slice(0, 8)}`,
+      meta: "Профіль клієнта",
       href: `/admin/clients/${client.id}`,
     })),
     ...(inquiriesResult.data ?? []).map((inquiry) => ({
       id: inquiry.id,
       type: "inquiry" as const,
       icon: "mail" as const,
-      title: `Р—Р°СЏРІРєР° РІС–Рґ ${inquiry.name}`,
-      meta: `${inquiry.service_type} В· ${inquiry.phone}`,
+      title: `Заявка від ${inquiry.name}`,
+      meta: `${inquiry.service_type} • ${inquiry.phone}`,
       href: `/admin/inquiries#${inquiry.id}`,
     })),
     ...(culturalPostsResult.data ?? []).map((post) => ({
@@ -92,12 +92,10 @@ export async function GET(request: Request) {
       type: "cultural" as const,
       icon: "pen" as const,
       title: post.title,
-      meta: post.is_published ? "Cultural blog - Published" : "Cultural blog - Draft",
+      meta: post.is_published ? "Культурний блог • Опубліковано" : "Культурний блог • Чернетка",
       href: `/admin/cultural/${post.id}/edit`,
     })),
   ];
 
   return NextResponse.json(results);
 }
-
-

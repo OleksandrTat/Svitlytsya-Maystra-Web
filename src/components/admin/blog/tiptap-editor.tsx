@@ -7,20 +7,13 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { uploadPublicImage } from "@/lib/storage/upload-public-image";
 
 type TiptapEditorProps = {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
 };
-
-const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-
-function getFileSafeName(value: string) {
-  return value.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]/g, "");
-}
 
 function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, " ");
@@ -37,7 +30,11 @@ export function TiptapEditor({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
       Image,
       Link.configure({
         openOnClick: false,
@@ -60,7 +57,7 @@ export function TiptapEditor({
 
     const current = editor.getHTML();
     if (current !== content) {
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [content, editor]);
 
@@ -106,36 +103,18 @@ export function TiptapEditor({
   };
 
   const uploadImage = async (file: File) => {
-    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
-      setError("Unsupported image format. Use PNG, JPG or WEBP.");
-      return;
-    }
-
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setError("Image is too large. Maximum size is 10 MB.");
-      return;
-    }
-
     setIsUploadingImage(true);
     setError(null);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const path = `blog/${Date.now()}-${getFileSafeName(file.name) || "image"}`;
+      const { publicUrl } = await uploadPublicImage({
+        file,
+        folder: "blog/editor",
+      });
 
-      const { error: uploadError } = await supabase.storage
-        .from("blog-images")
-        .upload(path, file, {
-          upsert: true,
-        });
-
-      if (uploadError) {
-        setError(uploadError.message);
-        return;
-      }
-
-      const { data } = supabase.storage.from("blog-images").getPublicUrl(path);
-      editor?.chain().focus().setImage({ src: data.publicUrl }).run();
+      editor?.chain().focus().setImage({ src: publicUrl }).run();
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Image upload failed.");
     } finally {
       setIsUploadingImage(false);
     }
@@ -144,6 +123,23 @@ export function TiptapEditor({
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
       <div className="flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] p-2">
+        <button
+          type="button"
+          onClick={() => editor?.chain().focus().setParagraph().run()}
+          className={commandButtonClass(Boolean(editor?.isActive("paragraph")))}
+          aria-label="Set paragraph"
+        >
+          P
+        </button>
+        <button
+          type="button"
+          onClick={() => editor?.chain().focus().setHeading({ level: 1 }).run()}
+          disabled={!editor?.can().chain().focus().setHeading({ level: 1 }).run()}
+          className={commandButtonClass(Boolean(editor?.isActive("heading", { level: 1 })))}
+          aria-label="Toggle heading 1"
+        >
+          H1
+        </button>
         <button
           type="button"
           onClick={() => editor?.chain().focus().toggleBold().run()}
@@ -170,7 +166,8 @@ export function TiptapEditor({
         </button>
         <button
           type="button"
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() => editor?.chain().focus().setHeading({ level: 2 }).run()}
+          disabled={!editor?.can().chain().focus().setHeading({ level: 2 }).run()}
           className={commandButtonClass(Boolean(editor?.isActive("heading", { level: 2 })))}
           aria-label="Toggle heading 2"
         >
@@ -178,7 +175,8 @@ export function TiptapEditor({
         </button>
         <button
           type="button"
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+          onClick={() => editor?.chain().focus().setHeading({ level: 3 }).run()}
+          disabled={!editor?.can().chain().focus().setHeading({ level: 3 }).run()}
           className={commandButtonClass(Boolean(editor?.isActive("heading", { level: 3 })))}
           aria-label="Toggle heading 3"
         >
@@ -223,6 +221,14 @@ export function TiptapEditor({
           aria-label="Set or unset link"
         >
           Link
+        </button>
+        <button
+          type="button"
+          onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+          className={commandButtonClass(false)}
+          aria-label="Insert horizontal line"
+        >
+          H-Line
         </button>
         <button
           type="button"
@@ -276,7 +282,81 @@ export function TiptapEditor({
 
       <EditorContent
         editor={editor}
-        className="min-h-[320px] p-4 text-sm text-[var(--color-text-primary)] [&_.ProseMirror]:min-h-[280px] [&_.ProseMirror]:outline-none"
+        className="
+          min-h-[320px] p-4 text-sm text-[var(--color-text-primary)]
+          [&_.ProseMirror]:min-h-[300px]
+          [&_.ProseMirror]:outline-none
+          [&_.ProseMirror_h1]:mb-4
+          [&_.ProseMirror_h1]:mt-8
+          [&_.ProseMirror_h1]:text-3xl
+          [&_.ProseMirror_h1]:font-semibold
+          [&_.ProseMirror_h2]:mb-3
+          [&_.ProseMirror_h2]:mt-7
+          [&_.ProseMirror_h2]:text-2xl
+          [&_.ProseMirror_h2]:font-semibold
+          [&_.ProseMirror_h3]:mb-3
+          [&_.ProseMirror_h3]:mt-6
+          [&_.ProseMirror_h3]:text-xl
+          [&_.ProseMirror_h3]:font-semibold
+          [&_.ProseMirror_p]:my-3
+          [&_.ProseMirror_ul]:my-3
+          [&_.ProseMirror_ul]:list-disc
+          [&_.ProseMirror_ul]:pl-6
+          [&_.ProseMirror_ol]:my-3
+          [&_.ProseMirror_ol]:list-decimal
+          [&_.ProseMirror_ol]:pl-6
+          [&_.ProseMirror_li]:my-1
+          [&_.ProseMirror_blockquote]:my-4
+          [&_.ProseMirror_blockquote]:border-l-4
+          [&_.ProseMirror_blockquote]:border-[var(--color-border)]
+          [&_.ProseMirror_blockquote]:pl-4
+          [&_.ProseMirror_blockquote]:italic
+          [&_.ProseMirror_pre]:my-4
+          [&_.ProseMirror_pre]:overflow-x-auto
+          [&_.ProseMirror_pre]:rounded-xl
+          [&_.ProseMirror_pre]:bg-black
+          [&_.ProseMirror_pre]:p-4
+          [&_.ProseMirror_pre]:text-xs
+          [&_.ProseMirror_pre]:text-white
+          [&_.ProseMirror_code]:rounded
+          [&_.ProseMirror_code]:bg-[var(--color-surface)]
+          [&_.ProseMirror_code]:px-1
+          [&_.ProseMirror_code]:py-0.5
+          [&_.ProseMirror_a]:text-blue-600
+          [&_.ProseMirror_a]:underline
+          [&_.ProseMirror_a]:decoration-blue-600/70
+          [&_.ProseMirror_a:hover]:text-blue-700
+          [&_.ProseMirror_img]:my-4
+          [&_.ProseMirror_img]:h-auto
+          [&_.ProseMirror_img]:max-w-full
+          [&_.ProseMirror_img]:rounded-xl
+          [&_.ProseMirror_img]:border
+          [&_.ProseMirror_img]:border-[var(--color-border)]
+          [&_.ProseMirror_hr]:my-8
+          [&_.ProseMirror_hr]:mx-0
+          [&_.ProseMirror_hr]:h-px
+          [&_.ProseMirror_hr]:w-full
+          [&_.ProseMirror_hr]:border-0
+          [&_.ProseMirror_hr]:bg-slate-300
+        "
+        onDrop={(event) => {
+          const file = event.dataTransfer?.files?.[0];
+          if (!file) {
+            return;
+          }
+
+          event.preventDefault();
+          void uploadImage(file);
+        }}
+        onPaste={(event) => {
+          const file = event.clipboardData?.files?.[0];
+          if (!file) {
+            return;
+          }
+
+          event.preventDefault();
+          void uploadImage(file);
+        }}
       />
 
       {error ? (
@@ -285,3 +365,4 @@ export function TiptapEditor({
     </div>
   );
 }
+

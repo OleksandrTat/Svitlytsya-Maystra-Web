@@ -113,7 +113,19 @@ export default async function CulturalArticlePage({
         ) : null}
 
         <article
-          className="prose prose-neutral mt-8 max-w-none"
+          className="
+            prose prose-neutral mt-8 max-w-none
+            prose-a:text-blue-600
+            prose-a:underline
+            prose-a:decoration-blue-600/70
+            hover:prose-a:text-blue-700
+            prose-hr:mx-0
+            prose-hr:my-8
+            prose-hr:h-px
+            prose-hr:w-full
+            prose-hr:border-0
+            prose-hr:bg-slate-300
+          "
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
