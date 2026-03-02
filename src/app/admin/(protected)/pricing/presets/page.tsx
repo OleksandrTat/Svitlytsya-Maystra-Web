@@ -1,6 +1,7 @@
 import { upsertPricePresetAction } from "@/actions/pricing";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { InlinePriceCell } from "@/components/admin/pricing/inline-price-cell";
 import { getPricePresetsForAdmin } from "@/lib/data/queries";
 
 export default async function AdminPricingPresetsPage() {
@@ -12,11 +13,12 @@ export default async function AdminPricingPresetsPage() {
   };
 
   return (
-    <AdminShell title="Preset Library" description="Бібліотека цінових заготовок для формул.">
+    <AdminShell
+      title="Preset Library"
+      description="Бібліотека цінових заготовок для формул. Клікніть по значенню в таблиці для inline-редагування."
+    >
       <AdminCard>
-        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-          Створити / оновити preset
-        </h2>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Створити / оновити preset</h2>
         <form action={savePreset} className="mt-4 grid gap-3 md:grid-cols-2">
           <input
             name="id"
@@ -80,8 +82,9 @@ export default async function AdminPricingPresetsPage() {
               <tr className="border-b border-[var(--color-border)] text-left text-[var(--color-text-secondary)]">
                 <th className="px-2 py-2">Name</th>
                 <th className="px-2 py-2">Category</th>
-                <th className="px-2 py-2">Value</th>
-                <th className="px-2 py-2">Unit</th>
+                <th className="px-2 py-2 text-right">Value</th>
+                <th className="px-2 py-2 text-right">Currency</th>
+                <th className="px-2 py-2 text-right">Unit</th>
               </tr>
             </thead>
             <tbody>
@@ -89,10 +92,15 @@ export default async function AdminPricingPresetsPage() {
                 <tr key={preset.id} className="border-b border-[var(--color-border)]/60">
                   <td className="px-2 py-2">{preset.name}</td>
                   <td className="px-2 py-2">{preset.category}</td>
-                  <td className="px-2 py-2">
-                    {preset.value} {preset.currency}
+                  <td className="px-2 py-2 text-right">
+                    <InlinePriceCell id={preset.id} field="value" value={preset.value} inputType="number" />
                   </td>
-                  <td className="px-2 py-2">{preset.unit}</td>
+                  <td className="px-2 py-2 text-right">
+                    <InlinePriceCell id={preset.id} field="currency" value={preset.currency} />
+                  </td>
+                  <td className="px-2 py-2 text-right">
+                    <InlinePriceCell id={preset.id} field="unit" value={preset.unit} />
+                  </td>
                 </tr>
               ))}
             </tbody>

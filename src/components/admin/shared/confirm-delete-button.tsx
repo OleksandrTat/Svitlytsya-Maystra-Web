@@ -2,6 +2,7 @@
 
 import { MouseEvent } from "react";
 import { useFormStatus } from "react-dom";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type ConfirmDeleteButtonProps = {
@@ -24,11 +25,19 @@ export function ConfirmDeleteButton({
       return;
     }
 
-    const approved = window.confirm(confirmMessage);
-    if (!approved) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const form = event.currentTarget.form;
+    toast.warning(confirmMessage, {
+      duration: 6000,
+      action: {
+        label: "Підтвердити",
+        onClick: () => {
+          form?.requestSubmit();
+        },
+      },
+    });
   };
 
   return (
@@ -42,4 +51,3 @@ export function ConfirmDeleteButton({
     </button>
   );
 }
-

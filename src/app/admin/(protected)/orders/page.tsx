@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { Eye, MessageSquare } from "lucide-react";
-import { createOrderFromInquiryAction, updateOrderStatusAction } from "@/actions/orders";
+import { createSupabaseServiceClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import { updateOrderStatusAction } from "@/actions/orders";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { RowActions } from "@/components/admin/shared/row-actions";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import { OrdersMobileList } from "@/components/admin/orders/orders-mobile-list";
+import { OrdersExportButton } from "@/components/admin/orders/orders-export-button";
+import { CreateOrderForm } from "@/components/admin/orders/create-order-form";
 import { ORDER_PRIORITY_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
-import { getAllInquiriesForAdmin, getOrdersForAdmin } from "@/lib/data/queries";
+import {
+  getAllInquiriesForAdmin,
+  getOrderTemplatesForAdmin,
+  getOrdersForAdmin,
+} from "@/lib/data/queries";
 import type { Order, OrderStatus } from "@/lib/types";
-import { formatInquiryDate } from "@/lib/utils";
 
 const orderStatuses: OrderStatus[] = [
   "new",
@@ -22,8 +29,41 @@ const orderStatuses: OrderStatus[] = [
   "archived",
 ];
 
+type OrderAmountRow = {
+  order_id: string;
+  total: number;
+  created_at: string;
+};
+
+async function getLatestOrderTotals() {
+  const db = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!db) {
+    return new Map<string, number>();
+  }
+
+  const { data } = await db
+    .from("order_calculations")
+    .select("order_id, total, created_at")
+    .order("created_at", { ascending: false })
+    .limit(2000);
+
+  const map = new Map<string, number>();
+  for (const row of (data ?? []) as OrderAmountRow[]) {
+    if (!map.has(row.order_id)) {
+      map.set(row.order_id, Number(row.total) || 0);
+    }
+  }
+  return map;
+}
+
+type EnrichedOrder = Order & {
+  clientName: string;
+  serviceType: string;
+  amount: number | null;
+};
+
 function applyOrderFilters(
-  orders: Order[],
+  orders: EnrichedOrder[],
   searchParams: { status?: string; q?: string; priority?: string },
 ) {
   let filtered = [...orders];
@@ -41,7 +81,8 @@ function applyOrderFilters(
     filtered = filtered.filter(
       (order) =>
         order.order_number.toLowerCase().includes(query) ||
-        order.id.toLowerCase().includes(query),
+        order.id.toLowerCase().includes(query) ||
+        order.clientName.toLowerCase().includes(query),
     );
   }
 
@@ -54,74 +95,51 @@ export default async function AdminOrdersPage({
   searchParams: Promise<{ status?: string; q?: string; priority?: string }>;
 }) {
   const params = await searchParams;
-  const [orders, inquiries] = await Promise.all([getOrdersForAdmin(400), getAllInquiriesForAdmin()]);
-  const filteredOrders = applyOrderFilters(orders, params);
+  const [orders, inquiries, templates, totalsMap] = await Promise.all([
+    getOrdersForAdmin(500),
+    getAllInquiriesForAdmin(),
+    getOrderTemplatesForAdmin(),
+    getLatestOrderTotals(),
+  ]);
 
-  const createOrder = async (formData: FormData) => {
-    "use server";
-    await createOrderFromInquiryAction(formData);
-  };
+  const inquiryMap = new Map(inquiries.map((inquiry) => [inquiry.id, inquiry]));
+
+  const enrichedOrders: EnrichedOrder[] = orders.map((order) => {
+    const inquiry = order.inquiry_id ? inquiryMap.get(order.inquiry_id) : null;
+    return {
+      ...order,
+      clientName: inquiry?.name ?? "Клієнт",
+      serviceType: inquiry?.service_type ?? "Невідомо",
+      amount: totalsMap.get(order.id) ?? null,
+    };
+  });
+
+  const filteredOrders = applyOrderFilters(enrichedOrders, params);
 
   const updateStatus = async (formData: FormData) => {
     "use server";
     await updateOrderStatusAction(formData);
   };
 
+  const exportRows = filteredOrders.map((order) => ({
+    order_number: order.order_number,
+    status: ORDER_STATUS_LABELS[order.status],
+    priority: ORDER_PRIORITY_LABELS[order.priority],
+    expected_date: order.expected_date ?? "",
+    created_at: new Intl.DateTimeFormat("uk-UA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(order.created_at)),
+    client_name: order.clientName,
+    service_type: order.serviceType,
+  }));
+
   return (
     <AdminShell
       title="Orders Inbox"
-      description="Операційний центр замовлень: фільтруйте, оновлюйте статуси і переходьте в картку одним кліком."
+      description="Операційний центр замовлень з фільтрами, шаблонами та експортом."
     >
-      <AdminCard>
-        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-          Створити замовлення із заявки
-        </h2>
-        <form action={createOrder} className="mt-4 grid gap-3 md:grid-cols-2">
-          <select
-            name="inquiry_id"
-            required
-            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm md:col-span-2"
-          >
-            <option value="">Оберіть заявку</option>
-            {inquiries.map((inquiry) => (
-              <option key={inquiry.id} value={inquiry.id}>
-                {inquiry.name} · {inquiry.service_type} · {formatInquiryDate(inquiry.created_at)}
-              </option>
-            ))}
-          </select>
-          <input
-            name="user_id"
-            placeholder="Client user_id (optional)"
-            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-          />
-          <input
-            type="date"
-            name="expected_date"
-            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-          />
-          <select
-            name="priority"
-            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-          >
-            {Object.entries(ORDER_PRIORITY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <input
-            name="internal_notes"
-            placeholder="Internal notes"
-            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-          />
-          <button
-            type="submit"
-            className="rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white md:col-span-2 md:justify-self-start"
-          >
-            Створити замовлення
-          </button>
-        </form>
-      </AdminCard>
+      <CreateOrderForm inquiries={inquiries} templates={templates} />
 
       <AdminCard>
         <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -131,7 +149,7 @@ export default async function AdminOrdersPage({
               <input
                 name="q"
                 defaultValue={params.q ?? ""}
-                placeholder="SM-2025-001 або ID"
+                placeholder="Номер, ID або клієнт"
                 className="h-10 rounded-lg border border-[var(--color-border)] px-3 text-sm"
               />
             </div>
@@ -171,23 +189,29 @@ export default async function AdminOrdersPage({
           </form>
 
           <div className="ml-auto flex items-center gap-2">
+            <OrdersExportButton rows={exportRows} />
             <Link
               href="/admin/inbox"
               className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-section)]"
             >
               Smart Inbox
             </Link>
-            <span className="text-xs text-[var(--color-text-secondary)]">Показано: {filteredOrders.length}</span>
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              Показано: {filteredOrders.length}
+            </span>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] text-left text-[var(--color-text-secondary)]">
                 <th className="px-2 py-2">Order</th>
+                <th className="px-2 py-2">Клієнт</th>
+                <th className="px-2 py-2">Послуга</th>
                 <th className="px-2 py-2">Status</th>
                 <th className="px-2 py-2">Priority</th>
+                <th className="px-2 py-2">Сума</th>
                 <th className="px-2 py-2">Expected</th>
                 <th className="px-2 py-2">Quick status</th>
                 <th className="px-2 py-2 text-right">Actions</th>
@@ -205,10 +229,15 @@ export default async function AdminOrdersPage({
                     </Link>
                     <p className="text-xs text-[var(--color-text-secondary)]">{order.id}</p>
                   </td>
+                  <td className="px-2 py-3">{order.clientName}</td>
+                  <td className="px-2 py-3">{order.serviceType}</td>
                   <td className="px-2 py-3">
                     <OrderStatusBadge status={order.status} />
                   </td>
                   <td className="px-2 py-3">{ORDER_PRIORITY_LABELS[order.priority]}</td>
+                  <td className="px-2 py-3">
+                    {order.amount !== null ? `${Math.round(order.amount).toLocaleString("uk-UA")} грн` : "-"}
+                  </td>
                   <td className="px-2 py-3">{order.expected_date ?? "-"}</td>
                   <td className="px-2 py-3">
                     <form action={updateStatus} className="space-y-2">
@@ -234,12 +263,12 @@ export default async function AdminOrdersPage({
                       <RowActions
                         actions={[
                           {
-                            label: "³������",
+                            label: "Відкрити",
                             href: `/admin/orders/${order.id}`,
                             icon: <Eye size={14} />,
                           },
                           {
-                            label: "�����������",
+                            label: "Повідомлення",
                             href: `/admin/orders/${order.id}`,
                             icon: <MessageSquare size={14} />,
                           },
@@ -252,9 +281,21 @@ export default async function AdminOrdersPage({
             </tbody>
           </table>
         </div>
+
+        <div className="md:hidden">
+          <OrdersMobileList
+            orders={filteredOrders.map((order) => ({
+              id: order.id,
+              orderNumber: order.order_number,
+              status: order.status,
+              clientName: order.clientName,
+              serviceType: order.serviceType,
+              amount: order.amount,
+              createdAt: order.created_at,
+            }))}
+          />
+        </div>
       </AdminCard>
     </AdminShell>
   );
 }
-
-

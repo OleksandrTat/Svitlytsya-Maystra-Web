@@ -6,8 +6,39 @@ import { env } from "@/lib/env";
 let initialized = false;
 const STORAGE_KEY = "cookie-consent";
 
+function resolvePosthogApiHost(rawHost?: string) {
+  if (!rawHost) {
+    return null;
+  }
+
+  const trimmed = rawHost.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const parsed = new URL(normalized);
+    const hostname = parsed.hostname.toLowerCase();
+
+    if (hostname === "eu.posthog.com") {
+      return "https://eu.i.posthog.com";
+    }
+
+    if (hostname === "app.posthog.com" || hostname === "us.posthog.com") {
+      return "https://us.i.posthog.com";
+    }
+
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
 export function initPosthog() {
-  if (initialized || !env.posthogKey || !env.posthogHost) {
+  const apiHost = resolvePosthogApiHost(env.posthogHost);
+
+  if (initialized || !env.posthogKey || !apiHost) {
     return;
   }
 
@@ -21,7 +52,7 @@ export function initPosthog() {
   }
 
   posthog.init(env.posthogKey, {
-    api_host: env.posthogHost,
+    api_host: apiHost,
     person_profiles: "identified_only",
     capture_pageview: false,
     capture_pageleave: true,

@@ -1,6 +1,7 @@
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { ProjectPhotoUploadPanel } from "@/components/admin/projects/project-photo-upload-panel";
 import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
 import { deleteProjectAction, upsertProjectAction } from "@/actions/admin";
 import {
@@ -16,8 +17,16 @@ export default async function AdminProjectsPage() {
   return (
     <AdminShell
       title="Управління проєктами"
-      description="Додавайте або редагуйте проєкти, включно з NDA privacy level."
+      description="Додавайте, редагуйте та масово завантажуйте фото у каталог."
     >
+      <ProjectPhotoUploadPanel
+        projects={projects.map((project) => ({
+          id: project.id,
+          title: project.title,
+          imagesCount: project.images.length,
+        }))}
+      />
+
       <AdminActionForm action={upsertProjectAction} submitLabel="Зберегти проєкт">
         <p className="text-xs text-[var(--color-text-secondary)]">
           Щоб оновити існуючий проєкт, вкажіть його `id`.
@@ -162,6 +171,7 @@ export default async function AdminProjectsPage() {
                 <th className="px-2 py-2">Статус</th>
                 <th className="px-2 py-2">Privacy</th>
                 <th className="px-2 py-2">Featured</th>
+                <th className="px-2 py-2">Фото</th>
                 <th className="px-2 py-2">Дія</th>
               </tr>
             </thead>
@@ -176,6 +186,7 @@ export default async function AdminProjectsPage() {
                   <td className="px-2 py-2">{PROJECT_STATUS_LABELS[project.status]}</td>
                   <td className="px-2 py-2">{PROJECT_PRIVACY_LEVEL_LABELS[project.privacy_level]}</td>
                   <td className="px-2 py-2">{project.is_featured ? "Так" : "Ні"}</td>
+                  <td className="px-2 py-2">{project.images.length}</td>
                   <td className="px-2 py-2">
                     <form action={deleteProjectAction as unknown as (formData: FormData) => Promise<void>}>
                       <input type="hidden" name="id" value={project.id} />

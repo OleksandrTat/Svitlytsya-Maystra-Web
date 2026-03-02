@@ -133,3 +133,63 @@ export async function addFormulaComponentAction(formData: FormData): Promise<Act
 
   return { ok: true, message: "Formula component added." };
 }
+
+export async function updatePricePresetFieldAction(params: {
+  id: string;
+  field: "value" | "unit" | "currency";
+  value: string | number;
+}): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase service client is not configured." };
+  }
+
+  const id = String(params.id || "");
+  const field = params.field;
+
+  if (!id || !field) {
+    return { ok: false, message: "Preset id and field are required." };
+  }
+
+  const payload: Record<string, unknown> = {};
+
+  if (field === "value") {
+    const parsed = Number(params.value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return { ok: false, message: "Value must be a non-negative number." };
+    }
+    payload.value = parsed;
+  }
+
+  if (field === "unit") {
+    const parsed = String(params.value || "").trim();
+    if (!parsed) {
+      return { ok: false, message: "Unit is required." };
+    }
+    payload.unit = parsed;
+  }
+
+  if (field === "currency") {
+    const parsed = String(params.value || "").trim();
+    if (!parsed) {
+      return { ok: false, message: "Currency is required." };
+    }
+    payload.currency = parsed.toUpperCase();
+  }
+
+  const { error } = await supabase
+    .from("price_presets")
+    .update(payload)
+    .eq("id", id);
+
+  if (error) {
+    return { ok: false, message: "Failed to update preset field." };
+  }
+
+  revalidatePath("/admin/pricing");
+  revalidatePath("/admin/pricing/presets");
+
+  return { ok: true, message: "Preset updated." };
+}

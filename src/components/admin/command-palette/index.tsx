@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BarChart3,
   Calculator,
+  CalendarDays,
   FileText,
   LayoutDashboard,
   Mail,
@@ -56,6 +58,20 @@ const staticCommands: StaticCommand[] = [
     meta: "Огляд метрик та активності",
     href: "/admin",
     Icon: LayoutDashboard,
+  },
+  {
+    id: "analytics",
+    title: "Аналітика",
+    meta: "Виручка, конверсія та звіти",
+    href: "/admin/analytics",
+    Icon: BarChart3,
+  },
+  {
+    id: "calendar",
+    title: "Календар",
+    meta: "Таймлайн активних замовлень",
+    href: "/admin/calendar",
+    Icon: CalendarDays,
   },
   {
     id: "orders",

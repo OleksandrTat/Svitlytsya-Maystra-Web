@@ -46,11 +46,12 @@ export async function TodayTasks() {
   }
 
   const today = new Date();
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const nowMs = today.getTime();
+  const tomorrow = new Date(nowMs + 24 * 60 * 60 * 1000);
 
   const todayIso = today.toISOString().slice(0, 10);
   const tomorrowIso = tomorrow.toISOString().slice(0, 10);
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const twoHoursAgo = new Date(nowMs - 2 * 60 * 60 * 1000).toISOString();
 
   const [urgentOrdersResult, unansweredInquiriesResult] = await Promise.all([
     db
@@ -97,4 +98,3 @@ export async function TodayTasks() {
     </section>
   );
 }
-

@@ -1,6 +1,8 @@
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { ClientExportButton } from "@/components/admin/clients/client-export-button";
 import { getClientsForAdmin, getOrdersForAdmin } from "@/lib/data/queries";
+import { ORDER_PRIORITY_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import { formatInquiryDate } from "@/lib/utils";
 
 type Params = {
@@ -30,6 +32,20 @@ export default async function AdminClientDetailsPage({
 
   return (
     <AdminShell title={client.display_name ?? "Client"} description={client.id}>
+      <div className="flex justify-end">
+        <ClientExportButton
+          clientName={client.display_name ?? "Client"}
+          clientId={client.id}
+          rows={clientOrders.map((order) => ({
+            order_number: order.order_number,
+            status: ORDER_STATUS_LABELS[order.status],
+            priority: ORDER_PRIORITY_LABELS[order.priority],
+            expected_date: order.expected_date ?? "",
+            created_at: formatInquiryDate(order.created_at),
+          }))}
+        />
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <AdminCard>
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Profile</h2>
@@ -56,7 +72,7 @@ export default async function AdminClientDetailsPage({
               <li key={order.id} className="rounded-xl border border-[var(--color-border)] p-3">
                 <p className="font-semibold">{order.order_number}</p>
                 <p className="text-xs text-[var(--color-text-secondary)]">
-                  {order.status} · {formatInquiryDate(order.created_at)}
+                  {ORDER_STATUS_LABELS[order.status]} · {formatInquiryDate(order.created_at)}
                 </p>
               </li>
             ))}

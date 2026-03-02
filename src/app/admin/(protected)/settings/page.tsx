@@ -1,17 +1,30 @@
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { NotificationSettings } from "@/components/admin/settings/notification-settings";
+import { OrderTemplatesSettings } from "@/components/admin/orders/order-templates-settings";
 import { upsertSiteSettingAction } from "@/actions/admin";
-import { getSiteSettingsForAdmin } from "@/lib/data/queries";
+import {
+  getAdminNotificationSettingsForAdmin,
+  getOrderTemplatesForAdmin,
+  getSiteSettingsForAdmin,
+} from "@/lib/data/queries";
 
 export default async function AdminSettingsPage() {
-  const settings = await getSiteSettingsForAdmin();
+  const [settings, notificationSettings, orderTemplates] = await Promise.all([
+    getSiteSettingsForAdmin(),
+    getAdminNotificationSettingsForAdmin(),
+    getOrderTemplatesForAdmin(),
+  ]);
 
   return (
     <AdminShell
       title="Налаштування"
-      description="Контакти, SEO і соцмережі у форматі JSON або тексту."
+      description="Системні параметри, канали сповіщень і шаблони замовлень."
     >
+      <NotificationSettings initial={notificationSettings} />
+      <OrderTemplatesSettings initial={orderTemplates} />
+
       <AdminCard>
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Поточні налаштування</h2>
         <div className="mt-4 space-y-4">
@@ -39,9 +52,23 @@ export default async function AdminSettingsPage() {
 
       <AdminActionForm action={upsertSiteSettingAction} submitLabel="Додати налаштування">
         <div className="grid gap-3 md:grid-cols-2">
-          <input name="key" placeholder="Ключ (наприклад, socials)" required className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
-          <input name="description" placeholder="Опис" className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm" />
-          <textarea name="value" placeholder='JSON або текстове значення, напр. {"instagram":"https://..."}' required className="min-h-24 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm md:col-span-2" />
+          <input
+            name="key"
+            placeholder="Ключ (наприклад, socials)"
+            required
+            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
+          />
+          <input
+            name="description"
+            placeholder="Опис"
+            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
+          />
+          <textarea
+            name="value"
+            placeholder='JSON або текстове значення, напр. {"instagram":"https://..."}'
+            required
+            className="min-h-24 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm md:col-span-2"
+          />
         </div>
       </AdminActionForm>
     </AdminShell>

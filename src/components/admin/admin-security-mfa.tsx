@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type TotpFactor = {
@@ -116,10 +117,17 @@ export function AdminSecurityMfa() {
   };
 
   const disableTwoFactor = async () => {
-    const confirmed = window.confirm("Вимкнути 2FA для цього акаунта?");
-    if (!confirmed) {
-      return;
-    }
+    const confirmed = await new Promise<boolean>((resolve) => {
+      toast.warning("Вимкнути 2FA для цього акаунта?", {
+        duration: 6000,
+        action: {
+          label: "Підтвердити",
+          onClick: () => resolve(true),
+        },
+      });
+      setTimeout(() => resolve(false), 6200);
+    });
+    if (!confirmed) return;
 
     setLoading(true);
     setError(null);

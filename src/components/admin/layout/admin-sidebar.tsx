@@ -5,16 +5,18 @@ import { type ComponentType } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  BarChart3,
   BookOpen,
+  CalendarDays,
   Calculator,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
   Mail,
-  Search,
   MessageSquare,
   Package,
   PenSquare,
+  Search,
   Settings,
   Shield,
   UserCircle2,
@@ -52,6 +54,8 @@ const primaryItems: NavItem[] = [
 ];
 
 const secondaryItems: NavItem[] = [
+  { href: "/admin/analytics", label: "Аналітика", icon: BarChart3 },
+  { href: "/admin/calendar", label: "Календар", icon: CalendarDays },
   { href: "/admin/blog", label: "Блог", icon: PenSquare },
   { href: "/admin/cultural", label: "Cultural blog", icon: BookOpen },
   { href: "/admin/pricing", label: "Ціни", icon: Calculator },
@@ -78,9 +82,7 @@ function NavLink({
       title={collapsed ? item.label : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150",
-        isActive
-          ? "bg-white/15 text-white"
-          : "text-white/70 hover:bg-white/10 hover:text-white",
+        isActive ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white",
       )}
     >
       <item.icon size={18} className="shrink-0" />
@@ -112,7 +114,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
     <motion.aside
       animate={{ width: collapsed ? 72 : 252 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="sticky top-0 flex h-screen shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[var(--color-primary-900)]"
+      className="sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[var(--color-primary-900)] md:flex"
     >
       <div className="flex h-16 items-center justify-between border-b border-white/10 px-3">
         {!collapsed ? (

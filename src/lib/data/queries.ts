@@ -20,6 +20,12 @@ import type {
 } from "@/lib/types";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { DEFAULT_CHAT_SYSTEM_PROMPT } from "@/lib/chat/constants";
+import {
+  parseAdminNotificationSettings,
+  parseOrderTemplates,
+  type AdminNotificationSettingsPayload,
+  type OrderTemplate,
+} from "@/lib/admin/config";
 import type { Database } from "@/lib/types/database";
 
 function splitCsvParam(value?: string) {
@@ -964,6 +970,257 @@ export async function getAuditLogForAdmin(limit = 500): Promise<AuditLogRecord[]
   }
 
   return data as AuditLogRecord[];
+}
+
+export type AnalyticsRevenuePoint = {
+  month: string;
+  revenue: number;
+  orders: number;
+};
+
+export type AnalyticsServicePoint = {
+  name: string;
+  value: number;
+};
+
+export type AnalyticsTopClient = {
+  userId: string;
+  displayName: string;
+  orders: number;
+  revenue: number;
+};
+
+export type AdminAnalyticsData = {
+  revenue: AnalyticsRevenuePoint[];
+  services: AnalyticsServicePoint[];
+  topClients: AnalyticsTopClient[];
+  summary: {
+    completedOrders: number;
+    totalOrders: number;
+    inquiries: number;
+    conversionRate: number;
+    averageCheck: number;
+    openFunnels: number;
+  };
+};
+
+function monthKey(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(date: Date) {
+  return new Intl.DateTimeFormat("uk-UA", {
+    month: "short",
+    year: "2-digit",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+export async function getAdminAnalyticsData(months = 12): Promise<AdminAnalyticsData> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return {
+      revenue: [],
+      services: [],
+      topClients: [],
+      summary: {
+        completedOrders: 0,
+        totalOrders: 0,
+        inquiries: 0,
+        conversionRate: 0,
+        averageCheck: 0,
+        openFunnels: 0,
+      },
+    };
+  }
+
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+  const startIso = start.toISOString();
+
+  const [ordersResult, inquiriesResult, calculationsResult, profilesResult] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("id, user_id, status, created_at, inquiry_id")
+      .gte("created_at", startIso)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("inquiries")
+      .select("id, service_type, status, created_at")
+      .gte("created_at", startIso)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("order_calculations")
+      .select("order_id, total, created_at")
+      .gte("created_at", startIso)
+      .order("created_at", { ascending: false }),
+    supabase.from("user_profiles").select("id, display_name"),
+  ]);
+
+  const orders = ordersResult.data ?? [];
+  const inquiries = inquiriesResult.data ?? [];
+  const calculations = calculationsResult.data ?? [];
+  const profiles = profilesResult.data ?? [];
+
+  const monthsList: { key: string; label: string }[] = [];
+  for (let index = 0; index < months; index += 1) {
+    const date = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + index, 1),
+    );
+    monthsList.push({ key: monthKey(date), label: monthLabel(date) });
+  }
+
+  const revenueByMonth = new Map<string, { revenue: number; orders: number }>();
+  for (const month of monthsList) {
+    revenueByMonth.set(month.key, { revenue: 0, orders: 0 });
+  }
+
+  const inquiryMap = new Map(inquiries.map((inquiry) => [inquiry.id, inquiry]));
+
+  const latestCalculationByOrder = new Map<string, number>();
+  for (const row of calculations) {
+    if (!latestCalculationByOrder.has(row.order_id)) {
+      latestCalculationByOrder.set(row.order_id, Number(row.total) || 0);
+    }
+  }
+
+  const serviceCounter = new Map<string, number>();
+  let completedOrders = 0;
+  let revenueTotal = 0;
+
+  for (const order of orders) {
+    if (order.status !== "completed") {
+      continue;
+    }
+
+    completedOrders += 1;
+    const orderDate = new Date(order.created_at);
+    const key = monthKey(orderDate);
+    const current = revenueByMonth.get(key);
+    const orderRevenue = latestCalculationByOrder.get(order.id) ?? 0;
+
+    if (current) {
+      current.revenue += orderRevenue;
+      current.orders += 1;
+    }
+
+    revenueTotal += orderRevenue;
+
+    const serviceName = order.inquiry_id
+      ? inquiryMap.get(order.inquiry_id)?.service_type ?? "Інше"
+      : "Інше";
+    serviceCounter.set(serviceName, (serviceCounter.get(serviceName) ?? 0) + 1);
+  }
+
+  const orderInquiryIds = new Set(
+    orders
+      .filter((order) => Boolean(order.inquiry_id))
+      .map((order) => order.inquiry_id as string),
+  );
+
+  const openFunnels = inquiries.filter(
+    (inquiry) =>
+      inquiry.status !== "done" &&
+      inquiry.status !== "archived" &&
+      !orderInquiryIds.has(inquiry.id),
+  ).length;
+
+  const conversionRate =
+    inquiries.length > 0 ? Math.round((orders.length / inquiries.length) * 1000) / 10 : 0;
+  const averageCheck = completedOrders > 0 ? Math.round(revenueTotal / completedOrders) : 0;
+
+  const profileNameMap = new Map(
+    profiles.map((profile) => [profile.id, profile.display_name ?? "Клієнт"]),
+  );
+  const topClientMap = new Map<string, { orders: number; revenue: number }>();
+
+  for (const order of orders) {
+    if (!order.user_id || order.status !== "completed") {
+      continue;
+    }
+
+    const current = topClientMap.get(order.user_id) ?? { orders: 0, revenue: 0 };
+    current.orders += 1;
+    current.revenue += latestCalculationByOrder.get(order.id) ?? 0;
+    topClientMap.set(order.user_id, current);
+  }
+
+  const topClients: AnalyticsTopClient[] = [...topClientMap.entries()]
+    .map(([userId, value]) => ({
+      userId,
+      displayName: profileNameMap.get(userId) ?? "Клієнт",
+      orders: value.orders,
+      revenue: value.revenue,
+    }))
+    .sort((left, right) => {
+      if (right.orders === left.orders) {
+        return right.revenue - left.revenue;
+      }
+      return right.orders - left.orders;
+    })
+    .slice(0, 5);
+
+  return {
+    revenue: monthsList.map((month) => {
+      const value = revenueByMonth.get(month.key) ?? { revenue: 0, orders: 0 };
+      return {
+        month: month.label,
+        revenue: Math.round(value.revenue),
+        orders: value.orders,
+      };
+    }),
+    services: [...serviceCounter.entries()]
+      .map(([name, value]) => ({ name, value }))
+      .sort((left, right) => right.value - left.value),
+    topClients,
+    summary: {
+      completedOrders,
+      totalOrders: orders.length,
+      inquiries: inquiries.length,
+      conversionRate,
+      averageCheck,
+      openFunnels,
+    },
+  };
+}
+
+export async function getOrderTemplatesForAdmin(): Promise<OrderTemplate[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return parseOrderTemplates(null);
+  }
+
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "order_templates")
+    .maybeSingle();
+
+  if (error) {
+    return parseOrderTemplates(null);
+  }
+
+  return parseOrderTemplates(data?.value ?? null);
+}
+
+export async function getAdminNotificationSettingsForAdmin(): Promise<AdminNotificationSettingsPayload> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return parseAdminNotificationSettings(null);
+  }
+
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "admin_notification_settings")
+    .maybeSingle();
+
+  if (error) {
+    return parseAdminNotificationSettings(null);
+  }
+
+  return parseAdminNotificationSettings(data?.value ?? null);
 }
 
 
