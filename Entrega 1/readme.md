@@ -36,3 +36,4 @@ Crear una plataforma moderna y sencilla que conecte a clientes con el taller, pe
 - Fase 3: roles y permisos, dashboard de analitica, automatizaciones.
 - Tablero de gestion (Trello/Gantt): pendiente de enlace.
 - Repositorio publico: pendiente de enlace al GitHub.
+ 
