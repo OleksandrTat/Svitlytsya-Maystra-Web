@@ -1,6 +1,8 @@
 "use server";
 
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
+import { Resend } from "resend";
+import { env, hasResend } from "@/lib/env";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type DataExportResult = {
   ok: boolean;
@@ -52,9 +54,7 @@ export async function exportMyDataAction(): Promise<DataExportResult> {
 
 export async function requestAccountDeletionAction(): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
-  const serviceClient = createSupabaseServiceClient();
-
-  if (!supabase || !serviceClient) {
+  if (!supabase) {
     return { ok: false, message: "Supabase is not configured." };
   }
 
@@ -66,28 +66,60 @@ export async function requestAccountDeletionAction(): Promise<ActionResult> {
     return { ok: false, message: "You need to be signed in." };
   }
 
-  const anonymizedEmail = `deleted+${user.id}@example.invalid`;
+  const displayName =
+    typeof user.user_metadata?.display_name === "string" && user.user_metadata.display_name.trim()
+      ? user.user_metadata.display_name.trim()
+      : user.email?.split("@")[0] ?? "Користувач";
 
-  await serviceClient
-    .from("user_profiles")
-    .update({
-      display_name: "Deleted User",
-      bio: null,
-      avatar_url: null,
-      account_types: [],
-      email_preferences: {},
-    })
-    .eq("id", user.id);
+  const recentThreshold = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: existingRequest } = await supabase
+    .from("inquiries")
+    .select("id,created_at")
+    .eq("email", user.email ?? "")
+    .eq("service_type", "account_deletion_request")
+    .gte("created_at", recentThreshold)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  await serviceClient.auth.admin.updateUserById(user.id, {
-    email: anonymizedEmail,
-    user_metadata: {
-      deleted: true,
-    },
+  if (existingRequest) {
+    return {
+      ok: true,
+      message: "Запит уже надіслано. Адміністратор зв'яжеться з вами після перевірки.",
+    };
+  }
+
+  const { error: insertError } = await supabase.from("inquiries").insert({
+    name: displayName,
+    phone: "not_provided",
+    email: user.email ?? null,
+    service_type: "account_deletion_request",
+    source_page: "/profile",
+    message: `Користувач ${displayName} (${user.email ?? user.id}) запросив видалення акаунта.`,
+    status: "new",
   });
+
+  if (insertError) {
+    return { ok: false, message: insertError.message };
+  }
+
+  if (hasResend) {
+    const resend = new Resend(env.resendApiKey!);
+    await resend.emails.send({
+      from: env.resendFromEmail!,
+      to: env.adminEmail!,
+      subject: "Новий запит на видалення акаунта",
+      text: [
+        `Користувач: ${displayName}`,
+        `Email: ${user.email ?? "невідомо"}`,
+        "Джерело: /profile",
+        "Перегляд заявок: /admin/inquiries",
+      ].join("\n"),
+    });
+  }
 
   return {
     ok: true,
-    message: "Deletion request has been processed. Your account is anonymized.",
+    message: "Запит на видалення акаунта надіслано. Ми обробимо його після перевірки.",
   };
 }

@@ -39,7 +39,10 @@ export function MobileBottomNav({ counts }: { counts: MobileNavCounts }) {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-white/95 pb-safe backdrop-blur md:hidden">
       <div className="grid grid-cols-5">
         {TAB_ITEMS.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isRoot = item.href === "/admin";
+          const isActive = isRoot
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const badge = item.badgeKey ? counts[item.badgeKey] : 0;
 
           return (

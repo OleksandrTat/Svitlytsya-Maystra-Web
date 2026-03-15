@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AccountDeletionRequestForm } from "@/components/profile/account-deletion-request-form";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { Container } from "@/components/ui/container";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -37,19 +38,20 @@ export default async function ProfilePage() {
             <Link href="/profile/subscriptions" className="underline">
               Підписки
             </Link>
-            <Link href="/profile/data" className="underline">
-              Мої дані
-            </Link>
           </div>
         </div>
 
-        <ProfileForm
-          userId={user.id}
-          email={user.email ?? ""}
-          initialDisplayName={profile?.display_name ?? (user.user_metadata?.display_name as string) ?? ""}
-          initialBio={profile?.bio ?? ""}
-          initialAvatarUrl={profile?.avatar_url ?? ""}
-        />
+        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <ProfileForm
+            userId={user.id}
+            email={user.email ?? ""}
+            initialDisplayName={profile?.display_name ?? (user.user_metadata?.display_name as string) ?? ""}
+            initialBio={profile?.bio ?? ""}
+            initialAvatarUrl={profile?.avatar_url ?? ""}
+          />
+
+          <AccountDeletionRequestForm />
+        </div>
       </Container>
     </section>
   );

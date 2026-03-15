@@ -1,15 +1,32 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
 type ActionResult = {
   ok: boolean;
   message: string;
 };
 
+type DbErrorLike = {
+  code?: string;
+  message: string;
+};
+
 function parseBoolean(value: FormDataEntryValue | null) {
   return value === "on" || value === "true";
+}
+
+function mapProfileError(error: DbErrorLike) {
+  if (error.code === "42P01" || /relation .*user_profiles.* does not exist/i.test(error.message)) {
+    return "У базі даних відсутня таблиця профілів. Запусти SQL-міграцію для user_profiles.";
+  }
+
+  if (error.code === "42501" || /row-level security/i.test(error.message)) {
+    return "Недостатньо прав для оновлення профілю. Увійди в акаунт і спробуй ще раз.";
+  }
+
+  return error.message;
 }
 
 export async function updateProfileAction(formData: FormData): Promise<ActionResult> {
@@ -32,19 +49,23 @@ export async function updateProfileAction(formData: FormData): Promise<ActionRes
   const avatarUrl = String(formData.get("avatar_url") || "").trim();
 
   if (displayName.length < 2) {
-    return { ok: false, message: "Імʼя має містити щонайменше 2 символи." };
+    return { ok: false, message: "Ім'я має містити щонайменше 2 символи." };
   }
 
-  const { error: profileError } = await supabase.from("user_profiles").upsert({
-    id: user.id,
-    display_name: displayName,
-    bio: bio || null,
-    avatar_url: avatarUrl || null,
-    last_seen_at: new Date().toISOString(),
-  });
+  const writeClient = createSupabaseServiceClient() ?? supabase;
+  const { error: profileError } = await writeClient.from("user_profiles").upsert(
+    {
+      id: user.id,
+      display_name: displayName,
+      bio: bio || null,
+      avatar_url: avatarUrl || null,
+      last_seen_at: new Date().toISOString(),
+    },
+    { onConflict: "id" },
+  );
 
   if (profileError) {
-    return { ok: false, message: "Не вдалося зберегти профіль." };
+    return { ok: false, message: mapProfileError(profileError) };
   }
 
   await supabase.auth.updateUser({
@@ -119,12 +140,20 @@ export async function updateSubscriptionPreferencesAction(formData: FormData): P
     ? Array.from(new Set([...currentAccountTypes, "email_subscriber"]))
     : currentAccountTypes.filter((value: string) => value !== "email_subscriber");
 
-  await supabase.from("user_profiles").upsert({
-    id: user.id,
-    account_types: nextAccountTypes,
-    email_preferences: preferences,
-    last_seen_at: now,
-  });
+  const writeClient = createSupabaseServiceClient() ?? supabase;
+  const { error: profileError } = await writeClient.from("user_profiles").upsert(
+    {
+      id: user.id,
+      account_types: nextAccountTypes,
+      email_preferences: preferences,
+      last_seen_at: now,
+    },
+    { onConflict: "id" },
+  );
+
+  if (profileError) {
+    return { ok: false, message: mapProfileError(profileError) };
+  }
 
   revalidatePath("/profile/subscriptions");
 

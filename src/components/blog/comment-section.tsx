@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CommentForm } from "@/components/blog/comment-form";
 import { CommentItem } from "@/components/blog/comment-item";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
 type CommentSectionProps = {
   postId: string;
@@ -9,19 +9,21 @@ type CommentSectionProps = {
 };
 
 export async function CommentSection({ postId, postSlug }: CommentSectionProps) {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) {
+  const serverSupabase = await createSupabaseServerClient();
+  const readSupabase = createSupabaseServiceClient() ?? serverSupabase;
+
+  if (!readSupabase) {
     return null;
   }
 
-  const [{ data: commentsRaw }, { data: authData }] = await Promise.all([
-    supabase
+  const [{ data: commentsRaw }, authDataResult] = await Promise.all([
+    readSupabase
       .from("blog_comments")
       .select("id,content,created_at,parent_id,user_id")
       .eq("post_id", postId)
       .eq("status", "approved")
       .order("created_at", { ascending: true }),
-    supabase.auth.getUser(),
+    serverSupabase?.auth.getUser(),
   ]);
 
   const comments = commentsRaw ?? [];
@@ -29,7 +31,7 @@ export async function CommentSection({ postId, postSlug }: CommentSectionProps) 
 
   const { data: profilesRaw } =
     userIds.length > 0
-      ? await supabase
+      ? await readSupabase
           .from("user_profiles")
           .select("id,display_name,avatar_url")
           .in("id", userIds)
@@ -49,7 +51,7 @@ export async function CommentSection({ postId, postSlug }: CommentSectionProps) 
     };
   });
 
-  const currentUser = authData.user;
+  const currentUser = authDataResult?.data.user ?? null;
 
   return (
     <section className="mt-14 border-t border-[var(--color-border)] pt-8">

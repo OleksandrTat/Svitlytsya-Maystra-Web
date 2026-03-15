@@ -14,11 +14,32 @@ type ActionResult = {
   message: string;
 };
 
+type DbErrorLike = {
+  code?: string;
+  message: string;
+};
+
 function sanitizeComment(value: string) {
   return value
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function mapInsertCommentError(error: DbErrorLike) {
+  if (error.code === "42P01" || /relation .*blog_comments.* does not exist/i.test(error.message)) {
+    return "У базі даних відсутня таблиця коментарів. Виконай SQL-міграцію для blog_comments.";
+  }
+
+  if (error.code === "42501" || /row-level security/i.test(error.message)) {
+    return "Не вдалося підтвердити сесію користувача. Вийди з акаунта, увійди знову та повтори.";
+  }
+
+  if (error.code === "23503") {
+    return "Не вдалося додати коментар: стаття або користувач не знайдені у базі.";
+  }
+
+  return error.message;
 }
 
 export async function addCommentAction(formData: FormData): Promise<ActionResult> {
@@ -44,7 +65,23 @@ export async function addCommentAction(formData: FormData): Promise<ActionResult
     return { ok: false, message: "Коментар не може бути порожнім." };
   }
 
-  const { error } = await supabase.from("blog_comments").insert({
+  const { data: post, error: postError } = await supabase
+    .from("cultural_blog_posts")
+    .select("id,allow_comments,is_published")
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (postError) {
+    return { ok: false, message: postError.message };
+  }
+
+  if (!post || !post.is_published || !post.allow_comments) {
+    return { ok: false, message: "Коментування для цієї статті вимкнено." };
+  }
+
+  const writeClient = createSupabaseServiceClient() ?? supabase;
+
+  const { error } = await writeClient.from("blog_comments").insert({
     post_id: postId,
     user_id: user.id,
     parent_id: parentId || null,
@@ -53,7 +90,7 @@ export async function addCommentAction(formData: FormData): Promise<ActionResult
   });
 
   if (error) {
-    return { ok: false, message: error.message };
+    return { ok: false, message: mapInsertCommentError(error) };
   }
 
   if (hasResend) {
