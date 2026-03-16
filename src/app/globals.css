@@ -1,39 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  /* Primary blues */
-  --color-primary-900: #0d2d4f;
-  --color-primary: #1a4f8a;
-  --color-primary-500: #2b6cb0;
-  --color-primary-300: #d6e4f7;
-  --color-primary-100: #ebf4ff;
-  --color-on-primary: #f8fbff;
-  --color-on-primary-muted: rgb(248 251 255 / 0.82);
-  --color-on-primary-faint: rgb(248 251 255 / 0.6);
+  /* Primary — темно-бордовий */
+  --color-primary-900: #0d0000;
+  --color-primary: #190000;
+  --color-primary-700: #2d0000;
+  --color-primary-500: #4a0000;
+  --color-primary-300: #f0d0d0;
+  --color-primary-100: #fff0f0;
+  --color-on-primary: #fff8f8;
+  --color-on-primary-muted: rgb(255 248 248 / 0.82);
+  --color-on-primary-faint: rgb(255 248 248 / 0.55);
 
-  /* Accent wood tones */
-  --color-accent: #c07b2a;
-  --color-accent-800: #7d4e10;
-  --color-accent-100: #fdf3e7;
+  /* Accent — тепле золото (замість бордо-золото) */
+  --color-accent: #b5860d;
+  --color-accent-800: #7d5c06;
+  --color-accent-100: #fdf8e7;
 
-  /* Neutral palette */
-  --color-gray-900: #1a202c;
-  --color-gray-700: #2d3748;
-  --color-gray-500: #718096;
-  --color-gray-300: #cbd5e0;
-  --color-gray-100: #f5f7fa;
+  /* Neutral */
+  --color-gray-900: #1a1a1a;
+  --color-gray-700: #2d2d2d;
+  --color-gray-500: #6b6b6b;
+  --color-gray-300: #d4d4d4;
+  --color-gray-100: #f5f5f5;
 
   /* Backgrounds */
-  --color-bg: #fafaf8;
-  --color-bg-warm: #f5f0ea;
-  --color-bg-section: #f5f7fa;
+  --color-bg: #fafaf9;
+  --color-bg-warm: #f8f3f3;
+  --color-bg-section: #f5f3f3;
 
   /* Semantic */
   --color-success: #276749;
   --color-error: #c53030;
 
-  /* Aliases for current components */
-  --color-primary-700: var(--color-primary-900);
+  /* Aliases */
   --color-secondary: var(--color-accent);
   --color-background: var(--color-bg);
   --color-surface: var(--color-bg-warm);
@@ -65,8 +65,8 @@ body {
 
 body {
   background:
-    radial-gradient(circle at top left, rgb(192 123 42 / 0.1), transparent 36%),
-    radial-gradient(circle at bottom right, rgb(26 79 138 / 0.12), transparent 42%),
+    radial-gradient(circle at top left, rgb(181 134 13 / 0.08), transparent 36%),
+    radial-gradient(circle at bottom right, rgb(25 0 0 / 0.10), transparent 42%),
     var(--color-background);
   color: var(--color-text);
   font-family: var(--font-inter), sans-serif;

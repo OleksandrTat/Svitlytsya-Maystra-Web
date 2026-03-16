@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { InquiryForm } from "@/components/shared/inquiry-form";
+import { SERVICE_TYPES } from "@/lib/constants";
 
 type StepOption = {
   value: string;
@@ -17,10 +18,24 @@ type ConstructorStep = {
 };
 
 type ConstructorClientProps = {
-  productType: "door" | "furniture";
+  productType: "door" | "furniture" | "window";
   steps: ConstructorStep[];
   photoMap: Record<string, string>;
   initialConfig: Record<string, string>;
+};
+
+type ServiceType = (typeof SERVICE_TYPES)[number];
+
+const PRODUCT_LABELS: Record<ConstructorClientProps["productType"], string> = {
+  door: "Двері",
+  furniture: "Меблі",
+  window: "Вікна",
+};
+
+const PRODUCT_SERVICE_MAP: Record<ConstructorClientProps["productType"], ServiceType> = {
+  door: "Двері",
+  furniture: "Меблі",
+  window: "Вікна",
 };
 
 function buildConfigurationKey(steps: ConstructorStep[], config: Record<string, string>) {
@@ -37,7 +52,10 @@ function findConfigurationPhoto(
     return { image: photoMap[exactKey], key: exactKey };
   }
 
-  const firstThree = steps.slice(0, 3).map((step) => config[step.key] || "").join("_");
+  const firstThree = steps
+    .slice(0, 3)
+    .map((step) => config[step.key] || "")
+    .join("_");
   const firstThreeMatch = Object.entries(photoMap).find(([key]) => key.startsWith(firstThree));
   if (firstThreeMatch) {
     return { image: firstThreeMatch[1], key: firstThreeMatch[0] };
@@ -51,8 +69,8 @@ function findConfigurationPhoto(
   return { image: "/window.svg", key: "fallback" };
 }
 
-function serviceTypeByProduct(productType: "door" | "furniture") {
-  return productType === "door" ? "Двері" : "Меблі";
+function serviceTypeByProduct(productType: ConstructorClientProps["productType"]) {
+  return PRODUCT_SERVICE_MAP[productType];
 }
 
 export function ConstructorClient({
@@ -116,7 +134,7 @@ export function ConstructorClient({
       <div className="mx-auto grid max-w-[1280px] gap-8 px-4 md:px-6 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-6">
           <h1 className="font-display text-4xl text-[var(--color-text-primary)]">
-            Конструктор: {productType === "door" ? "Двері" : "Меблі"}
+            Конструктор: {PRODUCT_LABELS[productType]}
           </h1>
 
           <div className="space-y-5 rounded-3xl border border-[var(--color-border)] bg-white p-5">

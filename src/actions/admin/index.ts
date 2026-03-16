@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { randomUUID } from "crypto";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
@@ -326,6 +326,7 @@ export async function updateInquiryStatusAction(formData: FormData): Promise<Act
 
   revalidatePath("/admin");
   revalidatePath("/admin/inquiries");
+  revalidateTag("admin-counts", "default");
 
   return { ok: true, message: "Статус заявки оновлено." };
 }

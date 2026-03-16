@@ -1,4 +1,5 @@
 ﻿import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { mockInquiries, mockProjects, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
 import type {
   ActivityLog,
@@ -7,15 +8,21 @@ import type {
   AIChatSession,
   CatalogFilters,
   FormulaComponent,
+  Invoice,
   Inquiry,
+  Payment,
   Order,
   OrderMessage,
   OrderStatusHistory,
   PriceFormula,
   PricePreset,
+  Product,
+  ProductStatus,
   Project,
   Service,
   SiteSetting,
+  SupportChat,
+  SupportMessage,
   Testimonial,
 } from "@/lib/types";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
@@ -49,6 +56,41 @@ export function parseCatalogFilters(searchParams: Record<string, string | string
     status: status as CatalogFilters["status"],
     styles,
     materials,
+    page: page > 0 ? page : 1,
+    pageSize: 9,
+  };
+}
+
+// ── PRODUCTS ──────────────────────────────────────────────
+
+export type ProductFilters = {
+  category?: string;
+  materials: string[];
+  styles: string[];
+  status?: ProductStatus;
+  featured?: boolean;
+  page: number;
+  pageSize: number;
+};
+
+export function parseProductFilters(
+  searchParams: Record<string, string | string[] | undefined>,
+): ProductFilters {
+  const category = typeof searchParams.category === "string" ? searchParams.category : undefined;
+  const status = typeof searchParams.status === "string" ? searchParams.status : undefined;
+  const styles = splitCsvParam(typeof searchParams.style === "string" ? searchParams.style : undefined);
+  const materials = splitCsvParam(typeof searchParams.material === "string" ? searchParams.material : undefined);
+  const featuredValue = typeof searchParams.featured === "string" ? searchParams.featured : undefined;
+  const featured =
+    featuredValue === "true" || featuredValue === "1" || featuredValue === "yes";
+  const page = Number(typeof searchParams.page === "string" ? searchParams.page : "1") || 1;
+
+  return {
+    category,
+    status: status as ProductStatus | undefined,
+    styles,
+    materials,
+    featured: featured || undefined,
     page: page > 0 ? page : 1,
     pageSize: 9,
   };
@@ -323,6 +365,205 @@ export const getAllPublicProjectSlugs = cache(async () => {
   return data.map((project) => project.slug);
 });
 
+export async function getProducts(
+  filters: ProductFilters,
+): Promise<{ items: Product[]; total: number }> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return { items: [], total: 0 };
+  }
+
+  let query = supabase
+    .from("products")
+    .select("*", { count: "exact" })
+    .eq("status", "active")
+    .order("sort_order", { ascending: true });
+
+  if (filters.category) {
+    query = query.eq("category", filters.category);
+  }
+
+  if (filters.materials.length > 0) {
+    query = query.contains("materials", filters.materials);
+  }
+
+  if (filters.styles.length > 0) {
+    query = query.contains("style", filters.styles);
+  }
+
+  if (filters.featured) {
+    query = query.eq("is_featured", true);
+  }
+
+  const start = (filters.page - 1) * filters.pageSize;
+  const { data, count, error } = await query.range(start, start + filters.pageSize - 1);
+
+  if (error || !data) {
+    return { items: [], total: 0 };
+  }
+
+  return { items: data as Product[], total: count ?? data.length };
+}
+
+export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as Product;
+});
+
+export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("products")
+    .select("*")
+    .eq("status", "active")
+    .eq("is_featured", true)
+    .order("sort_order", { ascending: true })
+    .limit(limit);
+
+  return (data ?? []) as Product[];
+}
+
+export async function getAllProductsForAdmin(): Promise<Product[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("products")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  return (data ?? []) as Product[];
+}
+
+export async function getProductsForProject(projectId: string): Promise<Product[]> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("project_products")
+    .select("product_id, sort_order, quantity, notes, products(*)")
+    .eq("project_id", projectId)
+    .order("sort_order", { ascending: true });
+
+  type ProjectProductRow = {
+    product_id: string;
+    sort_order: number;
+    quantity: number;
+    notes: string | null;
+    products: Database["public"]["Tables"]["products"]["Row"] | null;
+  };
+
+  const rows = (data ?? []) as unknown as ProjectProductRow[];
+
+  return rows
+    .map((row) => row.products)
+    .filter((product): product is Database["public"]["Tables"]["products"]["Row"] => product !== null)
+    .map((product) => product as Product);
+}
+
+export async function getProjectsForProduct(productId: string): Promise<Project[]> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("project_products")
+    .select("project_id, sort_order, quantity, notes, projects(*)")
+    .eq("product_id", productId)
+    .order("sort_order", { ascending: true });
+
+  type ProductProjectRow = {
+    project_id: string;
+    sort_order: number;
+    quantity: number;
+    notes: string | null;
+    projects: Database["public"]["Tables"]["projects"]["Row"] | null;
+  };
+
+  const rows = (data ?? []) as unknown as ProductProjectRow[];
+
+  return rows
+    .map((row) => row.projects)
+    .filter(
+      (project): project is Database["public"]["Tables"]["projects"]["Row"] =>
+        project !== null && project.status !== "concept",
+    )
+    .map((project) => project as Project);
+}
+
+export async function getPriceFormulaById(formulaId: string): Promise<PriceFormula | null> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase || !formulaId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("price_formulas")
+    .select("*")
+    .eq("id", formulaId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as PriceFormula;
+}
+
+export async function getPricePresetsForFormula(formulaId: string): Promise<PricePreset[]> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase || !formulaId) {
+    return [];
+  }
+
+  const { data: components, error: componentsError } = await supabase
+    .from("formula_components")
+    .select("preset_id")
+    .eq("formula_id", formulaId);
+
+  if (componentsError || !components) {
+    return [];
+  }
+
+  const presetIds = Array.from(
+    new Set(components.map((component) => component.preset_id).filter(Boolean)),
+  ) as string[];
+
+  if (presetIds.length === 0) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("price_presets")
+    .select("*")
+    .in("id", presetIds);
+
+  return (data ?? []) as PricePreset[];
+}
+
 export const getServices = cache(async (): Promise<Service[]> => {
   const supabase = await createSupabaseServerClient();
 
@@ -390,33 +631,39 @@ export async function getDashboardStats() {
   };
 }
 
-export async function getAdminWorkspaceCounts() {
-  const supabase = await getSupabaseForAdminQueries();
+export const getAdminWorkspaceCounts = unstable_cache(
+  async () => {
+    const supabase = await getSupabaseForAdminQueries();
+    if (!supabase) {
+      return { unreadMessages: 0, newInquiries: 0, unreadSupport: 0 };
+    }
 
-  if (!supabase) {
+    const [messagesResult, inquiriesResult, supportResult] = await Promise.all([
+      supabase
+        .from("order_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("sender_type", "client")
+        .eq("is_read", false),
+      supabase.from("inquiries").select("id", { count: "exact", head: true }).eq("status", "new"),
+      supabase
+        .from("support_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("sender_type", "client")
+        .eq("is_read", false),
+    ]);
+
     return {
-      unreadMessages: 0,
-      newInquiries: 0,
+      unreadMessages: messagesResult.count ?? 0,
+      newInquiries: inquiriesResult.count ?? 0,
+      unreadSupport: supportResult.count ?? 0,
     };
-  }
-
-  const [messagesResult, inquiriesResult] = await Promise.all([
-    supabase
-      .from("order_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("sender_type", "client")
-      .eq("is_read", false),
-    supabase
-      .from("inquiries")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "new"),
-  ]);
-
-  return {
-    unreadMessages: messagesResult.count ?? 0,
-    newInquiries: inquiriesResult.count ?? 0,
-  };
-}
+  },
+  ["admin-workspace-counts"],
+  {
+    revalidate: 30,
+    tags: ["admin-counts"],
+  },
+);
 
 export async function getRecentInquiries(limit = 5): Promise<Inquiry[]> {
   const supabase = await createSupabaseServerClient();
@@ -519,24 +766,47 @@ export async function getSiteSettingsForAdmin(): Promise<SiteSetting[]> {
   return data;
 }
 
-export async function getChatSystemPrompt() {
+export async function getChatSystemPrompt(): Promise<string> {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
-  if (!supabase) {
-    return DEFAULT_CHAT_SYSTEM_PROMPT;
+  let basePrompt = DEFAULT_CHAT_SYSTEM_PROMPT;
+
+  if (supabase) {
+    const [settingResult, productsResult] = await Promise.all([
+      supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "ai_chat_system_prompt")
+        .maybeSingle(),
+      supabase
+        .from("products")
+        .select("title, category, description, price_from, materials")
+        .eq("status", "active")
+        .order("sort_order", { ascending: true })
+        .limit(20),
+    ]);
+
+    const customPrompt = extractStringSetting(settingResult.data?.value);
+    if (customPrompt) {
+      basePrompt = customPrompt;
+    }
+
+    const products = productsResult.data ?? [];
+    if (products.length > 0) {
+      const productList = products
+        .map(
+          (product) =>
+            `- ${product.title} (${product.category})${
+              product.price_from ? `, від ${product.price_from} грн` : ""
+            }${product.materials?.length ? `, матеріали: ${product.materials.join(", ")}` : ""}`,
+        )
+        .join("\n");
+
+      basePrompt += `\n\nАктуальний асортимент майстерні:\n${productList}\n\nКоли клієнт питає про продукти — посилайся на ці позиції.`;
+    }
   }
 
-  const { data, error } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "ai_chat_system_prompt")
-    .maybeSingle();
-
-  if (error) {
-    return DEFAULT_CHAT_SYSTEM_PROMPT;
-  }
-
-  return extractStringSetting(data?.value) ?? DEFAULT_CHAT_SYSTEM_PROMPT;
+  return basePrompt;
 }
 
 export async function getContactSettings() {
@@ -626,6 +896,158 @@ export async function getChatMessagesForAdmin(chatSessionId: string, limit = 100
   }
 
   return data as AIChatMessage[];
+}
+
+// ── SUPPORT CHAT ──────────────────────────────────────────
+
+export async function getOrCreateSupportChat(
+  userId: string,
+  subject?: string,
+  orderId?: string,
+): Promise<SupportChat | null> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const { data: existing } = await supabase
+    .from("support_chats")
+    .select("*")
+    .eq("user_id", userId)
+    .in("status", ["open", "waiting"])
+    .order("last_message_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    return existing as SupportChat;
+  }
+
+  const { data: created, error } = await supabase
+    .from("support_chats")
+    .insert({
+      user_id: userId,
+      order_id: orderId ?? null,
+      subject: subject ?? null,
+      channel: "internal",
+      status: "open",
+    })
+    .select("*")
+    .single();
+
+  if (error || !created) {
+    return null;
+  }
+
+  return created as SupportChat;
+}
+
+export async function getSupportChatMessages(
+  chatId: string,
+  userId: string,
+): Promise<SupportMessage[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data: chat } = await supabase
+    .from("support_chats")
+    .select("id")
+    .eq("id", chatId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!chat) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("support_messages")
+    .select("*")
+    .eq("chat_id", chatId)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  const writeClient = createSupabaseServiceClient() ?? supabase;
+
+  await writeClient
+    .from("support_messages")
+    .update({ is_read: true })
+    .eq("chat_id", chatId)
+    .eq("is_read", false)
+    .neq("sender_type", "client");
+
+  return (data ?? []) as SupportMessage[];
+}
+
+export async function getSupportChatsForAdmin(
+  limit = 100,
+): Promise<(SupportChat & { user_display_name: string | null; unread_count: number })[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data: chats } = await supabase
+    .from("support_chats")
+    .select("*")
+    .order("last_message_at", { ascending: false })
+    .limit(limit);
+
+  if (!chats || chats.length === 0) {
+    return [];
+  }
+
+  const userIds = [...new Set(chats.map((chat) => chat.user_id))];
+  const { data: profiles } = await supabase
+    .from("user_profiles")
+    .select("id, display_name")
+    .in("id", userIds);
+
+  const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile.display_name]));
+
+  const chatIds = chats.map((chat) => chat.id);
+  const { data: unreadData } = await supabase
+    .from("support_messages")
+    .select("chat_id")
+    .in("chat_id", chatIds)
+    .eq("sender_type", "client")
+    .eq("is_read", false);
+
+  const unreadMap = new Map<string, number>();
+  for (const row of unreadData ?? []) {
+    unreadMap.set(row.chat_id, (unreadMap.get(row.chat_id) ?? 0) + 1);
+  }
+
+  return chats.map((chat) => ({
+    ...(chat as SupportChat),
+    user_display_name: profileMap.get(chat.user_id) ?? null,
+    unread_count: unreadMap.get(chat.id) ?? 0,
+  }));
+}
+
+export async function getSupportChatMessagesForAdmin(chatId: string): Promise<SupportMessage[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("support_messages")
+    .select("*")
+    .eq("chat_id", chatId)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  await supabase
+    .from("support_messages")
+    .update({ is_read: true })
+    .eq("chat_id", chatId)
+    .eq("sender_type", "client")
+    .eq("is_read", false);
+
+  return (data ?? []) as SupportMessage[];
 }
 export type ClientSummary = {
   id: string;
@@ -859,6 +1281,277 @@ export async function getOrderMessagesByOrderForAdmin(orderId: string): Promise<
   return data as OrderMessage[];
 }
 
+// ── INVOICES & PAYMENTS ───────────────────────────────────
+
+export async function getInvoicesByOrderForAdmin(orderId: string): Promise<Invoice[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("invoices")
+    .select("*")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: false });
+
+  return (data ?? []) as Invoice[];
+}
+
+export async function getPaymentsByOrderForAdmin(orderId: string): Promise<Payment[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("order_id", orderId)
+    .order("paid_at", { ascending: false });
+
+  return (data ?? []) as Payment[];
+}
+
+export async function getInvoicesByOrderForClient(
+  orderId: string,
+  userId: string,
+): Promise<Invoice[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("id", orderId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!order) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("invoices")
+    .select("*")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: false });
+
+  return (data ?? []) as Invoice[];
+}
+
+// ── REVENUE & FINANCE ─────────────────────────────────────
+
+export type RevenueStats = {
+  totalInvoiced: number;
+  totalPaid: number;
+  totalOverdue: number;
+  totalDraft: number;
+  overdueCount: number;
+  pendingCount: number;
+};
+
+export async function getRevenueStatsForAdmin(): Promise<RevenueStats> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return {
+      totalInvoiced: 0,
+      totalPaid: 0,
+      totalOverdue: 0,
+      totalDraft: 0,
+      overdueCount: 0,
+      pendingCount: 0,
+    };
+  }
+
+  const { data } = await supabase
+    .from("invoices")
+    .select("total, paid_amount, status");
+
+  const rows = data ?? [];
+
+  return {
+    totalInvoiced: rows
+      .filter((row) => row.status !== "cancelled")
+      .reduce((sum, row) => sum + Number(row.total), 0),
+    totalPaid: rows
+      .filter((row) => row.status === "paid")
+      .reduce((sum, row) => sum + Number(row.total), 0),
+    totalOverdue: rows
+      .filter((row) => row.status === "overdue")
+      .reduce((sum, row) => sum + (Number(row.total) - Number(row.paid_amount)), 0),
+    totalDraft: rows
+      .filter((row) => row.status === "draft")
+      .reduce((sum, row) => sum + Number(row.total), 0),
+    overdueCount: rows.filter((row) => row.status === "overdue").length,
+    pendingCount: rows.filter((row) => row.status === "sent" || row.status === "partial").length,
+  };
+}
+
+export type PaymentTimelinePoint = {
+  month: string;
+  invoiced: number;
+  paid: number;
+  overdue: number;
+};
+
+export async function getPaymentTimeline(months = 12): Promise<PaymentTimelinePoint[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return [];
+  }
+
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+
+  const [invoicesResult, paymentsResult] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("total, status, issued_at")
+      .gte("issued_at", start.toISOString()),
+    supabase
+      .from("payments")
+      .select("amount, paid_at")
+      .gte("paid_at", start.toISOString()),
+  ]);
+
+  const invoices = invoicesResult.data ?? [];
+  const payments = paymentsResult.data ?? [];
+
+  const result: PaymentTimelinePoint[] = [];
+  for (let i = 0; i < months; i += 1) {
+    const date = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + i, 1));
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    const label = new Intl.DateTimeFormat("uk-UA", {
+      month: "short",
+      year: "2-digit",
+      timeZone: "UTC",
+    }).format(date);
+
+    const monthInvoiced = invoices
+      .filter((invoice) => invoice.issued_at.startsWith(key) && invoice.status !== "cancelled")
+      .reduce((sum, invoice) => sum + Number(invoice.total), 0);
+
+    const monthPaid = payments
+      .filter((payment) => payment.paid_at.startsWith(key))
+      .reduce((sum, payment) => sum + Number(payment.amount), 0);
+
+    const monthOverdue = invoices
+      .filter((invoice) => invoice.issued_at.startsWith(key) && invoice.status === "overdue")
+      .reduce((sum, invoice) => sum + Number(invoice.total), 0);
+
+    result.push({
+      month: label,
+      invoiced: Math.round(monthInvoiced),
+      paid: Math.round(monthPaid),
+      overdue: Math.round(monthOverdue),
+    });
+  }
+
+  return result;
+}
+
+export type InvoiceWithOrder = {
+  id: string;
+  invoice_number: string;
+  order_id: string;
+  order_number: string;
+  client_name: string;
+  total: number;
+  paid_amount: number;
+  status: string;
+  due_date: string | null;
+  issued_at: string;
+};
+
+export async function getAllInvoicesForAdmin(limit = 200): Promise<InvoiceWithOrder[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return [];
+  }
+
+  const [{ data: invoices }, { data: orders }, { data: inquiries }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("*")
+      .order("issued_at", { ascending: false })
+      .limit(limit),
+    supabase.from("orders").select("id, order_number, inquiry_id, user_id"),
+    supabase.from("inquiries").select("id, name"),
+  ]);
+
+  const orderMap = new Map((orders ?? []).map((order) => [order.id, order]));
+  const inquiryMap = new Map((inquiries ?? []).map((inquiry) => [inquiry.id, inquiry]));
+
+  return (invoices ?? []).map((invoice) => {
+    const order = orderMap.get(invoice.order_id);
+    const inquiry = order?.inquiry_id ? inquiryMap.get(order.inquiry_id) : null;
+
+    return {
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      order_id: invoice.order_id,
+      order_number: order?.order_number ?? "-",
+      client_name: inquiry?.name ?? "Клієнт",
+      total: Number(invoice.total),
+      paid_amount: Number(invoice.paid_amount),
+      status: invoice.status,
+      due_date: invoice.due_date,
+      issued_at: invoice.issued_at,
+    };
+  });
+}
+
+export async function getOverdueInvoicesForAdmin(): Promise<InvoiceWithOrder[]> {
+  const all = await getAllInvoicesForAdmin();
+  return all.filter((invoice) => invoice.status === "overdue" || invoice.status === "partial");
+}
+
+export async function getAvgDaysToPayment(): Promise<number> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) {
+    return 0;
+  }
+
+  const { data } = await supabase
+    .from("payments")
+    .select("paid_at, order_id")
+    .order("paid_at", { ascending: false })
+    .limit(100);
+
+  if (!data || data.length === 0) {
+    return 0;
+  }
+
+  const orderIds = [...new Set(data.map((payment) => payment.order_id))];
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("id, inquiry_id, created_at")
+    .in("id", orderIds);
+
+  const orderMap = new Map((orders ?? []).map((order) => [order.id, order]));
+
+  const diffs = data
+    .map((payment) => {
+      const order = orderMap.get(payment.order_id);
+      if (!order) {
+        return null;
+      }
+      const start = new Date(order.created_at).getTime();
+      const end = new Date(payment.paid_at).getTime();
+      return Math.round((end - start) / (1000 * 60 * 60 * 24));
+    })
+    .filter((diff): diff is number => diff !== null && diff >= 0);
+
+  if (diffs.length === 0) {
+    return 0;
+  }
+
+  return Math.round(diffs.reduce((sum, value) => sum + value, 0) / diffs.length);
+}
+
 export async function getPricePresetsForAdmin(): Promise<PricePreset[]> {
   const supabase = await getSupabaseForAdminQueries();
 
@@ -1002,6 +1695,22 @@ export type AdminAnalyticsData = {
     averageCheck: number;
     openFunnels: number;
   };
+};
+
+export type FunnelStep = {
+  label: string;
+  count: number;
+  percent: number;
+};
+
+export type AdminAnalyticsDataV2 = AdminAnalyticsData & {
+  paymentTimeline: PaymentTimelinePoint[];
+  revenueStats: RevenueStats;
+  funnel: FunnelStep[];
+  avgDaysToPayment: number;
+  repeatClientsCount: number;
+  topProducts: { name: string; count: number; revenue: number }[];
+  productionLoad: { week: string; active: number; load: number }[];
 };
 
 function monthKey(date: Date) {
@@ -1182,6 +1891,141 @@ export async function getAdminAnalyticsData(months = 12): Promise<AdminAnalytics
       averageCheck,
       openFunnels,
     },
+  };
+}
+
+export async function getAdminAnalyticsDataV2(months = 12): Promise<AdminAnalyticsDataV2> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  const [base, paymentTimeline, revenueStats, avgDays] = await Promise.all([
+    getAdminAnalyticsData(months),
+    getPaymentTimeline(months),
+    getRevenueStatsForAdmin(),
+    getAvgDaysToPayment(),
+  ]);
+
+  const totalInquiries = base.summary.inquiries;
+  const totalOrders = base.summary.totalOrders;
+
+  let invoicesCount = 0;
+  let paidCount = 0;
+
+  if (supabase) {
+    const [{ count: invoiceCount }, { count: paidInvoiceCount }] = await Promise.all([
+      supabase.from("invoices").select("id", { count: "exact", head: true }),
+      supabase
+        .from("invoices")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "paid"),
+    ]);
+
+    invoicesCount = invoiceCount ?? 0;
+    paidCount = paidInvoiceCount ?? 0;
+  }
+
+  const funnel: FunnelStep[] = [
+    { label: "Заявки", count: totalInquiries, percent: 100 },
+    {
+      label: "Замовлення",
+      count: totalOrders,
+      percent: totalInquiries > 0 ? Math.round((totalOrders / totalInquiries) * 100) : 0,
+    },
+    {
+      label: "Рахунки",
+      count: invoicesCount,
+      percent: totalOrders > 0 ? Math.round((invoicesCount / totalOrders) * 100) : 0,
+    },
+    {
+      label: "Оплачено",
+      count: paidCount,
+      percent: invoicesCount > 0 ? Math.round((paidCount / invoicesCount) * 100) : 0,
+    },
+  ];
+
+  let repeatClientsCount = 0;
+  if (supabase) {
+    const { data: ordersByUser } = await supabase
+      .from("orders")
+      .select("user_id")
+      .not("user_id", "is", null);
+
+    const userOrderCount = new Map<string, number>();
+    for (const row of ordersByUser ?? []) {
+      if (!row.user_id) {
+        continue;
+      }
+      userOrderCount.set(row.user_id, (userOrderCount.get(row.user_id) ?? 0) + 1);
+    }
+
+    repeatClientsCount = [...userOrderCount.values()].filter((count) => count > 1).length;
+  }
+
+  let topProducts: { name: string; count: number; revenue: number }[] = [];
+  if (supabase) {
+    const { data: orderProducts } = await supabase
+      .from("orders")
+      .select("product_id, products(title)")
+      .not("product_id", "is", null);
+
+    const productCount = new Map<string, { name: string; count: number; revenue: number }>();
+    for (const row of orderProducts ?? []) {
+      if (!row.product_id) {
+        continue;
+      }
+      const name = (row.products as { title?: string } | null)?.title ?? "Невідомо";
+      const existing = productCount.get(row.product_id) ?? { name, count: 0, revenue: 0 };
+      existing.count += 1;
+      productCount.set(row.product_id, existing);
+    }
+
+    topProducts = [...productCount.values()]
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 5);
+  }
+
+  let productionLoad: { week: string; active: number; load: number }[] = [];
+  if (supabase) {
+    const { data: activeOrders } = await supabase
+      .from("orders")
+      .select("created_at, expected_date, status")
+      .not("status", "in", "(completed,archived)");
+
+    const now = new Date();
+    productionLoad = Array.from({ length: 8 }, (_, index) => {
+      const weekStart = new Date(now.getTime() - (7 - index) * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const label = `${weekStart.getDate()}.${weekStart.getMonth() + 1}`;
+
+      const active = (activeOrders ?? []).filter((order) => {
+        const start = new Date(order.created_at);
+        const end = order.expected_date
+          ? new Date(order.expected_date)
+          : new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+        return start <= weekEnd && end >= weekStart;
+      }).length;
+
+      return {
+        week: label,
+        active,
+        load: Math.min(100, Math.round((active / 10) * 100)),
+      };
+    });
+  }
+
+  return {
+    ...base,
+    summary: {
+      ...base.summary,
+      averageCheck:
+        paidCount > 0 ? Math.round(revenueStats.totalPaid / paidCount) : base.summary.averageCheck,
+    },
+    paymentTimeline,
+    revenueStats,
+    funnel,
+    avgDaysToPayment: avgDays,
+    repeatClientsCount,
+    topProducts,
+    productionLoad,
   };
 }
 

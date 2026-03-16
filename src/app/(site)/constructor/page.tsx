@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Container } from "@/components/ui/container";
 
 const products = [
@@ -14,6 +14,12 @@ const products = [
     description: "Шафи, столи, тумби",
     icon: "🪑",
   },
+  {
+    type: "window",
+    label: "Вікна",
+    description: "ПВХ, алюміній, дерево",
+    icon: "🪟",
+  },
 ];
 
 export default function ConstructorPage() {
@@ -24,7 +30,8 @@ export default function ConstructorPage() {
           Конструктор виробу
         </h1>
         <p className="mt-3 max-w-xl text-sm text-[var(--color-text-secondary)]">
-          Оберіть тип виробу та налаштуйте параметри, щоб сформувати технічне завдання для майстерні.
+          Оберіть тип виробу та налаштуйте параметри, щоб сформувати технічне
+          завдання для майстерні.
         </p>
 
         <div className="mt-10 grid gap-5 sm:grid-cols-2 md:max-w-2xl">
@@ -38,7 +45,9 @@ export default function ConstructorPage() {
               <h2 className="mt-3 text-xl font-semibold text-[var(--color-text-primary)]">
                 {product.label}
               </h2>
-              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{product.description}</p>
+              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                {product.description}
+              </p>
             </Link>
           ))}
         </div>

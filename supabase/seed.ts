@@ -543,6 +543,47 @@ const orders: Row[] = [
   },
 ];
 
+const products: Row[] = [
+  {
+    id: "60000000-0000-4000-8000-000000000001",
+    title: "Вхідні двері з масиву дуба",
+    slug: "vkhidni-dveri-dub",
+    description: "Класичні вхідні двері з масиву дуба з металевим каркасом.",
+    short_description: "Масив дуба, металевий каркас, три варіанти фарбування.",
+    category: "doors",
+    materials: ["дуб", "метал"],
+    style: ["класика"],
+    cover_image:
+      "https://images.unsplash.com/photo-1505692952047-1a78307da8f2?auto=format&fit=crop&w=1400&q=80",
+    images: [],
+    price_from: 25000,
+    status: "active",
+    sort_order: 1,
+    is_featured: true,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "60000000-0000-4000-8000-000000000002",
+    title: "Кухонний гарнітур з ясеня",
+    slug: "kukhonnyi-garnitur-yasen",
+    description: "Індивідуальний кухонний комплект з натурального ясеня.",
+    short_description: "Ясен, індивідуальні розміри, матове або глянцеве покриття.",
+    category: "furniture",
+    materials: ["ясен"],
+    style: ["мінімалізм"],
+    cover_image:
+      "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1400&q=80",
+    images: [],
+    price_from: 45000,
+    status: "active",
+    sort_order: 2,
+    is_featured: true,
+    created_at: now,
+    updated_at: now,
+  },
+];
+
 const optionalErrorCodes = new Set(["42P01", "42703", "PGRST204", "PGRST205"]);
 
 function isSchemaOptionalError(error: { code?: string } | null) {
@@ -618,6 +659,7 @@ async function run() {
   await upsertRows({ table: "price_formulas", rows: priceFormulas, onConflict: "name", optional: true });
   await upsertRows({ table: "formula_components", rows: formulaComponents, onConflict: "id", optional: true });
   await upsertRows({ table: "orders", rows: orders, onConflict: "order_number", optional: true });
+  await upsertRows({ table: "products", rows: products, onConflict: "slug", optional: true });
 
   console.log("Seed completed.");
 }

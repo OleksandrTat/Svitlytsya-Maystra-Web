@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { env, hasResend } from "@/lib/env";
+import { sanitizeCommentContent } from "@/lib/security/sanitize";
 import {
   createSupabaseServerClient,
   createSupabaseServiceClient,
@@ -18,13 +19,6 @@ type DbErrorLike = {
   code?: string;
   message: string;
 };
-
-function sanitizeComment(value: string) {
-  return value
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function mapInsertCommentError(error: DbErrorLike) {
   if (error.code === "42P01" || /relation .*blog_comments.* does not exist/i.test(error.message)) {
@@ -59,7 +53,7 @@ export async function addCommentAction(formData: FormData): Promise<ActionResult
   const postId = String(formData.get("post_id") || "");
   const postSlug = String(formData.get("post_slug") || "");
   const parentId = String(formData.get("parent_id") || "");
-  const content = sanitizeComment(String(formData.get("content") || ""));
+  const content = sanitizeCommentContent(String(formData.get("content") || ""));
 
   if (!postId || !content) {
     return { ok: false, message: "Коментар не може бути порожнім." };

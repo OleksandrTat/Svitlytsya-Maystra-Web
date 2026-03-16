@@ -53,7 +53,7 @@ export function InquiryForm({
     resolver: zodResolver(inquirySchema),
     defaultValues: {
       name: "",
-      phone: "+380",
+      phone: "",
       email: "",
       service_type: defaultServiceType,
       message: "",
@@ -72,7 +72,7 @@ export function InquiryForm({
 
     reset({
       name: "",
-      phone: "+380",
+      phone: "",
       email: "",
       service_type: defaultServiceType,
       message: "",
@@ -135,7 +135,7 @@ export function InquiryForm({
         </label>
 
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">Телефон *</span>
+          <span className="text-sm text-[var(--color-text-secondary)]">Телефон</span>
           <Input {...register("phone")} type="tel" placeholder="+380XXXXXXXXX" />
           {errors.phone ? <p className="text-xs text-red-600">{errors.phone.message}</p> : null}
         </label>
@@ -145,6 +145,8 @@ export function InquiryForm({
           <Input {...register("email")} type="email" placeholder="name@email.com" />
           {errors.email ? <p className="text-xs text-red-600">{errors.email.message}</p> : null}
         </label>
+
+        <p className="text-xs text-[var(--color-text-secondary)] md:col-span-2">Вкажіть телефон або email</p>
 
         <label className="space-y-2">
           <span className="text-sm text-[var(--color-text-secondary)]">Тип послуги *</span>

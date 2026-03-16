@@ -18,6 +18,7 @@ export const mockProjects: Project[] = [
     status: "public",
     privacy_level: "public",
     is_featured: true,
+    sort_order: 1,
     cover_image:
       "https://images.unsplash.com/photo-1505692952047-1a78307da8f2?auto=format&fit=crop&w=1400&q=80",
     images: [
@@ -46,6 +47,7 @@ export const mockProjects: Project[] = [
     status: "public",
     privacy_level: "public",
     is_featured: true,
+    sort_order: 2,
     cover_image:
       "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1400&q=80",
     images: [
@@ -73,6 +75,7 @@ export const mockProjects: Project[] = [
     status: "nda",
     privacy_level: "nda_partial",
     is_featured: false,
+    sort_order: 3,
     cover_image:
       "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1400&q=80",
     images: [
@@ -149,6 +152,7 @@ export const mockInquiries: Inquiry[] = [
     project_ref_id: mockProjects[0]?.id ?? null,
     configuration: null,
     chat_session_id: null,
+    channel: "web_form",
     status: "new",
     created_at: now,
   },

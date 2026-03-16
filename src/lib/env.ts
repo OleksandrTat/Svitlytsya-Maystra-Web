@@ -23,7 +23,7 @@ export const env = {
   backupNotifyEmail: process.env.BACKUP_NOTIFY_EMAIL,
   posthogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY,
   posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://svitlytsya.ua",
 };
 
 export const hasSupabaseEnv =
@@ -42,6 +42,8 @@ export const hasBackupS3 =
   Boolean(env.backupS3SecretKey);
 
 export const hasOpenAi = Boolean(env.openAiApiKey);
+
+export const hasSiteUrl = Boolean(env.siteUrl);
 
 export const hasTurnstile =
   Boolean(env.turnstileSecretKey) && Boolean(env.turnstileSiteKey);

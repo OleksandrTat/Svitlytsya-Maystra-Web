@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import type { OrderStatus } from "@/lib/types";
@@ -99,6 +99,7 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/profile/orders");
   revalidatePath(`/profile/orders/${orderId}`);
+  revalidateTag("admin-counts", "default");
 
   return { ok: true, message: "Order status updated." };
 }
@@ -133,6 +134,7 @@ export async function addAdminOrderMessageAction(formData: FormData): Promise<Ac
 
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath(`/profile/orders/${orderId}/messages`);
+  revalidateTag("admin-counts", "default");
 
   return { ok: true, message: "Message sent." };
 }

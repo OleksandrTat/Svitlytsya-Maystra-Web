@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { sanitizeHtmlContent } from "@/lib/security/sanitize";
 
 type ActionResult = {
   ok: boolean;
@@ -43,10 +44,6 @@ function calculateReadingTimeMinutes(content: string) {
   return Math.max(1, Math.ceil(words / 200));
 }
 
-function sanitizeHtml(content: string) {
-  return content.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
-}
-
 function parseCheckbox(value: FormDataEntryValue | null) {
   return value === "on" || value === "true";
 }
@@ -70,7 +67,7 @@ export async function createBlogPostAction(formData: FormData): Promise<ActionRe
   const title = String(formData.get("title") || "").trim();
   const slug = normalizeSlug(String(formData.get("slug") || ""));
   const excerpt = String(formData.get("excerpt") || "").trim();
-  const content = sanitizeHtml(String(formData.get("content") || "").trim());
+  const content = sanitizeHtmlContent(String(formData.get("content") || "").trim());
   const coverImage = String(formData.get("cover_image") || "").trim();
   const category = String(formData.get("category") || "").trim();
   const tags = parseTags(String(formData.get("tags") || ""));
@@ -131,7 +128,7 @@ export async function updateBlogPostAction(formData: FormData): Promise<ActionRe
   const title = String(formData.get("title") || "").trim();
   const slug = normalizeSlug(String(formData.get("slug") || ""));
   const excerpt = String(formData.get("excerpt") || "").trim();
-  const content = sanitizeHtml(String(formData.get("content") || "").trim());
+  const content = sanitizeHtmlContent(String(formData.get("content") || "").trim());
   const coverImage = String(formData.get("cover_image") || "").trim();
   const category = String(formData.get("category") || "").trim();
   const tags = parseTags(String(formData.get("tags") || ""));

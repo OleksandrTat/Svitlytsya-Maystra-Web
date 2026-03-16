@@ -13,6 +13,7 @@ type AdminWorkspaceClientProps = {
   counts: {
     unreadMessages: number;
     newInquiries: number;
+    unreadSupport: number;
   };
   children: ReactNode;
 };

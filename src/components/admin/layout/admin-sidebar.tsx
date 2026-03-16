@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { type ComponentType } from "react";
@@ -11,11 +11,15 @@ import {
   Calculator,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  HeadphonesIcon,
   LayoutDashboard,
   Mail,
   MessageSquare,
   Package,
+  Package2,
   PenSquare,
+  Receipt,
   Search,
   Settings,
   Shield,
@@ -29,6 +33,7 @@ import { cn } from "@/lib/utils";
 type NavCounts = {
   unreadMessages: number;
   newInquiries: number;
+  unreadSupport: number;
 };
 
 type AdminSidebarProps = {
@@ -56,9 +61,13 @@ const primaryItems: NavItem[] = [
 const secondaryItems: NavItem[] = [
   { href: "/admin/analytics", label: "Аналітика", icon: BarChart3 },
   { href: "/admin/calendar", label: "Календар", icon: CalendarDays },
+  { href: "/admin/invoices", label: "Рахунки", icon: Receipt },
+  { href: "/admin/products", label: "Продукти", icon: Package2 },
+  { href: "/admin/projects", label: "Проєкти", icon: FileText },
   { href: "/admin/blog", label: "Блог", icon: PenSquare },
   { href: "/admin/cultural", label: "Cultural blog", icon: BookOpen },
   { href: "/admin/pricing", label: "Ціни", icon: Calculator },
+  { href: "/admin/support", label: "Підтримка", icon: HeadphonesIcon, badgeKey: "unreadSupport" },
   { href: "/admin/security", label: "Безпека", icon: Shield },
   { href: "/admin/settings", label: "Налаштування", icon: Settings },
 ];
@@ -182,7 +191,13 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
 
         <div className="space-y-1">
           {secondaryItems.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} collapsed={collapsed} />
+            <NavLink
+              key={item.href}
+              item={item}
+              pathname={pathname}
+              collapsed={collapsed}
+              badgeValue={item.badgeKey ? counts[item.badgeKey] : 0}
+            />
           ))}
         </div>
       </nav>

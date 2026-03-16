@@ -84,7 +84,7 @@ export async function GET(request: Request) {
       type: "inquiry" as const,
       icon: "mail" as const,
       title: `Заявка від ${inquiry.name}`,
-      meta: `${inquiry.service_type} • ${inquiry.phone}`,
+      meta: `${inquiry.service_type} • ${inquiry.phone ?? "без телефону"}`,
       href: `/admin/inquiries#${inquiry.id}`,
     })),
     ...(culturalPostsResult.data ?? []).map((post) => ({

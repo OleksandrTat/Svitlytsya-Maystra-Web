@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import {
-  CHAT_MAX_CONTEXT_MESSAGES,
-  CHAT_MAX_TOKENS,
-  CHAT_RATE_LIMIT_PER_MINUTE,
-} from "@/lib/chat/constants";
+import { CHAT_MAX_CONTEXT_MESSAGES, CHAT_MAX_TOKENS } from "@/lib/chat/constants";
 import { getChatSystemPrompt } from "@/lib/data/queries";
 import { env, hasOpenAi } from "@/lib/env";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/types/database";
 
 type ChatRole = Database["public"]["Enums"]["chat_role"];
 type InputMessage = { role: ChatRole; content: string };
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const sessionRateLimitStore = new Map<string, number[]>();
 const RUSSIAN_LETTERS_RE = /[ЁёЫыЭэЪъ]/;
 
 export const dynamic = "force-dynamic";
@@ -59,20 +54,6 @@ function detectLanguage(text: string) {
   }
 
   return "unknown";
-}
-
-function isSessionRateLimited(sessionId: string) {
-  const now = Date.now();
-  const timestamps = sessionRateLimitStore.get(sessionId) ?? [];
-  const recent = timestamps.filter((stamp) => now - stamp <= RATE_LIMIT_WINDOW_MS);
-
-  if (recent.length >= CHAT_RATE_LIMIT_PER_MINUTE) {
-    return true;
-  }
-
-  recent.push(now);
-  sessionRateLimitStore.set(sessionId, recent);
-  return false;
 }
 
 async function moderateInput(input: string) {
@@ -191,7 +172,7 @@ async function saveChatExchange(params: {
 
   const { data: existingSession } = await supabase
     .from("ai_chat_sessions")
-    .select("id, messages_count")
+    .select("id")
     .eq("session_id", params.sessionId)
     .maybeSingle();
 
@@ -204,7 +185,6 @@ async function saveChatExchange(params: {
         session_id: params.sessionId,
         user_id: userId,
         language: params.language,
-        messages_count: 2,
         created_at: nowIso,
         last_message_at: nowIso,
       })
@@ -218,7 +198,6 @@ async function saveChatExchange(params: {
       .update({
         user_id: userId,
         language: params.language,
-        messages_count: (existingSession?.messages_count ?? 0) + 2,
         last_message_at: nowIso,
       })
       .eq("id", chatSessionId);
@@ -272,7 +251,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (isSessionRateLimited(sessionId)) {
+  const allowed = await checkRateLimit(`chat:${sessionId}`);
+  if (!allowed) {
     return NextResponse.json(
       { ok: false, message: "Rate limit exceeded. Try again in 1 minute." },
       { status: 429 },

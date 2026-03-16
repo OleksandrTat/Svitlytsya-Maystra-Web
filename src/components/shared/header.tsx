@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,9 +18,9 @@ type HeaderUser = {
 const links = [
   { href: "/", label: "Головна" },
   { href: "/catalog", label: "Каталог" },
+  { href: "/products", label: "Продукти" },
   { href: "/services", label: "Послуги" },
   { href: "/blog", label: "Блог" },
-  { href: "/cultural", label: "Культурний блог" },
   { href: "/contact", label: "Контакти" },
 ];
 
@@ -43,6 +43,7 @@ export function SiteHeader() {
     return [
       { href: "/profile", label: "Профіль" },
       { href: "/profile/orders", label: "Мої замовлення" },
+      { href: "/profile/support", label: "Підтримка" },
       { href: "/profile/subscriptions", label: "Підписки" },
     ];
   }, [currentUser]);

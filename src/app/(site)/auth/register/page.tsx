@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -12,6 +12,9 @@ function isValidEmail(value: string) {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+  const prefilledEmail = searchParams.get("email") ?? "";
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,6 +22,12 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (prefilledEmail) {
+      setEmail(prefilledEmail);
+    }
+  }, [prefilledEmail]);
 
   const passwordHint = useMemo(() => {
     if (!password) {
@@ -38,7 +47,7 @@ export default function RegisterPage() {
     const trimmedEmail = email.trim().toLowerCase();
 
     if (trimmedName.length < 2) {
-      setError("Імʼя має містити щонайменше 2 символи.");
+      setError("Ім'я має містити щонайменше 2 символи.");
       return;
     }
 
@@ -75,6 +84,14 @@ export default function RegisterPage() {
         return;
       }
 
+      if (inviteToken) {
+        await fetch("/api/invitations/accept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: inviteToken }),
+        });
+      }
+
       router.replace(`/auth/verify-email?email=${encodeURIComponent(trimmedEmail)}`);
     } catch {
       setError("Не вдалося завершити реєстрацію. Спробуйте ще раз.");
@@ -89,9 +106,15 @@ export default function RegisterPage() {
         <div className="mx-auto max-w-md rounded-3xl border border-[var(--color-border)] bg-white p-8">
           <h1 className="font-display text-3xl text-[var(--color-text-primary)]">Реєстрація</h1>
 
+          {inviteToken ? (
+            <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-xs text-[var(--color-text-secondary)]">
+              Вас запрошено до особистого кабінету. Перевірте email та завершіть реєстрацію.
+            </div>
+          ) : null}
+
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <label className="block space-y-2">
-              <span className="text-sm text-[var(--color-text-secondary)]">Імʼя</span>
+              <span className="text-sm text-[var(--color-text-secondary)]">Ім'я</span>
               <input
                 type="text"
                 value={name}
@@ -126,7 +149,7 @@ export default function RegisterPage() {
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm text-[var(--color-text-secondary)]">Підтвердіть пароль</span>
+              <span className="text-sm text-[var(--color-text-secondary)]">Підтвердьте пароль</span>
               <input
                 type="password"
                 value={confirmPassword}

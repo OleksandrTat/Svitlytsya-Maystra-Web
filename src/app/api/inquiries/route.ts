@@ -7,6 +7,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const parsed = inquirySchema.safeParse({
     ...body,
+    phone: body?.phone ?? "",
     turnstile_token: body?.turnstile_token ?? body?.["cf-turnstile-response"],
   });
 
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 
   const { error } = await supabase.from("inquiries").insert({
     name: parsed.data.name,
-    phone: parsed.data.phone,
+    phone: parsed.data.phone?.trim() || null,
     email: parsed.data.email?.trim() || null,
     service_type: parsed.data.service_type,
     message: parsed.data.message?.trim() || null,

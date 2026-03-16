@@ -1,6 +1,21 @@
 export type ProjectCategory = "doors" | "furniture" | "windows";
 export type ProjectStatus = "public" | "nda" | "concept";
-export type InquiryStatus = "new" | "in_progress" | "done" | "archived";
+export type InquiryStatus =
+  | "new"
+  | "contacted"
+  | "quoted"
+  | "won"
+  | "lost"
+  | "in_progress"
+  | "done"
+  | "archived";
+export type ProductStatus = "active" | "draft" | "archived";
+export type InvoiceStatus = "draft" | "sent" | "paid" | "partial" | "overdue" | "cancelled";
+export type PaymentMethod = "cash" | "bank_transfer" | "card" | "other";
+export type InquiryChannel = "web_form" | "ai_chat" | "phone" | "direct" | "referral";
+export type SupportChannel = "internal" | "email" | "viber" | "whatsapp";
+export type SupportChatStatus = "open" | "waiting" | "resolved" | "closed";
+export type SupportMessageSender = "client" | "admin" | "system";
 export type ChatRole = "user" | "assistant";
 export type ProductType = "door" | "furniture" | "window";
 export type BlogCommentStatus = "pending" | "approved" | "rejected";
@@ -42,12 +57,35 @@ export interface Project {
   status: ProjectStatus;
   privacy_level: ProjectPrivacyLevel;
   is_featured: boolean;
+  sort_order: number;
   cover_image: string;
   images: string[];
   blurred_images: string[];
   private_client_name: string | null;
   private_location: string | null;
   private_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Product {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  short_description: string | null;
+  category: string;
+  materials: string[];
+  style: string[];
+  cover_image: string | null;
+  images: string[];
+  price_from: number | null;
+  formula_id: string | null;
+  status: ProductStatus;
+  sort_order: number;
+  is_featured: boolean;
+  seo_title: string | null;
+  seo_description: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -79,7 +117,7 @@ export interface Testimonial {
 export interface Inquiry {
   id: string;
   name: string;
-  phone: string;
+  phone: string | null;
   email: string | null;
   service_type: string;
   message: string | null;
@@ -87,6 +125,7 @@ export interface Inquiry {
   project_ref_id: string | null;
   configuration: Record<string, unknown> | null;
   chat_session_id: string | null;
+  channel: InquiryChannel;
   status: InquiryStatus;
   created_at: string;
 }
@@ -117,6 +156,7 @@ export interface Order {
   order_number: string;
   inquiry_id: string | null;
   user_id: string | null;
+  product_id: string | null;
   status: OrderStatus;
   expected_date: string | null;
   actual_date: string | null;
@@ -124,6 +164,57 @@ export interface Order {
   priority: OrderPriority;
   created_at: string;
   updated_at: string;
+}
+
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  order_id: string;
+  total: number;
+  paid_amount: number;
+  status: InvoiceStatus;
+  due_date: string | null;
+  notes: string | null;
+  issued_at: string;
+  sent_at: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Payment {
+  id: string;
+  invoice_id: string;
+  order_id: string;
+  amount: number;
+  method: PaymentMethod;
+  notes: string | null;
+  paid_at: string;
+  created_at: string;
+}
+
+export interface SupportChat {
+  id: string;
+  user_id: string;
+  order_id: string | null;
+  subject: string | null;
+  channel: SupportChannel;
+  status: SupportChatStatus;
+  preferred_contact: string | null;
+  created_at: string;
+  updated_at: string;
+  last_message_at: string;
+  resolved_at: string | null;
+}
+
+export interface SupportMessage {
+  id: string;
+  chat_id: string;
+  sender_type: SupportMessageSender;
+  sender_id: string | null;
+  content: string;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface OrderStatusHistory {
@@ -181,6 +272,7 @@ export interface FormulaComponent {
   condition: string | null;
   sort_order: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface AuditLogRecord {

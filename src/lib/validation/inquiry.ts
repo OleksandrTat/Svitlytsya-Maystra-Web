@@ -6,7 +6,9 @@ export const inquirySchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^\+380\d{9}$/, "Телефон має бути у форматі +380XXXXXXXXX."),
+    .regex(/^\+380\d{9}$/, "Телефон має бути у форматі +380XXXXXXXXX.")
+    .optional()
+    .or(z.literal("")),
   email: z
     .string()
     .trim()
@@ -25,7 +27,12 @@ export const inquirySchema = z.object({
   configuration: z.string().optional().or(z.literal("")),
   honeypot: z.string().optional(),
   turnstile_token: z.string().optional(),
-});
+}).refine(
+  (data) => Boolean(data.phone?.trim()) || Boolean(data.email?.trim()),
+  {
+    message: "Вкажіть телефон або email для зв'язку.",
+    path: ["phone"],
+  },
+);
 
 export type InquirySchema = z.infer<typeof inquirySchema>;
-

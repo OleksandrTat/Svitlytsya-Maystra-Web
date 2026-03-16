@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { BlogCard } from "@/components/blog/blog-card";
 import { BlogFilters } from "@/components/blog/blog-filters";
+import { BlogPagination } from "@/components/blog/blog-pagination";
 import { Container } from "@/components/ui/container";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 
@@ -13,6 +14,8 @@ export const revalidate = 300;
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
+const PAGE_SIZE = 9;
+
 export default async function BlogPage({
   searchParams,
 }: {
@@ -20,6 +23,7 @@ export default async function BlogPage({
 }) {
   const params = await searchParams;
   const activeCategory = typeof params.category === "string" ? params.category : undefined;
+  const page = typeof params.page === "string" ? Number(params.page) || 1 : 1;
 
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
@@ -33,22 +37,26 @@ export default async function BlogPage({
     reading_time_min: number;
     published_at: string | null;
   }[] = [];
+  let totalPages = 1;
 
   if (supabase) {
     let query = supabase
       .from("blog_posts")
       .select(
         "id,title,slug,excerpt,cover_image,category,reading_time_min,published_at",
+        { count: "exact" },
       )
       .eq("is_published", true)
-      .order("published_at", { ascending: false });
+      .order("published_at", { ascending: false })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
     if (activeCategory) {
       query = query.eq("category", activeCategory);
     }
 
-    const { data } = await query;
+    const { data, count } = await query;
     posts = data ?? [];
+    totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
   }
 
   const categories = Array.from(new Set(posts.map((post) => post.category))).sort((a, b) =>
@@ -72,11 +80,19 @@ export default async function BlogPage({
             Поки немає опублікованих статей.
           </p>
         ) : (
-          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {posts.map((post) => (
-              <BlogCard key={post.id} post={post} />
-            ))}
-          </div>
+          <>
+            <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {posts.map((post) => (
+                <BlogCard key={post.id} post={post} />
+              ))}
+            </div>
+            <BlogPagination
+              currentPage={page}
+              totalPages={totalPages}
+              basePath="/blog"
+              searchParams={activeCategory ? { category: activeCategory } : {}}
+            />
+          </>
         )}
       </Container>
     </section>

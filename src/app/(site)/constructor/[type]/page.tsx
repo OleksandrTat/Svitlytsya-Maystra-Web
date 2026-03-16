@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { ConstructorClient } from "@/components/constructor/constructor-client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -8,7 +8,7 @@ type Step = {
   options: { value: string; label: string }[];
 };
 
-const STEPS: Record<"door" | "furniture", Step[]> = {
+const STEPS: Record<"door" | "furniture" | "window", Step[]> = {
   door: [
     {
       key: "door_type",
@@ -62,8 +62,8 @@ const STEPS: Record<"door" | "furniture", Step[]> = {
       key: "size",
       label: "Розмір",
       options: [
-        { value: "200x80", label: "200x80 (стандарт)" },
-        { value: "200x90", label: "200x90" },
+        { value: "200x80", label: "200×80 (стандарт)" },
+        { value: "200x90", label: "200×90" },
         { value: "custom", label: "Нестандарт" },
       ],
     },
@@ -98,6 +98,56 @@ const STEPS: Record<"door" | "furniture", Step[]> = {
       ],
     },
   ],
+  window: [
+    {
+      key: "window_type",
+      label: "Тип вікна",
+      options: [
+        { value: "casement", label: "Відкидне" },
+        { value: "tilt-turn", label: "Поворотно-відкидне" },
+        { value: "fixed", label: "Глухе" },
+        { value: "sliding", label: "Розсувне" },
+      ],
+    },
+    {
+      key: "material",
+      label: "Матеріал профілю",
+      options: [
+        { value: "pvc", label: "ПВХ" },
+        { value: "aluminum", label: "Алюміній" },
+        { value: "wood", label: "Дерево" },
+      ],
+    },
+    {
+      key: "glass",
+      label: "Склопакет",
+      options: [
+        { value: "single", label: "Одинарний" },
+        { value: "double", label: "Двокамерний" },
+        { value: "triple", label: "Трикамерний" },
+      ],
+    },
+    {
+      key: "color",
+      label: "Колір",
+      options: [
+        { value: "white", label: "Білий" },
+        { value: "brown", label: "Коричневий" },
+        { value: "anthracite", label: "Антрацит" },
+        { value: "custom", label: "Індивідуальний" },
+      ],
+    },
+    {
+      key: "size",
+      label: "Розмір",
+      options: [
+        { value: "600x1200", label: "600×1200" },
+        { value: "900x1200", label: "900×1200" },
+        { value: "1200x1400", label: "1200×1400" },
+        { value: "custom", label: "Нестандарт" },
+      ],
+    },
+  ],
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -116,7 +166,7 @@ export default async function ConstructorTypePage({
   const { type } = await params;
   const query = await searchParams;
 
-  if (type !== "door" && type !== "furniture") {
+  if (type !== "door" && type !== "furniture" && type !== "window") {
     notFound();
   }
 
