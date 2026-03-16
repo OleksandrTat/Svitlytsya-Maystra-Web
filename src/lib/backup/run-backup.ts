@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   DeleteObjectsCommand,
   ListObjectsV2Command,
+  type ListObjectsV2CommandOutput,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -86,13 +87,13 @@ async function cleanupOldBackups(s3: S3Client, bucket: string, prefix: string) {
   let continuationToken: string | undefined;
 
   do {
-    const list = await s3.send(
+    const list = (await s3.send(
       new ListObjectsV2Command({
         Bucket: bucket,
         Prefix: `${prefix}/`,
         ContinuationToken: continuationToken,
       }),
-    );
+    )) as ListObjectsV2CommandOutput;
 
     const staleKeys = (list.Contents ?? [])
       .filter((item) => item.Key && item.LastModified)

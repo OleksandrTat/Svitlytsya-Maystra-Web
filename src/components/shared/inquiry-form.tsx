@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useForm } from "react-hook-form";
@@ -103,7 +103,7 @@ export function InquiryForm({
     });
   }, [lastSubmitted, pathname, projectRefId, state.success]);
 
-  const onSubmit = handleSubmit(async (values, event) => {
+  const onSubmit = handleSubmit(async (values: InquirySchema, event?: BaseSyntheticEvent) => {
     const formTarget = event?.target;
     const formData =
       formTarget instanceof HTMLFormElement ? new FormData(formTarget) : new FormData();
