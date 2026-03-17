@@ -6,6 +6,7 @@ import { Resend } from "resend";
 import { inquirySchema, type InquirySchema } from "@/lib/validation/inquiry";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { env, hasResend } from "@/lib/env";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
 type InquiryActionResult = {
@@ -14,24 +15,8 @@ type InquiryActionResult = {
   fieldErrors?: Record<string, string[]>;
 };
 
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const RATE_LIMIT_MAX = 5;
-const rateLimitStore = new Map<string, number[]>();
-
-function checkRateLimit(identity: string) {
-  const now = Date.now();
-  const timestamps = rateLimitStore.get(identity) ?? [];
-  const recent = timestamps.filter((stamp) => now - stamp <= RATE_LIMIT_WINDOW_MS);
-
-  if (recent.length >= RATE_LIMIT_MAX) {
-    return false;
-  }
-
-  recent.push(now);
-  rateLimitStore.set(identity, recent);
-
-  return true;
-}
+const INQUIRY_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const INQUIRY_RATE_LIMIT_MAX_REQUESTS = 5;
 
 function normalizeInquiryInput(input: InquirySchema) {
   let configuration: Record<string, unknown> | null = null;
@@ -143,10 +128,15 @@ export async function submitInquiryAction(
   const forwardedFor = h.get("x-forwarded-for");
   const identity = forwardedFor?.split(",")[0]?.trim() || "unknown";
 
-  if (!checkRateLimit(identity)) {
+  const allowed = await checkRateLimit(`inquiry:${identity}`, {
+    windowMs: INQUIRY_RATE_LIMIT_WINDOW_MS,
+    maxRequests: INQUIRY_RATE_LIMIT_MAX_REQUESTS,
+  });
+
+  if (!allowed) {
     return {
       success: false,
-      message: "Занадто багато спроб. Спробуйте ще раз через 15 хвилин.",
+      message: "Занадто багато спроб. Спробуйте через 15 хвилин.",
     };
   }
 

@@ -1,9 +1,14 @@
 ﻿import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
-const WINDOW_MS = 60_000;
-const MAX_REQUESTS = 20;
+const DEFAULT_WINDOW_MS = 60_000;
+const DEFAULT_MAX_REQUESTS = 20;
 
-export async function checkRateLimit(key: string): Promise<boolean> {
+type RateLimitOptions = {
+  windowMs?: number;
+  maxRequests?: number;
+};
+
+export async function checkRateLimit(key: string, options?: RateLimitOptions): Promise<boolean> {
   const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
@@ -11,7 +16,9 @@ export async function checkRateLimit(key: string): Promise<boolean> {
   }
 
   const now = new Date();
-  const windowStart = new Date(now.getTime() - WINDOW_MS);
+  const windowMs = options?.windowMs ?? DEFAULT_WINDOW_MS;
+  const maxRequests = options?.maxRequests ?? DEFAULT_MAX_REQUESTS;
+  const windowStart = new Date(now.getTime() - windowMs);
 
   try {
     const { data: existing } = await supabase
@@ -24,7 +31,7 @@ export async function checkRateLimit(key: string): Promise<boolean> {
 
     const recent = allTimestamps.filter((timestamp) => new Date(timestamp) > windowStart);
 
-    if (recent.length >= MAX_REQUESTS) {
+    if (recent.length >= maxRequests) {
       return false;
     }
 

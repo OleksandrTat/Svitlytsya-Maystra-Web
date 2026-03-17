@@ -1,6 +1,5 @@
 ﻿import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { env, hasSupabaseEnv } from "@/lib/env";
 
 const PROTECTED_PREFIXES = ["/admin", "/profile"];
@@ -55,16 +54,6 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = "/auth/login";
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (pathname.startsWith("/profile") && !pathname.includes("/api/")) {
-    const serviceSupabase = createSupabaseServiceClient();
-    if (serviceSupabase) {
-      void serviceSupabase
-        .from("user_profiles")
-        .update({ last_seen_at: new Date().toISOString() })
-        .eq("id", user.id);
-    }
   }
 
   return response;
