@@ -1,10 +1,10 @@
 ﻿import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { env, hasSupabaseEnv } from "@/lib/env";
-
 const PROTECTED_PREFIXES = ["/admin", "/profile"];
 
 const PUBLIC_PREFIXES = ["/auth", "/api", "/_next", "/favicon", "/robots", "/sitemap"];
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  if (!hasSupabaseEnv) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.next({ request });
   }
 
@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
 
   const response = NextResponse.next({ request });
 
-  const supabase = createServerClient(env.supabaseUrl!, env.supabaseAnonKey!, {
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
