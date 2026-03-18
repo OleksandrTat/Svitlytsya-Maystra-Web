@@ -64,6 +64,8 @@ export interface Project {
   private_client_name: string | null;
   private_location: string | null;
   private_notes: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +85,7 @@ export interface Product {
   formula_id: string | null;
   status: ProductStatus;
   sort_order: number;
+  priority?: number | null;
   is_featured: boolean;
   seo_title: string | null;
   seo_description: string | null;

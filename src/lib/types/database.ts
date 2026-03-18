@@ -32,6 +32,8 @@ export interface Database {
           private_client_name: string | null;
           private_location: string | null;
           private_notes: string | null;
+          seo_title: string | null;
+          seo_description: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -57,6 +59,8 @@ export interface Database {
           private_client_name?: string | null;
           private_location?: string | null;
           private_notes?: string | null;
+          seo_title?: string | null;
+          seo_description?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -79,6 +83,7 @@ export interface Database {
           formula_id: string | null;
           status: "active" | "draft" | "archived";
           sort_order: number;
+          priority?: number | null;
           is_featured: boolean;
           seo_title: string | null;
           seo_description: string | null;
@@ -100,6 +105,7 @@ export interface Database {
           formula_id?: string | null;
           status?: "active" | "draft" | "archived";
           sort_order?: number;
+          priority?: number | null;
           is_featured?: boolean;
           seo_title?: string | null;
           seo_description?: string | null;
@@ -107,6 +113,28 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
+        Relationships: [];
+      };
+      product_attributes: {
+        Row: {
+          id: string;
+          category: string;
+          type: "style" | "material";
+          value: string;
+          usage_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          category: string;
+          type: "style" | "material";
+          value: string;
+          usage_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_attributes"]["Insert"]>;
         Relationships: [];
       };
       project_products: {

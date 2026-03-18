@@ -21,6 +21,8 @@ export const projectFormSchema = z.object({
   private_client_name: z.string().optional(),
   private_location: z.string().optional(),
   private_notes: z.string().optional(),
+  seo_title: z.string().optional(),
+  seo_description: z.string().optional(),
 });
 
 export const serviceFormSchema = z.object({

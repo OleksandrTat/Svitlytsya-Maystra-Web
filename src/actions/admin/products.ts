@@ -75,6 +75,8 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: "Некоректні дані продукту." };
   }
 
+  const linkedProjectId = String(formData.get("project_id") || "").trim();
+
   const payload = {
     id: parsed.data.id ?? randomUUID(),
     title: parsed.data.title,
@@ -100,9 +102,27 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: error.message };
   }
 
+  if (linkedProjectId) {
+    const { error: linkError } = await supabase.from("project_products").upsert(
+      {
+        project_id: linkedProjectId,
+        product_id: payload.id,
+        quantity: 1,
+        notes: null,
+        sort_order: 0,
+      },
+      { onConflict: "project_id,product_id" },
+    );
+
+    if (linkError) {
+      return { ok: false, message: linkError.message };
+    }
+  }
+
   revalidatePath("/products");
   revalidatePath(`/products/${payload.slug}`);
   revalidatePath("/admin/products");
+  revalidatePath("/admin/projects");
 
   return { ok: true, message: "Продукт збережено." };
 }

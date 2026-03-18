@@ -77,6 +77,8 @@ export async function upsertProjectAction(formData: FormData): Promise<ActionRes
     private_client_name: formData.get("private_client_name") || undefined,
     private_location: formData.get("private_location") || undefined,
     private_notes: formData.get("private_notes") || undefined,
+    seo_title: formData.get("seo_title") || undefined,
+    seo_description: formData.get("seo_description") || undefined,
   });
 
   if (!parsed.success) {
@@ -104,12 +106,76 @@ export async function upsertProjectAction(formData: FormData): Promise<ActionRes
     private_client_name: parsed.data.private_client_name || null,
     private_location: parsed.data.private_location || null,
     private_notes: parsed.data.private_notes || null,
+    seo_title: parsed.data.seo_title || null,
+    seo_description: parsed.data.seo_description || null,
   };
 
   const { error } = await supabase.from("projects").upsert(payload);
 
   if (error) {
     return { ok: false, message: "Не вдалося зберегти проєкт." };
+  }
+
+  if (formData.has("product_ids")) {
+    const productIds = splitList(String(formData.get("product_ids") || ""));
+    const { data: existingLinks, error: existingLinksError } = await supabase
+      .from("project_products")
+      .select("product_id, quantity, notes")
+      .eq("project_id", payload.id);
+
+    if (existingLinksError) {
+      return { ok: false, message: existingLinksError.message };
+    }
+
+    const existingMap = new Map(
+      (existingLinks ?? []).map((row) => [
+        row.product_id,
+        { quantity: row.quantity, notes: row.notes },
+      ]),
+    );
+
+    if (productIds.length > 0) {
+      const rows = productIds.map((productId, index) => ({
+        project_id: payload.id,
+        product_id: productId,
+        quantity: existingMap.get(productId)?.quantity ?? 1,
+        notes: existingMap.get(productId)?.notes ?? null,
+        sort_order: index,
+      }));
+
+      const productIdsToDelete = (existingLinks ?? [])
+        .map((row) => row.product_id)
+        .filter((productId) => !productIds.includes(productId));
+
+      if (productIdsToDelete.length > 0) {
+        const { error: deleteMissingError } = await supabase
+          .from("project_products")
+          .delete()
+          .eq("project_id", payload.id)
+          .in("product_id", productIdsToDelete);
+
+        if (deleteMissingError) {
+          return { ok: false, message: deleteMissingError.message };
+        }
+      }
+
+      const { error: upsertLinksError } = await supabase
+        .from("project_products")
+        .upsert(rows, { onConflict: "project_id,product_id" });
+
+      if (upsertLinksError) {
+        return { ok: false, message: upsertLinksError.message };
+      }
+    } else {
+      const { error: clearLinksError } = await supabase
+        .from("project_products")
+        .delete()
+        .eq("project_id", payload.id);
+
+      if (clearLinksError) {
+        return { ok: false, message: clearLinksError.message };
+      }
+    }
   }
 
   await logActivity(parsed.data.id ? "update" : "create", "project", payload.id, payload);
@@ -119,6 +185,7 @@ export async function upsertProjectAction(formData: FormData): Promise<ActionRes
   revalidatePath(`/catalog/${payload.slug}`);
   revalidatePath("/admin");
   revalidatePath("/admin/projects");
+  revalidatePath("/admin/products");
 
   return { ok: true, message: "Проєкт збережено." };
 }
