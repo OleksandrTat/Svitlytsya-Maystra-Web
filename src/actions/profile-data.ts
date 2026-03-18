@@ -1,7 +1,6 @@
 "use server";
 
-import { Resend } from "resend";
-import { env, hasResend } from "@/lib/env";
+import { sendAdminEmail } from "@/lib/email/send";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type DataExportResult = {
@@ -103,20 +102,15 @@ export async function requestAccountDeletionAction(): Promise<ActionResult> {
     return { ok: false, message: insertError.message };
   }
 
-  if (hasResend) {
-    const resend = new Resend(env.resendApiKey!);
-    await resend.emails.send({
-      from: env.resendFromEmail!,
-      to: env.adminEmail!,
-      subject: "Новий запит на видалення акаунта",
-      text: [
-        `Користувач: ${displayName}`,
-        `Email: ${user.email ?? "невідомо"}`,
-        "Джерело: /profile",
-        "Перегляд заявок: /admin/inquiries",
-      ].join("\n"),
-    });
-  }
+  await sendAdminEmail({
+    subject: "Новий запит на видалення акаунта",
+    text: [
+      `Користувач: ${displayName}`,
+      `Email: ${user.email ?? "невідомо"}`,
+      "Джерело: /profile",
+      "Перегляд заявок: /admin/inquiries",
+    ].join("\n"),
+  });
 
   return {
     ok: true,

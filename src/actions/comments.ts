@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Resend } from "resend";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { env, hasResend } from "@/lib/env";
+import { adminNewCommentEmail } from "@/lib/email/templates";
+import { sendAdminEmail } from "@/lib/email/send";
+import { env } from "@/lib/env";
 import { sanitizeCommentContent } from "@/lib/security/sanitize";
 import {
   createSupabaseServerClient,
@@ -22,11 +23,11 @@ type DbErrorLike = {
 
 function mapInsertCommentError(error: DbErrorLike) {
   if (error.code === "42P01" || /relation .*blog_comments.* does not exist/i.test(error.message)) {
-    return "У базі даних відсутня таблиця коментарів. Виконай SQL-міграцію для blog_comments.";
+    return "У базі даних відсутня таблиця коментарів. Виконайте SQL-міграцію для blog_comments.";
   }
 
   if (error.code === "42501" || /row-level security/i.test(error.message)) {
-    return "Не вдалося підтвердити сесію користувача. Вийди з акаунта, увійди знову та повтори.";
+    return "Не вдалося підтвердити сесію користувача. Вийдіть з акаунта, увійдіть знову та повторіть спробу.";
   }
 
   if (error.code === "23503") {
@@ -87,19 +88,16 @@ export async function addCommentAction(formData: FormData): Promise<ActionResult
     return { ok: false, message: mapInsertCommentError(error) };
   }
 
-  if (hasResend) {
-    const resend = new Resend(env.resendApiKey!);
-    await resend.emails.send({
-      from: env.resendFromEmail!,
-      to: env.adminEmail!,
-      subject: "Новий коментар потребує модерації",
-      text: [
-        `Користувач: ${user.email ?? user.id}`,
-        `Текст: ${content.slice(0, 400)}`,
-        "Модерація: /admin/cultural",
-      ].join("\n"),
-    });
-  }
+  const moderationEmail = adminNewCommentEmail({
+    authorEmail: user.email ?? user.id,
+    content,
+    moderationUrl: `${env.siteUrl}/admin/cultural`,
+  });
+
+  await sendAdminEmail({
+    subject: moderationEmail.subject,
+    html: moderationEmail.html,
+  });
 
   if (postSlug) {
     revalidatePath(`/cultural/${postSlug}`);

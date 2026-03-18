@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -10,7 +10,7 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
@@ -33,9 +33,11 @@ export default function RegisterPage() {
     if (!password) {
       return null;
     }
+
     if (password.length < 8) {
       return "Мінімум 8 символів.";
     }
+
     return null;
   }, [password]);
 
@@ -180,5 +182,13 @@ export default function RegisterPage() {
         </div>
       </Container>
     </section>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

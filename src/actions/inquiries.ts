@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { Resend } from "resend";
 import { inquirySchema, type InquirySchema } from "@/lib/validation/inquiry";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
-import { env, hasResend } from "@/lib/env";
+import { adminNewInquiryEmail, clientInquiryConfirmationEmail } from "@/lib/email/templates";
+import { sendAdminEmail, sendEmail } from "@/lib/email/send";
+import { env } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
@@ -46,77 +48,46 @@ function normalizeInquiryInput(input: InquirySchema) {
 }
 
 async function sendInquiryEmails(payload: ReturnType<typeof normalizeInquiryInput>) {
-  if (!hasResend) {
-    return;
-  }
-
-  const resend = new Resend(env.resendApiKey!);
-
-  await resend.emails.send({
-    from: env.resendFromEmail!,
-    to: env.adminEmail!,
-    subject: `Нова заявка: ${payload.service_type}`,
-    html: `
-      <h2>Нова заявка з сайту Svitlytsya Maystra</h2>
-      <p><strong>Ім'я:</strong> ${payload.name}</p>
-      <p><strong>Телефон:</strong> ${payload.phone ?? "не вказано"}</p>
-      <p><strong>Email:</strong> ${payload.email ?? "не вказано"}</p>
-      <p><strong>Тип послуги:</strong> ${payload.service_type}</p>
-      <p><strong>Сторінка:</strong> ${payload.source_page ?? "невідомо"}</p>
-      <p><strong>Повідомлення:</strong></p>
-      <p>${payload.message ?? "-"}</p>
-      ${
-        payload.configuration
-          ? `<p><strong>Configuration:</strong></p><pre>${JSON.stringify(payload.configuration, null, 2)}</pre>`
-          : ""
-      }
-    `,
+  const siteUrl = env.siteUrl;
+  const adminEmail = adminNewInquiryEmail({
+    name: payload.name,
+    phone: payload.phone,
+    email: payload.email,
+    serviceType: payload.service_type,
+    message: payload.message,
+    sourcePage: payload.source_page,
+    configuration: payload.configuration,
+    adminUrl: `${siteUrl}/admin/inquiries`,
+    lang: "uk",
   });
 
+  const adminResult = await sendAdminEmail({
+    subject: adminEmail.subject,
+    html: adminEmail.html,
+  });
+
+  if (!adminResult.ok) {
+    logger.error("Не вдалося надіслати адміністративний лист для нової заявки.", adminResult.error);
+  }
+
   if (payload.email) {
-    await resend.emails.send({
-      from: env.resendFromEmail!,
-      to: payload.email,
-      subject: "Ми отримали вашу заявку — Svitlytsya Maystra",
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <body style="font-family: Arial, sans-serif; color: #1A202C; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: #1A4F8A; padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Svitlytsya Maystra</h1>
-          </div>
-          <div style="border: 1px solid #E2E8F0; border-top: 0; padding: 24px; border-radius: 0 0 12px 12px;">
-            <p>Вітаємо, <strong>${payload.name}</strong>!</p>
-            <p>Ми отримали вашу заявку і зв'яжемось з вами найближчим часом у робочий час.</p>
-
-            <div style="background: #F5F7FA; border-radius: 8px; padding: 16px; margin: 16px 0;">
-              <p style="margin: 0 0 8px; font-weight: 600;">Деталі заявки:</p>
-              <p style="margin: 4px 0; color: #718096;">Тип послуги: ${payload.service_type}</p>
-              ${payload.message ? `<p style="margin: 4px 0; color: #718096;">Повідомлення: ${payload.message}</p>` : ""}
-            </div>
-
-            <p>
-              <a href="${env.siteUrl}/contact" style="
-                display: inline-block;
-                background: #1A4F8A;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                text-decoration: none;
-                font-weight: 600;
-              ">
-                Переглянути наші роботи
-              </a>
-            </p>
-
-            <p style="color: #718096; font-size: 12px; margin-top: 24px;">
-              Svitlytsya Maystra · ${env.siteUrl}
-            </p>
-          </div>
-        </body>
-        </html>
-      `,
+    const clientEmail = clientInquiryConfirmationEmail({
+      name: payload.name,
+      serviceType: payload.service_type,
+      message: payload.message,
+      siteUrl,
+      lang: "uk",
     });
+
+    const clientResult = await sendEmail({
+      to: payload.email,
+      subject: clientEmail.subject,
+      html: clientEmail.html,
+    });
+
+    if (!clientResult.ok) {
+      logger.error("Не вдалося надіслати підтвердження клієнту для нової заявки.", clientResult.error);
+    }
   }
 }
 
@@ -193,6 +164,7 @@ export async function submitInquiryAction(
   const { error } = await supabase.from("inquiries").insert(payload);
 
   if (error) {
+    logger.error("Помилка під час збереження заявки в базі даних.", error.message);
     return {
       success: false,
       message: "Не вдалося зберегти заявку. Спробуйте ще раз.",

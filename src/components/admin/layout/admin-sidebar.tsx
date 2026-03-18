@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { type ComponentType } from "react";
@@ -11,6 +11,7 @@ import {
   Calculator,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
   FileText,
   HeadphonesIcon,
   LayoutDashboard,
@@ -51,7 +52,7 @@ type NavItem = {
 };
 
 const primaryItems: NavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin", label: "Панель", icon: LayoutDashboard },
   { href: "/admin/inbox", label: "Повідомлення", icon: MessageSquare, badgeKey: "unreadMessages" },
   { href: "/admin/inquiries", label: "Заявки", icon: Mail, badgeKey: "newInquiries" },
   { href: "/admin/orders", label: "Замовлення", icon: Package },
@@ -65,7 +66,7 @@ const secondaryItems: NavItem[] = [
   { href: "/admin/products", label: "Продукти", icon: Package2 },
   { href: "/admin/projects", label: "Проєкти", icon: FileText },
   { href: "/admin/blog", label: "Блог", icon: PenSquare },
-  { href: "/admin/cultural", label: "Cultural blog", icon: BookOpen },
+  { href: "/admin/cultural", label: "Культурний блог", icon: BookOpen },
   { href: "/admin/pricing", label: "Ціни", icon: Calculator },
   { href: "/admin/support", label: "Підтримка", icon: HeadphonesIcon, badgeKey: "unreadSupport" },
   { href: "/admin/security", label: "Безпека", icon: Shield },
@@ -132,14 +133,22 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
     >
       <div className="flex h-16 items-center justify-between border-b border-white/10 px-3">
         {!collapsed ? (
-          <div className="flex items-center gap-2 text-[color:var(--color-on-primary)]">
-            <Wrench size={18} />
-            <span className="text-sm font-semibold">Svitlytsya Admin</span>
-          </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 text-[color:var(--color-on-primary)] transition hover:opacity-80"
+            title="На сайт"
+          >
+            <div className="rounded-lg bg-white/10 p-2">
+              <Wrench size={16} />
+            </div>
+            <span className="truncate text-sm font-semibold">Svitlytsya Admin</span>
+          </Link>
         ) : (
-          <div className="mx-auto rounded-lg bg-white/10 p-2 text-[color:var(--color-on-primary)]">
-            <Wrench size={16} />
-          </div>
+          <Link href="/" className="mx-auto" title="На головний сайт">
+            <div className="rounded-lg bg-white/10 p-2 text-[color:var(--color-on-primary)]">
+              <Wrench size={16} />
+            </div>
+          </Link>
         )}
 
         <button
@@ -151,6 +160,20 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
+
+      {!collapsed ? (
+        <div className="px-3 pt-2">
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-[color:var(--color-on-primary-muted)] transition hover:bg-white/10 hover:text-[color:var(--color-on-primary)]"
+          >
+            <ExternalLink size={13} />
+            На головну сторінку
+          </Link>
+        </div>
+      ) : null}
 
       <div className="px-3 py-2">
         <button

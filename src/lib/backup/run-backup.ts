@@ -10,8 +10,8 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { Resend } from "resend";
-import { env, hasBackupS3, hasResend } from "@/lib/env";
+import { sendEmail } from "@/lib/email/send";
+import { env, hasBackupS3 } from "@/lib/env";
 
 type BackupSource = "cron" | "script" | "manual";
 
@@ -114,20 +114,14 @@ async function cleanupOldBackups(s3: S3Client, bucket: string, prefix: string) {
 }
 
 async function sendBackupEmail(result: BackupRunResult) {
-  if (!hasResend) {
-    return;
-  }
-
   const recipient = env.backupNotifyEmail || env.adminEmail;
   if (!recipient) {
     return;
   }
 
-  const resend = new Resend(env.resendApiKey!);
   const subject = result.ok ? "Backup OK" : "Backup FAILED";
 
-  await resend.emails.send({
-    from: env.resendFromEmail!,
+  await sendEmail({
     to: recipient,
     subject: `[Svitlytsya Backup] ${subject}`,
     text: [

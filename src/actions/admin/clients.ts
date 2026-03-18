@@ -1,10 +1,11 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { Resend } from "resend";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { clientInvitationEmail } from "@/lib/email/templates";
+import { sendEmail } from "@/lib/email/send";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
-import { env, hasResend } from "@/lib/env";
+import { env } from "@/lib/env";
 
 type ActionResult = { ok: boolean; message: string };
 
@@ -57,44 +58,24 @@ export async function createClientAccountFromInquiryAction(
     return { ok: false, message: invitationError?.message ?? "Не вдалося створити запрошення." };
   }
 
-  if (hasResend) {
-    const resend = new Resend(env.resendApiKey!);
-    const inviteUrl = `${env.siteUrl}/auth/register?invite=${invitation.token}&email=${encodeURIComponent(email)}`;
-
-    await resend.emails.send({
-      from: env.resendFromEmail!,
-      to: email,
-      subject: "Запрошення до Svitlytsya Maystra — особистий кабінет",
-      html: `
-        <h2>Вітаємо${displayName ? `, ${displayName}` : ""}!</h2>
-        <p>Вас запрошено до особистого кабінету майстерні Svitlytsya Maystra.</p>
-        <p>Тут ви зможете відстежувати статус свого замовлення, переглядати рахунки та спілкуватись з майстернею.</p>
-        <p>
-          <a href="${inviteUrl}" style="
-            display: inline-block;
-            background: #1A4F8A;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-          ">
-            Створити акаунт
-          </a>
-        </p>
-        <p style="color: #718096; font-size: 12px;">
-          Посилання дійсне 7 днів. Якщо ви не очікували цього листа — ігноруйте його.
-        </p>
-      `,
-    });
-  }
+  const inviteUrl = `${env.siteUrl}/auth/register?invite=${invitation.token}&email=${encodeURIComponent(email)}`;
+  const invitationEmail = clientInvitationEmail({
+    displayName: displayName || null,
+    email,
+    inviteUrl,
+  });
+  const emailResult = await sendEmail({
+    to: email,
+    subject: invitationEmail.subject,
+    html: invitationEmail.html,
+  });
 
   revalidatePath("/admin/inquiries");
   revalidatePath("/admin/clients");
 
   return {
     ok: true,
-    message: hasResend
+    message: emailResult.ok
       ? `Запрошення надіслано на ${email}.`
       : `Запрошення створено. Email не надіслано (Resend не налаштований). Токен: ${invitation.token}`,
   };

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const DEFAULT_SITE_URL = "https://svitlytsya.ua";
 
@@ -8,7 +9,7 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
-  RESEND_FROM_EMAIL: z.string().email().optional(),
+  RESEND_FROM_EMAIL: z.string().min(1).optional(),
   ADMIN_EMAIL: z.string().email().optional(),
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
@@ -61,7 +62,7 @@ const rawEnv = {
 const parsedEnv = envSchema.safeParse(rawEnv);
 
 if (!parsedEnv.success && process.env.NODE_ENV === "production") {
-  console.error("Invalid environment variables:", parsedEnv.error.flatten().fieldErrors);
+  logger.error("Invalid environment variables.", parsedEnv.error.flatten().fieldErrors);
 }
 
 function pickString<K extends keyof typeof rawEnv>(key: K) {
@@ -128,8 +129,11 @@ export const hasSupabaseEnv =
 export const hasServiceRoleKey =
   hasSupabaseEnv && Boolean(env.supabaseServiceRoleKey);
 
-export const hasResend =
-  Boolean(env.resendApiKey) && Boolean(env.resendFromEmail) && Boolean(env.adminEmail);
+export const hasEmailService = Boolean(env.resendApiKey);
+
+export const hasAdminEmail = Boolean(env.adminEmail);
+
+export const hasResend = hasEmailService;
 
 export const hasBackupS3 =
   Boolean(env.backupS3Bucket) &&

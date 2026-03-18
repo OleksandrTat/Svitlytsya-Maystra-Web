@@ -1,10 +1,11 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { Resend } from "resend";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { env, hasResend } from "@/lib/env";
+import { adminNewSupportMessageEmail, adminSupportReplyEmail } from "@/lib/email/templates";
+import { sendAdminEmail, sendEmail } from "@/lib/email/send";
+import { env } from "@/lib/env";
 import type { SupportChannel } from "@/lib/types";
 
 type ActionResult = { ok: boolean; message: string; chatId?: string };
@@ -42,21 +43,16 @@ export async function startSupportChatAction(formData: FormData): Promise<Action
           ? `WhatsApp: ${preferredContact}`
           : `Email: ${user.email}`;
 
-    if (hasResend) {
-      const resend = new Resend(env.resendApiKey!);
-      await resend.emails.send({
-        from: env.resendFromEmail!,
-        to: env.adminEmail!,
-        subject: `Клієнт хоче спілкуватись через ${channel}`,
-        text: [
-          `Клієнт: ${user.email}`,
-          `Канал: ${channel}`,
-          `Контакт: ${contactHint}`,
-          `Тема: ${subject || "без теми"}`,
-          `Повідомлення: ${content}`,
-        ].join("\n"),
-      });
-    }
+    await sendAdminEmail({
+      subject: `Клієнт хоче спілкуватись через ${channel}`,
+      text: [
+        `Клієнт: ${user.email ?? user.id}`,
+        `Канал: ${channel}`,
+        `Контакт: ${contactHint}`,
+        `Тема: ${subject || "без теми"}`,
+        `Повідомлення: ${content}`,
+      ].join("\n"),
+    });
 
     return { ok: true, message: `Ми зв'яжемось з вами через ${channel} найближчим часом.` };
   }
@@ -105,20 +101,17 @@ export async function startSupportChatAction(formData: FormData): Promise<Action
     return { ok: false, message: msgError.message };
   }
 
-  if (hasResend) {
-    const resend = new Resend(env.resendApiKey!);
-    await resend.emails.send({
-      from: env.resendFromEmail!,
-      to: env.adminEmail!,
-      subject: `Нове звернення від клієнта: ${subject || content.slice(0, 60)}`,
-      text: [
-        `Клієнт: ${user.email}`,
-        `Тема: ${subject || "без теми"}`,
-        `Повідомлення: ${content}`,
-        `Відповісти: ${env.siteUrl}/admin/support?chat=${chatId}`,
-      ].join("\n"),
-    });
-  }
+  const adminEmail = adminNewSupportMessageEmail({
+    clientEmail: user.email ?? user.id,
+    subject: subject || null,
+    content,
+    chatUrl: `${env.siteUrl}/admin/support?chat=${chatId}`,
+  });
+
+  await sendAdminEmail({
+    subject: adminEmail.subject,
+    html: adminEmail.html,
+  });
 
   revalidatePath("/profile/support");
   revalidatePath("/admin/support");
@@ -219,7 +212,7 @@ export async function sendAdminSupportMessageAction(formData: FormData): Promise
     .eq("id", chatId)
     .maybeSingle();
 
-  if (chat && hasResend) {
+  if (chat) {
     const { data: profile } = await supabase
       .from("user_profiles")
       .select("display_name")
@@ -230,16 +223,16 @@ export async function sendAdminSupportMessageAction(formData: FormData): Promise
     const clientEmail = authUser?.user?.email;
 
     if (clientEmail) {
-      const resend = new Resend(env.resendApiKey!);
-      await resend.emails.send({
-        from: env.resendFromEmail!,
+      const replyEmail = adminSupportReplyEmail({
+        displayName: profile?.display_name ?? null,
+        content,
+        chatUrl: `${env.siteUrl}/profile/support/${chatId}`,
+      });
+
+      await sendEmail({
         to: clientEmail,
-        subject: "Нова відповідь від Svitlytsya Maystra",
-        html: `
-          <p>Вітаємо${profile?.display_name ? `, ${profile.display_name}` : ""}!</p>
-          <p>Ви отримали нову відповідь у вашому зверненні до майстерні.</p>
-          <p><a href="${env.siteUrl}/profile/support/${chatId}">Переглянути відповідь</a></p>
-        `,
+        subject: replyEmail.subject,
+        html: replyEmail.html,
       });
     }
   }
