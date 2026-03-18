@@ -48,6 +48,21 @@ function parseFormBoolean(value: FormDataEntryValue | null) {
   return value === "on" || value === "true";
 }
 
+function parseNullableString(value: FormDataEntryValue | null) {
+  const normalized = String(value || "").trim();
+  return normalized || null;
+}
+
+function parseNullableInteger(value: FormDataEntryValue | null) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export async function upsertProjectAction(formData: FormData): Promise<ActionResult> {
   await requireAdmin();
 
@@ -396,6 +411,69 @@ export async function updateInquiryStatusAction(formData: FormData): Promise<Act
   revalidateTag("admin-counts", "default");
 
   return { ok: true, message: "Статус заявки оновлено." };
+}
+
+export async function upsertCompanyInfoAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase не налаштований." };
+  }
+
+  const providedId = String(formData.get("id") || "").trim();
+  const name = String(formData.get("name") || "").trim();
+
+  if (!name) {
+    return { ok: false, message: "Назва компанії обов'язкова." };
+  }
+
+  let companyId = providedId;
+  if (!companyId) {
+    const { data: existingCompany } = await supabase
+      .from("company_info")
+      .select("id")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    companyId = existingCompany?.id ?? randomUUID();
+  }
+
+  const payload = {
+    id: companyId,
+    name,
+    tagline: parseNullableString(formData.get("tagline")),
+    description: parseNullableString(formData.get("description")),
+    founded_year: parseNullableInteger(formData.get("founded_year")),
+    email: parseNullableString(formData.get("email")),
+    phone: parseNullableString(formData.get("phone")),
+    phone_secondary: parseNullableString(formData.get("phone_secondary")),
+    address: parseNullableString(formData.get("address")),
+    city: parseNullableString(formData.get("city")),
+    country: parseNullableString(formData.get("country")),
+    working_hours: parseNullableString(formData.get("working_hours")),
+    social_facebook: parseNullableString(formData.get("social_facebook")),
+    social_instagram: parseNullableString(formData.get("social_instagram")),
+    social_youtube: parseNullableString(formData.get("social_youtube")),
+    social_tiktok: parseNullableString(formData.get("social_tiktok")),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from("company_info").upsert(payload);
+
+  if (error) {
+    return { ok: false, message: "Не вдалося зберегти дані компанії." };
+  }
+
+  await logActivity(providedId ? "update" : "create", "company_info", companyId, payload);
+
+  revalidatePath("/");
+  revalidatePath("/contact");
+  revalidatePath("/admin");
+  revalidatePath("/admin/company");
+
+  return { ok: true, message: "Дані компанії збережено." };
 }
 
 export async function upsertSiteSettingAction(formData: FormData): Promise<ActionResult> {

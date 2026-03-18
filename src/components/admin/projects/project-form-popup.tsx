@@ -69,12 +69,8 @@ export function ProjectFormPopup({
   const [images, setImages] = useState<string[]>(initialData?.images ?? []);
   const [coverImage, setCoverImage] = useState(initialData?.cover_image ?? "");
   const [clientId, setClientId] = useState("");
-  const [seoTitle, setSeoTitle] = useState(
-    (initialData as Project & { seo_title?: string | null }).seo_title ?? "",
-  );
-  const [seoDescription, setSeoDescription] = useState(
-    (initialData as Project & { seo_description?: string | null }).seo_description ?? "",
-  );
+  const [seoTitle, setSeoTitle] = useState(initialData?.seo_title ?? "");
+  const [seoDescription, setSeoDescription] = useState(initialData?.seo_description ?? "");
   const privateClientName = initialData?.private_client_name ?? "";
   const privateLocation = initialData?.private_location ?? "";
   const privateNotes = initialData?.private_notes ?? "";

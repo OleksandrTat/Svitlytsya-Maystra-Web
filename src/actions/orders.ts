@@ -104,6 +104,42 @@ export async function updateOrderStatusAction(formData: FormData): Promise<Actio
   return { ok: true, message: "Order status updated." };
 }
 
+export async function updateOrderProjectAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+
+  if (!supabase) {
+    return { ok: false, message: "Supabase service client is not configured." };
+  }
+
+  const orderId = String(formData.get("order_id") || "");
+  const projectId = String(formData.get("project_id") || "").trim();
+
+  if (!orderId) {
+    return { ok: false, message: "Order ID is required." };
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ project_id: projectId || null })
+    .eq("id", orderId);
+
+  if (error) {
+    return { ok: false, message: "Failed to update linked project." };
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath("/admin/projects");
+  revalidatePath("/admin/products");
+  revalidatePath("/profile/orders");
+  revalidatePath(`/profile/orders/${orderId}`);
+  revalidateTag("admin-counts", "default");
+
+  return { ok: true, message: "Linked project updated." };
+}
+
 export async function addAdminOrderMessageAction(formData: FormData): Promise<ActionResult> {
   await requireAdmin();
 

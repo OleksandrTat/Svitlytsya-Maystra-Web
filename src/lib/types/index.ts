@@ -160,12 +160,55 @@ export interface Order {
   inquiry_id: string | null;
   user_id: string | null;
   product_id: string | null;
+  project_id: string | null;
   status: OrderStatus;
   expected_date: string | null;
   actual_date: string | null;
   internal_notes: string | null;
   priority: OrderPriority;
   created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number | null;
+  notes: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface CompanyTeamMember {
+  id: string;
+  name: string;
+  role: string;
+  photo_url: string | null;
+}
+
+export interface CompanyInfo {
+  id: string;
+  name: string;
+  tagline: string | null;
+  description: string | null;
+  founded_year: number | null;
+  email: string | null;
+  phone: string | null;
+  phone_secondary: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  working_hours: string | null;
+  logo_url: string | null;
+  og_image_url: string | null;
+  social_facebook: string | null;
+  social_instagram: string | null;
+  social_youtube: string | null;
+  social_tiktok: string | null;
+  team_members: CompanyTeamMember[];
+  certificates: unknown[];
   updated_at: string;
 }
 
@@ -246,6 +289,7 @@ export interface PricePreset {
   id: string;
   name: string;
   category: PricePresetCategory;
+  variable_key: string;
   unit: string;
   value: number;
   currency: string;
@@ -260,6 +304,7 @@ export interface PriceFormula {
   product_type: PricingProductType;
   description: string | null;
   input_schema: unknown;
+  user_inputs: unknown;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -273,6 +318,8 @@ export interface FormulaComponent {
   preset_id: string | null;
   expression: string;
   condition: string | null;
+  notes: string | null;
+  is_discount: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;

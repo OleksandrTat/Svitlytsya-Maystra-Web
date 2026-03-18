@@ -130,6 +130,7 @@ export function ProductFormPopup({
     formData.set("materials", materials.join(","));
     formData.set("style", styles.join(","));
     formData.set("status", status);
+    formData.set("priority", String(priority));
     formData.set("sort_order", String(priority));
     formData.set("is_featured", isFeatured ? "true" : "false");
     formData.set("cover_image", resolvedCoverImage);

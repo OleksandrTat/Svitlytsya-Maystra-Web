@@ -759,6 +759,7 @@ export interface Database {
           inquiry_id: string | null;
           user_id: string | null;
           product_id: string | null;
+          project_id: string | null;
           status:
             | "new"
             | "consulting"
@@ -782,6 +783,7 @@ export interface Database {
           inquiry_id?: string | null;
           user_id?: string | null;
           product_id?: string | null;
+          project_id?: string | null;
           status?:
             | "new"
             | "consulting"
@@ -800,6 +802,30 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
+        Relationships: [];
+      };
+      order_items: {
+        Row: {
+          id: string;
+          order_id: string;
+          product_id: string;
+          quantity: number;
+          unit_price: number | null;
+          notes: string | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          product_id: string;
+          quantity?: number;
+          unit_price?: number | null;
+          notes?: string | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
         Relationships: [];
       };
       order_status_history: {
@@ -969,6 +995,7 @@ export interface Database {
           id: string;
           name: string;
           category: "material" | "consumable" | "labor" | "overhead";
+          variable_key: string;
           unit: string;
           value: number;
           currency: string;
@@ -980,6 +1007,7 @@ export interface Database {
           id?: string;
           name: string;
           category: "material" | "consumable" | "labor" | "overhead";
+          variable_key: string;
           unit: string;
           value: number;
           currency?: string;
@@ -997,6 +1025,7 @@ export interface Database {
           product_type: "door" | "furniture" | "window" | "restoration";
           description: string | null;
           input_schema: Json;
+          user_inputs: Json;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -1007,6 +1036,7 @@ export interface Database {
           product_type: "door" | "furniture" | "window" | "restoration";
           description?: string | null;
           input_schema?: Json;
+          user_inputs?: Json;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -1023,6 +1053,8 @@ export interface Database {
           preset_id: string | null;
           expression: string;
           condition: string | null;
+          notes: string | null;
+          is_discount: boolean;
           sort_order: number;
           created_at: string;
           updated_at: string;
@@ -1035,6 +1067,8 @@ export interface Database {
           preset_id?: string | null;
           expression: string;
           condition?: string | null;
+          notes?: string | null;
+          is_discount?: boolean;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -1110,6 +1144,56 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["site_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      company_info: {
+        Row: {
+          id: string;
+          name: string;
+          tagline: string | null;
+          description: string | null;
+          founded_year: number | null;
+          email: string | null;
+          phone: string | null;
+          phone_secondary: string | null;
+          address: string | null;
+          city: string | null;
+          country: string | null;
+          working_hours: string | null;
+          logo_url: string | null;
+          og_image_url: string | null;
+          social_facebook: string | null;
+          social_instagram: string | null;
+          social_youtube: string | null;
+          social_tiktok: string | null;
+          team_members: Json;
+          certificates: Json;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name?: string;
+          tagline?: string | null;
+          description?: string | null;
+          founded_year?: number | null;
+          email?: string | null;
+          phone?: string | null;
+          phone_secondary?: string | null;
+          address?: string | null;
+          city?: string | null;
+          country?: string | null;
+          working_hours?: string | null;
+          logo_url?: string | null;
+          og_image_url?: string | null;
+          social_facebook?: string | null;
+          social_instagram?: string | null;
+          social_youtube?: string | null;
+          social_tiktok?: string | null;
+          team_members?: Json;
+          certificates?: Json;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["company_info"]["Insert"]>;
         Relationships: [];
       };
       activity_logs: {

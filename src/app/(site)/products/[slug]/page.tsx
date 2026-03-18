@@ -6,13 +6,16 @@ import { ProjectGallery } from "@/components/catalog/project-gallery";
 import { ProductPriceCalculator } from "@/components/products/product-price-calculator";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { PRODUCT_CATEGORY_LABELS } from "@/lib/constants";
+import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
+import { isAdminUser } from "@/lib/auth/is-admin";
+import { getFormulaComponentsForProduct } from "@/lib/data/formula-queries";
 import {
   getPriceFormulaById,
   getPricePresetsForFormula,
   getProductBySlug,
   getProjectsForProduct,
 } from "@/lib/data/queries";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const revalidate = 3600;
 
@@ -35,6 +38,19 @@ function isSupportedImageSrc(value: string | null | undefined) {
   );
 }
 
+async function canPreviewInactiveProduct() {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return false;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return isAdminUser(user);
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -42,8 +58,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
+  const canPreview = await canPreviewInactiveProduct();
 
-  if (!product || product.status !== "active") {
+  if (!product || (product.status !== "active" && !canPreview)) {
     return { title: "Продукт не знайдено" };
   }
 
@@ -72,8 +89,9 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
+  const canPreview = await canPreviewInactiveProduct();
 
-  if (!product || product.status !== "active") {
+  if (!product || (product.status !== "active" && !canPreview)) {
     notFound();
   }
 
@@ -85,10 +103,11 @@ export default async function ProductPage({
     galleryImages.push("/window.svg");
   }
 
-  const [projects, formula, presets] = await Promise.all([
+  const [projects, formula, presets, components] = await Promise.all([
     getProjectsForProduct(product.id),
     product.formula_id ? getPriceFormulaById(product.formula_id) : Promise.resolve(null),
     product.formula_id ? getPricePresetsForFormula(product.formula_id) : Promise.resolve([]),
+    product.formula_id ? getFormulaComponentsForProduct(product.formula_id) : Promise.resolve([]),
   ]);
 
   return (
@@ -104,6 +123,11 @@ export default async function ProductPage({
                   {PRODUCT_CATEGORY_LABELS[product.category as keyof typeof PRODUCT_CATEGORY_LABELS] ??
                     product.category}
                 </span>
+                {product.status !== "active" ? (
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                    {PRODUCT_STATUS_LABELS[product.status]} · лише для адміна
+                  </span>
+                ) : null}
               </div>
 
               <div>
@@ -141,6 +165,7 @@ export default async function ProductPage({
                 formula={formula}
                 presets={presets}
                 priceFrom={product.price_from}
+                components={components}
               />
 
               <div className="flex flex-wrap gap-3">

@@ -7,6 +7,8 @@ import type {
   AIChatMessage,
   AIChatSession,
   CatalogFilters,
+  CompanyInfo,
+  CompanyTeamMember,
   FormulaComponent,
   Invoice,
   Inquiry,
@@ -33,6 +35,7 @@ import {
   type AdminNotificationSettingsPayload,
   type OrderTemplate,
 } from "@/lib/admin/config";
+import { extractPricingIdentifiers } from "@/lib/pricing/expression";
 import type { Database } from "@/lib/types/database";
 
 function splitCsvParam(value?: string) {
@@ -132,6 +135,45 @@ function parseServiceSteps(value: unknown): string[] {
   return value
     .map((item) => (typeof item === "string" ? item : ""))
     .filter(Boolean);
+}
+
+function parseCompanyTeamMembers(value: unknown): CompanyTeamMember[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+
+      const teamMember = item as Record<string, unknown>;
+      const id = typeof teamMember.id === "string" ? teamMember.id : null;
+      const name = typeof teamMember.name === "string" ? teamMember.name : null;
+      const role = typeof teamMember.role === "string" ? teamMember.role : null;
+      const photoUrl = typeof teamMember.photo_url === "string" ? teamMember.photo_url : null;
+
+      if (!id || !name || !role) {
+        return null;
+      }
+
+      return {
+        id,
+        name,
+        role,
+        photo_url: photoUrl,
+      };
+    })
+    .filter((item): item is CompanyTeamMember => item !== null);
+}
+
+function parseUnknownList(value: unknown): unknown[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value;
 }
 
 function normalizeSlugValue(value: string) {
@@ -406,6 +448,7 @@ export async function getProducts(
 }
 
 export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
+  const normalizedSlug = normalizeSlugValue(slug);
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
     return null;
@@ -414,14 +457,24 @@ export const getProductBySlug = cache(async (slug: string): Promise<Product | nu
   const { data, error } = await supabase
     .from("products")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", normalizedSlug)
     .maybeSingle();
 
-  if (error || !data) {
+  if (!error && data) {
+    return data as Product;
+  }
+
+  const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
+    .from("products")
+    .select("*")
+    .ilike("slug", normalizedSlug)
+    .maybeSingle();
+
+  if (caseInsensitiveError || !caseInsensitiveData) {
     return null;
   }
 
-  return data as Product;
+  return caseInsensitiveData as Product;
 });
 
 export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
@@ -541,27 +594,45 @@ export async function getPricePresetsForFormula(formulaId: string): Promise<Pric
 
   const { data: components, error: componentsError } = await supabase
     .from("formula_components")
-    .select("preset_id")
+    .select("preset_id, expression, condition")
     .eq("formula_id", formulaId);
 
   if (componentsError || !components) {
     return [];
   }
 
-  const presetIds = Array.from(
-    new Set(components.map((component) => component.preset_id).filter(Boolean)),
-  ) as string[];
+  const presetIds = new Set(
+    components.map((component) => component.preset_id).filter((value): value is string => Boolean(value)),
+  );
+  const presetKeys = new Set<string>();
 
-  if (presetIds.length === 0) {
+  for (const component of components) {
+    for (const identifier of extractPricingIdentifiers(component.expression || "")) {
+      presetKeys.add(identifier);
+    }
+
+    for (const identifier of extractPricingIdentifiers(component.condition || "")) {
+      presetKeys.add(identifier);
+    }
+  }
+
+  if (presetIds.size === 0 && presetKeys.size === 0) {
     return [];
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("price_presets")
     .select("*")
-    .in("id", presetIds);
+    .order("category", { ascending: true })
+    .order("name", { ascending: true });
 
-  return (data ?? []) as PricePreset[];
+  if (error || !data) {
+    return [];
+  }
+
+  return (data as PricePreset[]).filter(
+    (preset) => presetIds.has(preset.id) || presetKeys.has(preset.variable_key),
+  );
 }
 
 export const getServices = cache(async (): Promise<Service[]> => {
@@ -1610,6 +1681,26 @@ export async function getFormulaComponentsForAdmin(formulaId: string): Promise<F
   return data as FormulaComponent[];
 }
 
+export async function getAllFormulaComponentsForAdmin(): Promise<FormulaComponent[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("formula_components")
+    .select("*")
+    .order("formula_id", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as FormulaComponent[];
+}
+
 export async function getClientsForAdmin(limit = 200): Promise<ClientSummary[]> {
   const supabase = await getSupabaseForAdminQueries();
 
@@ -1643,6 +1734,31 @@ export async function getClientsForAdmin(limit = 200): Promise<ClientSummary[]> 
     ...profile,
     orders_count: orderCountMap.get(profile.id) ?? 0,
   })) as ClientSummary[];
+}
+
+export async function getCompanyInfoForAdmin(): Promise<CompanyInfo | null> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("company_info")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return {
+    ...data,
+    team_members: parseCompanyTeamMembers(data.team_members),
+    certificates: parseUnknownList(data.certificates),
+  } as CompanyInfo;
 }
 
 export async function getAuditLogForAdmin(limit = 500): Promise<AuditLogRecord[]> {

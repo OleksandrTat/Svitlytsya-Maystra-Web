@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import {
   BarChart3,
   BookOpen,
+  Building2,
   CalendarDays,
   Calculator,
   ChevronLeft,
@@ -65,6 +66,7 @@ const secondaryItems: NavItem[] = [
   { href: "/admin/invoices", label: "Рахунки", icon: Receipt },
   { href: "/admin/products", label: "Продукти", icon: Package2 },
   { href: "/admin/projects", label: "Проєкти", icon: FileText },
+  { href: "/admin/company", label: "Компанія", icon: Building2 },
   { href: "/admin/blog", label: "Блог", icon: PenSquare },
   { href: "/admin/cultural", label: "Культурний блог", icon: BookOpen },
   { href: "/admin/pricing", label: "Ціни", icon: Calculator },
@@ -181,7 +183,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           onClick={onOpenPalette}
           className={cn(
             "flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[color:var(--color-on-primary-muted)] transition hover:bg-white/10 hover:text-[color:var(--color-on-primary)]",
-            collapsed && "justify-center px-2",
+            collapsed ? "justify-center px-2" : "",
           )}
           title={collapsed ? "Пошук (Ctrl/Cmd+K)" : undefined}
         >
@@ -229,7 +231,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
         <div
           className={cn(
             "mb-2 flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-[color:var(--color-on-primary-muted)]",
-            collapsed && "justify-center px-2",
+            collapsed ? "justify-center px-2" : "",
           )}
         >
           <UserCircle2 size={16} className="shrink-0" />
@@ -240,7 +242,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           onClick={onSignOut}
           className={cn(
             "w-full rounded-lg border border-white/10 px-3 py-2 text-sm text-[color:var(--color-on-primary-muted)] transition hover:bg-white/10 hover:text-[color:var(--color-on-primary)]",
-            collapsed && "px-2 text-xs",
+            collapsed ? "px-2 text-xs" : "",
           )}
         >
           {collapsed ? "↩" : "Вийти"}

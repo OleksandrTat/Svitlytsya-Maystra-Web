@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Pencil, Plus, Search, Tag, Trash2 } from "lucide-react";
+import { ExternalLink, Package, Pencil, Plus, Search, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteProductAction } from "@/actions/admin/products";
 import { ProductFormPopup } from "@/components/admin/products/product-form-popup";
@@ -314,6 +315,13 @@ export default function AdminProductsClient({
                         : "Ціна за запитом"}
                     </p>
                     <div className="flex gap-1">
+                      <Link
+                        href={`/products/${product.slug}`}
+                        className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                        title="Відкрити сторінку продукту"
+                      >
+                        <ExternalLink size={13} />
+                      </Link>
                       <button
                         type="button"
                         onClick={() => setEditProduct(product)}
