@@ -42,6 +42,17 @@ export type FormulaComponentType =
   | "tax"
   | "margin";
 
+export interface ServiceFeature {
+  title: string;
+  description: string;
+}
+
+export interface ServiceProcessStep {
+  step: number;
+  title: string;
+  description: string;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -97,13 +108,51 @@ export interface Service {
   id: string;
   title: string;
   slug: string;
+  tagline: string | null;
   short_description: string;
   description: string;
-  process_steps: string[];
-  cover_image: string;
+  icon: string | null;
+  cover_image: string | null;
+  gallery: string[];
+  category: string;
+  features: ServiceFeature[];
+  process_steps: ServiceProcessStep[];
+  price_from: number | null;
+  price_unit: string | null;
+  duration_days_from: number | null;
+  duration_days_to: number | null;
+  is_active: boolean;
+  is_featured: boolean;
+  seo_title: string | null;
+  seo_description: string | null;
   sort_order: number;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  cover_image: string | null;
+  category: string;
+  tags: string[];
+  author_name: string;
+  author_avatar: string | null;
+  reading_time_min: number;
+  is_published: boolean;
+  is_featured: boolean;
+  published_at: string | null;
+  views_count: number;
+  likes_count: number;
+  related_service_id: string | null;
+  related_product_id: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Testimonial {

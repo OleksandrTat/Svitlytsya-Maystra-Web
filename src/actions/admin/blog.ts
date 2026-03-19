@@ -71,9 +71,14 @@ export async function createBlogPostAction(formData: FormData): Promise<ActionRe
   const coverImage = String(formData.get("cover_image") || "").trim();
   const category = String(formData.get("category") || "").trim();
   const tags = parseTags(String(formData.get("tags") || ""));
+  const authorName = String(formData.get("author_name") || "").trim() || "Команда Світлиці";
+  const authorAvatar = String(formData.get("author_avatar") || "").trim();
   const seoTitle = String(formData.get("seo_title") || "").trim();
   const seoDescription = String(formData.get("seo_description") || "").trim();
   const isPublished = parseCheckbox(formData.get("is_published"));
+  const isFeatured = parseCheckbox(formData.get("is_featured"));
+  const relatedServiceId = String(formData.get("related_service_id") || "").trim();
+  const relatedProductId = String(formData.get("related_product_id") || "").trim();
 
   if (!title || !slug || !excerpt || !content || !category) {
     return { ok: false, message: "Заповніть всі обов'язкові поля статті." };
@@ -98,9 +103,14 @@ export async function createBlogPostAction(formData: FormData): Promise<ActionRe
     cover_image: coverImage || null,
     category,
     tags,
+    author_name: authorName,
+    author_avatar: authorAvatar || null,
     reading_time_min: calculateReadingTimeMinutes(content),
     is_published: isPublished,
+    is_featured: isFeatured,
     published_at: isPublished ? new Date().toISOString() : null,
+    related_service_id: relatedServiceId || null,
+    related_product_id: relatedProductId || null,
     seo_title: seoTitle || null,
     seo_description: seoDescription || null,
   });
@@ -132,9 +142,15 @@ export async function updateBlogPostAction(formData: FormData): Promise<ActionRe
   const coverImage = String(formData.get("cover_image") || "").trim();
   const category = String(formData.get("category") || "").trim();
   const tags = parseTags(String(formData.get("tags") || ""));
+  const providedAuthorName = String(formData.get("author_name") || "").trim();
+  const providedAuthorAvatar = String(formData.get("author_avatar") || "").trim();
   const seoTitle = String(formData.get("seo_title") || "").trim();
   const seoDescription = String(formData.get("seo_description") || "").trim();
   const isPublished = parseCheckbox(formData.get("is_published"));
+  const hasFeaturedField = formData.has("is_featured");
+  const isFeatured = parseCheckbox(formData.get("is_featured"));
+  const relatedServiceId = String(formData.get("related_service_id") || "").trim();
+  const relatedProductId = String(formData.get("related_product_id") || "").trim();
 
   if (!id || !title || !slug || !excerpt || !content || !category) {
     return { ok: false, message: "Заповніть всі обов'язкові поля статті." };
@@ -153,7 +169,7 @@ export async function updateBlogPostAction(formData: FormData): Promise<ActionRe
 
   const { data: existing } = await supabase
     .from("blog_posts")
-    .select("slug,published_at")
+    .select("slug,published_at,author_name,author_avatar,is_featured,related_service_id,related_product_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -167,9 +183,22 @@ export async function updateBlogPostAction(formData: FormData): Promise<ActionRe
       cover_image: coverImage || null,
       category,
       tags,
+      author_name: formData.has("author_name")
+        ? providedAuthorName || "Команда Світлиці"
+        : existing?.author_name ?? "Команда Світлиці",
+      author_avatar: formData.has("author_avatar")
+        ? providedAuthorAvatar || null
+        : existing?.author_avatar ?? null,
       reading_time_min: calculateReadingTimeMinutes(content),
       is_published: isPublished,
+      is_featured: hasFeaturedField ? isFeatured : existing?.is_featured ?? false,
       published_at: isPublished ? existing?.published_at ?? new Date().toISOString() : null,
+      related_service_id: formData.has("related_service_id")
+        ? relatedServiceId || null
+        : existing?.related_service_id ?? null,
+      related_product_id: formData.has("related_product_id")
+        ? relatedProductId || null
+        : existing?.related_product_id ?? null,
       seo_title: seoTitle || null,
       seo_description: seoDescription || null,
     })
@@ -258,4 +287,45 @@ export async function togglePublishBlogPostAction(formData: FormData): Promise<A
   revalidatePath("/admin/blog");
 
   return { ok: true, message: publish ? "Статтю опубліковано." : "Статтю переведено в чернетку." };
+}
+export async function toggleFeaturedBlogPostAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase service client is not configured." };
+  }
+
+  const id = String(formData.get("id") || "");
+  const featured = parseCheckbox(formData.get("featured"));
+
+  if (!id) {
+    return { ok: false, message: "Post ID is required." };
+  }
+
+  const { data: row } = await supabase
+    .from("blog_posts")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("blog_posts")
+    .update({ is_featured: featured })
+    .eq("id", id);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/blog");
+  if (row?.slug) {
+    revalidatePath(`/blog/${row.slug}`);
+  }
+  revalidatePath("/admin/blog");
+
+  return {
+    ok: true,
+    message: featured ? "РЎС‚Р°С‚С‚СЋ РІРёРґС–Р»РµРЅРѕ." : "РЎС‚Р°С‚С‚СЋ РїСЂРёР±СЂР°РЅРѕ Р· РІРёРґС–Р»РµРЅРёС….",
+  };
 }

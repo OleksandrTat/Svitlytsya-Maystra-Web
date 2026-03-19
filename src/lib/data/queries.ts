@@ -6,6 +6,7 @@ import type {
   AuditLogRecord,
   AIChatMessage,
   AIChatSession,
+  BlogPost,
   CatalogFilters,
   CompanyInfo,
   CompanyTeamMember,
@@ -22,6 +23,8 @@ import type {
   ProductStatus,
   Project,
   Service,
+  ServiceFeature,
+  ServiceProcessStep,
   SiteSetting,
   SupportChat,
   SupportMessage,
@@ -127,13 +130,96 @@ function applyCatalogFilters(items: Project[], filters: CatalogFilters) {
   });
 }
 
-function parseServiceSteps(value: unknown): string[] {
+function parseServiceFeatures(value: unknown): ServiceFeature[] {
   if (!Array.isArray(value)) {
     return [];
   }
 
   return value
-    .map((item) => (typeof item === "string" ? item : ""))
+    .map((item) => {
+      if (typeof item === "string") {
+        return {
+          title: item,
+          description: "",
+        };
+      }
+
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+
+      const feature = item as Record<string, unknown>;
+      const title = typeof feature.title === "string" ? feature.title.trim() : "";
+      const description =
+        typeof feature.description === "string" ? feature.description.trim() : "";
+
+      if (!title) {
+        return null;
+      }
+
+      return {
+        title,
+        description,
+      };
+    })
+    .filter((item): item is ServiceFeature => item !== null);
+}
+
+function parseServiceSteps(value: unknown): ServiceProcessStep[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item, index) => {
+      if (typeof item === "string") {
+        const title = item.trim();
+        if (!title) {
+          return null;
+        }
+
+        return {
+          step: index + 1,
+          title,
+          description: "",
+        };
+      }
+
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+
+      const step = item as Record<string, unknown>;
+      const title = typeof step.title === "string" ? step.title.trim() : "";
+      const description = typeof step.description === "string" ? step.description.trim() : "";
+      const parsedStep =
+        typeof step.step === "number" && Number.isFinite(step.step) ? Math.round(step.step) : index + 1;
+
+      if (!title) {
+        return null;
+      }
+
+      return {
+        step: parsedStep,
+        title,
+        description,
+      };
+    })
+    .filter((item): item is ServiceProcessStep => item !== null)
+    .sort((left, right) => left.step - right.step)
+    .map((item, index) => ({
+      ...item,
+      step: index + 1,
+    }));
+}
+
+function parseStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
     .filter(Boolean);
 }
 
@@ -206,7 +292,20 @@ function extractStringSetting(value: unknown) {
 function mapService(row: Database["public"]["Tables"]["services"]["Row"]): Service {
   return {
     ...row,
+    tagline: row.tagline ?? null,
+    icon: row.icon ?? null,
+    gallery: parseStringArray(row.gallery),
+    category: row.category || "production",
+    features: parseServiceFeatures(row.features),
     process_steps: parseServiceSteps(row.process_steps),
+    price_from: row.price_from ?? null,
+    price_unit: row.price_unit ?? null,
+    duration_days_from: row.duration_days_from ?? null,
+    duration_days_to: row.duration_days_to ?? null,
+    is_active: row.is_active,
+    is_featured: row.is_featured,
+    seo_title: row.seo_title ?? null,
+    seo_description: row.seo_description ?? null,
   };
 }
 
@@ -639,16 +738,21 @@ export const getServices = cache(async (): Promise<Service[]> => {
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return [...mockServices].sort((a, b) => a.sort_order - b.sort_order);
+    return [...mockServices]
+      .filter((service) => service.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order);
   }
 
   const { data, error } = await supabase
     .from("services")
     .select("*")
+    .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
   if (error || !data) {
-    return [...mockServices].sort((a, b) => a.sort_order - b.sort_order);
+    return [...mockServices]
+      .filter((service) => service.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order);
   }
 
   return data.map(mapService);
@@ -658,17 +762,18 @@ export const getServiceBySlug = cache(async (slug: string): Promise<Service | nu
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return mockServices.find((service) => service.slug === slug) ?? null;
+    return mockServices.find((service) => service.slug === slug && service.is_active) ?? null;
   }
 
   const { data, error } = await supabase
     .from("services")
     .select("*")
     .eq("slug", slug)
+    .eq("is_active", true)
     .single();
 
   if (error || !data) {
-    return mockServices.find((service) => service.slug === slug) ?? null;
+    return mockServices.find((service) => service.slug === slug && service.is_active) ?? null;
   }
 
   return mapService(data);
@@ -776,8 +881,53 @@ export async function getAllProjectsForAdmin(): Promise<Project[]> {
 }
 
 export async function getAllServicesForAdmin(): Promise<Service[]> {
-  const services = await getServices();
-  return services;
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [...mockServices].sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  const { data, error } = await supabase
+    .from("services")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) {
+    return [...mockServices].sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  return data.map(mapService);
+}
+
+export async function getBlogPostsForAdmin(): Promise<BlogPost[]> {
+  const supabase = await getSupabaseForAdminQueries();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("blog_posts")
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((post) => ({
+    ...post,
+    tags: parseStringArray(post.tags),
+    author_name: post.author_name || "Команда Світлиці",
+    author_avatar: post.author_avatar ?? null,
+    is_featured: post.is_featured,
+    views_count: post.views_count ?? 0,
+    likes_count: post.likes_count ?? 0,
+    related_service_id: post.related_service_id ?? null,
+    related_product_id: post.related_product_id ?? null,
+    seo_title: post.seo_title ?? null,
+    seo_description: post.seo_description ?? null,
+  })) as BlogPost[];
 }
 
 export async function getAllTestimonialsForAdmin(): Promise<Testimonial[]> {

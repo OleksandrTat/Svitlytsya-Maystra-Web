@@ -63,6 +63,30 @@ function parseNullableInteger(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parseNullableNumber(value: FormDataEntryValue | null) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseJsonArray<T>(value: FormDataEntryValue | null, fallback: T[] = []) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(normalized);
+    return Array.isArray(parsed) ? (parsed as T[]) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function upsertProjectAction(formData: FormData): Promise<ActionResult> {
   await requireAdmin();
 
@@ -246,10 +270,22 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     id: formData.get("id") || undefined,
     title: formData.get("title"),
     slug: formData.get("slug"),
+    tagline: formData.get("tagline") || "",
     short_description: formData.get("short_description"),
     description: formData.get("description"),
-    process_steps: formData.get("process_steps") || "",
-    cover_image: formData.get("cover_image"),
+    icon: formData.get("icon") || "",
+    category: formData.get("category") || "production",
+    features: formData.get("features") || "[]",
+    process_steps: formData.get("process_steps") || "[]",
+    cover_image: formData.get("cover_image") || "",
+    price_from: formData.get("price_from") || undefined,
+    price_unit: formData.get("price_unit") || "грн",
+    duration_days_from: formData.get("duration_days_from") || undefined,
+    duration_days_to: formData.get("duration_days_to") || undefined,
+    is_active: parseFormBoolean(formData.get("is_active")),
+    is_featured: parseFormBoolean(formData.get("is_featured")),
+    seo_title: formData.get("seo_title") || undefined,
+    seo_description: formData.get("seo_description") || undefined,
     sort_order: formData.get("sort_order") || 0,
   });
 
@@ -257,14 +293,35 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: "Некоректні дані послуги." };
   }
 
+  const { data: existing } = parsed.data.id
+    ? await supabase
+        .from("services")
+        .select("slug, gallery")
+        .eq("id", parsed.data.id)
+        .maybeSingle()
+    : { data: null };
+
   const payload = {
     id: parsed.data.id ?? randomUUID(),
     title: parsed.data.title,
     slug: parsed.data.slug,
+    tagline: parsed.data.tagline || null,
     short_description: parsed.data.short_description,
     description: parsed.data.description,
-    process_steps: splitList(parsed.data.process_steps),
-    cover_image: parsed.data.cover_image,
+    icon: parsed.data.icon || null,
+    category: parsed.data.category,
+    features: parseJsonArray(formData.get("features")) as Json,
+    process_steps: parseJsonArray(formData.get("process_steps")) as Json,
+    cover_image: parsed.data.cover_image || null,
+    gallery: Array.isArray(existing?.gallery) ? existing.gallery : [],
+    price_from: parseNullableNumber(formData.get("price_from")),
+    price_unit: parsed.data.price_unit || "грн",
+    duration_days_from: parseNullableInteger(formData.get("duration_days_from")),
+    duration_days_to: parseNullableInteger(formData.get("duration_days_to")),
+    is_active: parsed.data.is_active,
+    is_featured: parsed.data.is_featured,
+    seo_title: parsed.data.seo_title || null,
+    seo_description: parsed.data.seo_description || null,
     sort_order: parsed.data.sort_order,
   };
 
@@ -276,11 +333,91 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
 
   await logActivity(parsed.data.id ? "update" : "create", "service", payload.id, payload);
 
+  revalidatePath("/");
   revalidatePath("/services");
+  if (existing?.slug && existing.slug !== payload.slug) {
+    revalidatePath(`/services/${existing.slug}`);
+  }
   revalidatePath(`/services/${payload.slug}`);
   revalidatePath("/admin/services");
 
   return { ok: true, message: "Послугу збережено." };
+}
+
+export async function toggleServiceActiveAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const id = String(formData.get("id") || "").trim();
+  if (!id) {
+    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РїРѕСЃР»СѓРіРё." };
+  }
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+  }
+
+  const isActive = parseFormBoolean(formData.get("is_active"));
+
+  const { data: row, error } = await supabase
+    .from("services")
+    .update({ is_active: isActive })
+    .eq("id", id)
+    .select("slug")
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РѕРЅРѕРІРёС‚Рё СЃС‚Р°С‚СѓСЃ РїРѕСЃР»СѓРіРё." };
+  }
+
+  await logActivity("update", "service", id, { is_active: isActive });
+
+  revalidatePath("/");
+  revalidatePath("/services");
+  if (row?.slug) {
+    revalidatePath(`/services/${row.slug}`);
+  }
+  revalidatePath("/admin/services");
+
+  return { ok: true, message: "РЎС‚Р°С‚СѓСЃ РїРѕСЃР»СѓРіРё РѕРЅРѕРІР»РµРЅРѕ." };
+}
+
+export async function toggleServiceFeaturedAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+
+  const id = String(formData.get("id") || "").trim();
+  if (!id) {
+    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РїРѕСЃР»СѓРіРё." };
+  }
+
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+  }
+
+  const isFeatured = parseFormBoolean(formData.get("is_featured"));
+
+  const { data: row, error } = await supabase
+    .from("services")
+    .update({ is_featured: isFeatured })
+    .eq("id", id)
+    .select("slug")
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РѕРЅРѕРІРёС‚Рё РІС–РґРѕР±СЂР°Р¶РµРЅРЅСЏ РїРѕСЃР»СѓРіРё." };
+  }
+
+  await logActivity("update", "service", id, { is_featured: isFeatured });
+
+  revalidatePath("/");
+  revalidatePath("/services");
+  if (row?.slug) {
+    revalidatePath(`/services/${row.slug}`);
+  }
+  revalidatePath("/admin/services");
+
+  return { ok: true, message: "Р’РёРґРµР»РµРЅРЅСЏ РїРѕСЃР»СѓРіРё РѕРЅРѕРІР»РµРЅРѕ." };
 }
 
 export async function deleteServiceAction(formData: FormData): Promise<ActionResult> {
@@ -296,6 +433,12 @@ export async function deleteServiceAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: "Supabase не налаштований." };
   }
 
+  const { data: existing } = await supabase
+    .from("services")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("services").delete().eq("id", id);
 
   if (error) {
@@ -304,7 +447,11 @@ export async function deleteServiceAction(formData: FormData): Promise<ActionRes
 
   await logActivity("delete", "service", id, null);
 
+  revalidatePath("/");
   revalidatePath("/services");
+  if (existing?.slug) {
+    revalidatePath(`/services/${existing.slug}`);
+  }
   revalidatePath("/admin/services");
 
   return { ok: true, message: "Послугу видалено." };

@@ -65,6 +65,7 @@ const secondaryItems: NavItem[] = [
   { href: "/admin/calendar", label: "Календар", icon: CalendarDays },
   { href: "/admin/invoices", label: "Рахунки", icon: Receipt },
   { href: "/admin/products", label: "Продукти", icon: Package2 },
+  { href: "/admin/services", label: "Послуги", icon: Wrench },
   { href: "/admin/projects", label: "Проєкти", icon: FileText },
   { href: "/admin/company", label: "Компанія", icon: Building2 },
   { href: "/admin/blog", label: "Блог", icon: PenSquare },

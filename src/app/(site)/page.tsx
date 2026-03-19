@@ -256,13 +256,19 @@ function ServicesSection({ services }: { services: Service[] }) {
               className="group overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-background)] transition hover:-translate-y-1"
             >
               <div className="relative h-52 overflow-hidden">
-                <Image
-                  src={service.cover_image}
-                  alt={service.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover transition duration-500 group-hover:scale-105"
-                />
+                {service.cover_image ? (
+                  <Image
+                    src={service.cover_image}
+                    alt={service.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover transition duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,#a4511f,#3b2414)] text-6xl text-white">
+                    {service.icon ?? "🚪"}
+                  </div>
+                )}
                 <div
                   className="absolute inset-0"
                   style={{
