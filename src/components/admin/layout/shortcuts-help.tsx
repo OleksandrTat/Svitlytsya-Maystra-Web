@@ -9,13 +9,12 @@ type ShortcutItem = {
 
 const shortcuts: ShortcutItem[] = [
   { keys: "Ctrl/Cmd + K", description: "Відкрити Command Palette" },
-  { keys: "?", description: "Показати/сховати цю довідку" },
+  { keys: "?", description: "Показати або сховати цю довідку" },
   { keys: "G then D", description: "Перейти на Dashboard" },
   { keys: "G then O", description: "Перейти до замовлень" },
   { keys: "G then I", description: "Перейти до заявок" },
   { keys: "G then C", description: "Перейти до клієнтів" },
   { keys: "G then M", description: "Перейти в Inbox" },
-  { keys: "G then B", description: "Перейти до блогу" },
   { keys: "Esc", description: "Закрити модальне вікно" },
 ];
 
@@ -42,7 +41,9 @@ export function ShortcutsHelp({ open, onClose }: ShortcutsHelpProps) {
             exit={{ scale: 0.96, opacity: 0, y: -8 }}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Keyboard shortcuts</h2>
+              <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                Keyboard shortcuts
+              </h2>
               <button
                 type="button"
                 onClick={onClose}
@@ -57,7 +58,9 @@ export function ShortcutsHelp({ open, onClose }: ShortcutsHelpProps) {
                   key={shortcut.keys}
                   className="flex items-center justify-between rounded-lg border border-[var(--color-border)] px-3 py-2"
                 >
-                  <span className="text-sm text-[var(--color-text-primary)]">{shortcut.description}</span>
+                  <span className="text-sm text-[var(--color-text-primary)]">
+                    {shortcut.description}
+                  </span>
                   <kbd className="rounded border border-[var(--color-border)] bg-[var(--color-bg-section)] px-2 py-0.5 text-xs text-[var(--color-text-secondary)]">
                     {shortcut.keys}
                   </kbd>
@@ -70,4 +73,3 @@ export function ShortcutsHelp({ open, onClose }: ShortcutsHelpProps) {
     </AnimatePresence>
   );
 }
-

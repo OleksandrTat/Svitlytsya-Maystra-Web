@@ -35,9 +35,6 @@ export default async function ProfilePage() {
             <Link href="/profile/orders" className="underline">
               Мої замовлення
             </Link>
-            <Link href="/profile/subscriptions" className="underline">
-              Підписки
-            </Link>
           </div>
         </div>
 

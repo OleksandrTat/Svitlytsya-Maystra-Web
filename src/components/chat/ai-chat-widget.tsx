@@ -1,14 +1,12 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { MessageCircle, Send, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CHAT_STORAGE_MESSAGES_KEY,
   CHAT_STORAGE_SESSION_KEY,
 } from "@/lib/chat/constants";
-import { capturePosthogEvent } from "@/lib/posthog/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -61,7 +59,6 @@ function normalizeStoredMessages(value: string | null) {
 }
 
 export function AIChatWidget() {
-  const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const sessionIdRef = useRef<string>("");
   const [open, setOpen] = useState(false);
@@ -117,21 +114,6 @@ export function AIChatWidget() {
     () => messages.filter((message) => message.role === "user").length,
     [messages],
   );
-
-  const onToggle = () => {
-    setOpen((current) => {
-      const next = !current;
-
-      if (next) {
-        capturePosthogEvent("chat_opened", {
-          page: pathname,
-          session_id: sessionIdRef.current || null,
-        });
-      }
-
-      return next;
-    });
-  };
 
   const onSend = async () => {
     const value = input.trim();
@@ -254,7 +236,7 @@ export function AIChatWidget() {
       {!open ? (
         <button
           type="button"
-          onClick={onToggle}
+          onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-[70] inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-lg transition hover:bg-[var(--color-primary-700)]"
           aria-label="Open chat"
         >
@@ -278,7 +260,7 @@ export function AIChatWidget() {
             </div>
             <button
               type="button"
-              onClick={onToggle}
+              onClick={() => setOpen(false)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)]"
               aria-label="Close chat"
             >
@@ -312,16 +294,7 @@ export function AIChatWidget() {
 
           <div className="space-y-3 border-t border-[var(--color-border)] p-4">
             {userMessagesCount >= 3 ? (
-              <Link
-                href="/contact"
-                onClick={() =>
-                  capturePosthogEvent("chat_inquiry_triggered", {
-                    page: pathname,
-                    session_id: sessionIdRef.current || null,
-                    messages_count: userMessagesCount,
-                  })
-                }
-              >
+              <Link href="/contact">
                 <Button className="h-10 w-full">Залишити заявку</Button>
               </Link>
             ) : null}

@@ -1,30 +1,27 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  BarChart3,
   Calculator,
-  CalendarDays,
   FileText,
   LayoutDashboard,
   Mail,
   MessageSquare,
   Package,
-  PenSquare,
   Search,
   Settings,
   User,
   Users,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
-type SearchResultIcon = "package" | "user" | "mail" | "pen";
+type SearchResultIcon = "package" | "user" | "mail";
 
 type SearchResult = {
   id: string;
-  type: "order" | "client" | "inquiry" | "cultural";
+  type: "order" | "client" | "inquiry";
   icon: SearchResultIcon;
   title: string;
   meta: string;
@@ -48,7 +45,6 @@ const iconMap: Record<SearchResultIcon, ComponentType<{ size?: number; className
   package: Package,
   user: User,
   mail: Mail,
-  pen: PenSquare,
 };
 
 const staticCommands: StaticCommand[] = [
@@ -58,20 +54,6 @@ const staticCommands: StaticCommand[] = [
     meta: "Огляд метрик та активності",
     href: "/admin",
     Icon: LayoutDashboard,
-  },
-  {
-    id: "analytics",
-    title: "Аналітика",
-    meta: "Виручка, конверсія та звіти",
-    href: "/admin/analytics",
-    Icon: BarChart3,
-  },
-  {
-    id: "calendar",
-    title: "Календар",
-    meta: "Таймлайн активних замовлень",
-    href: "/admin/calendar",
-    Icon: CalendarDays,
   },
   {
     id: "orders",
@@ -107,20 +89,6 @@ const staticCommands: StaticCommand[] = [
     meta: "Формули та presets",
     href: "/admin/pricing",
     Icon: Calculator,
-  },
-  {
-    id: "blog",
-    title: "Блог",
-    meta: "Статті компанії",
-    href: "/admin/blog",
-    Icon: PenSquare,
-  },
-  {
-    id: "cultural",
-    title: "Cultural blog",
-    meta: "Cultural posts and moderation",
-    href: "/admin/cultural",
-    Icon: PenSquare,
   },
   {
     id: "projects",
@@ -166,10 +134,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         const response = await fetch(`/api/admin/search?q=${encodeURIComponent(search)}`, {
           signal: controller.signal,
         });
+
         if (!response.ok) {
           setResults([]);
           return;
         }
+
         const data = (await response.json()) as SearchResult[];
         setResults(Array.isArray(data) ? data : []);
       } catch {
@@ -186,12 +156,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }, [open, search]);
 
   const isSearchMode = search.trim().length >= 2;
-  const visibleStaticCommands = useMemo(() => {
-    if (isSearchMode) {
-      return [];
-    }
-    return staticCommands;
-  }, [isSearchMode]);
+  const visibleStaticCommands = useMemo(() => (isSearchMode ? [] : staticCommands), [isSearchMode]);
 
   const handleSelect = (href: string) => {
     onOpenChange(false);

@@ -30,7 +30,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Двері, меблі та вікна під ключ",
   description:
-    "Svitlytsya Maystra — сімейна майстерня з 26+ роками досвіду. Індивідуальні проєкти дверей, меблів, вікон і реставрація.",
+    "Svitlytsya Maystra - сімейна майстерня з 26+ роками досвіду. Індивідуальні проєкти дверей, меблів, вікон і реставрація.",
 };
 
 const primaryLinkClass =
@@ -85,7 +85,7 @@ function HeroSection() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--color-on-primary-muted)]">
-            Сімейна майстерня з 26+ роками досвіду. Кожен виріб — індивідуальний
+            Сімейна майстерня з 26+ роками досвіду. Кожен виріб - індивідуальний
             проєкт, виготовлений із першокласних матеріалів та з увагою до деталей.
           </p>
 
@@ -222,7 +222,7 @@ function FeaturedWorksSection({ projects }: { projects: Project[] }) {
                 <div className="rounded-2xl bg-[var(--color-background)] px-4 py-3">
                   <p className="font-semibold text-[var(--color-text-primary)]">{project.title}</p>
                   <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                    {PROJECT_CATEGORY_LABELS[project.category]} · {project.location ?? "Україна"}
+                    {PROJECT_CATEGORY_LABELS[project.category]} - {project.location ?? "Україна"}
                   </p>
                 </div>
               </div>
@@ -266,7 +266,7 @@ function ServicesSection({ services }: { services: Service[] }) {
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,#a4511f,#3b2414)] text-6xl text-white">
-                    {service.icon ?? "🚪"}
+                    {service.icon ?? "SM"}
                   </div>
                 )}
                 <div
@@ -284,7 +284,7 @@ function ServicesSection({ services }: { services: Service[] }) {
                   {service.short_description}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-accent)] transition group-hover:gap-2">
-                  Дізнатись більше
+                  Дізнатися більше
                   <ArrowRight className="h-4 w-4" />
                 </span>
               </div>
@@ -311,7 +311,7 @@ function BenefitsSection() {
     {
       icon: Star,
       title: "26+ років досвіду",
-      description: "Сімейна майстерня із сталою репутацією.",
+      description: "Сімейна майстерня зі сталою репутацією.",
     },
     {
       icon: Phone,
@@ -418,7 +418,7 @@ function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) 
             >
               <Stars rating={item.rating} />
               <blockquote className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-                “{item.content}”
+                "{item.content}"
               </blockquote>
               <footer className="mt-6 border-t border-[var(--color-border)] pt-4">
                 <p className="font-semibold text-[var(--color-text-primary)]">{item.author_name}</p>
@@ -428,48 +428,6 @@ function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) 
               </footer>
             </article>
           ))}
-        </div>
-      </Container>
-    </section>
-  );
-}
-
-function CulturalBlogTeaser() {
-  return (
-    <section className="section-padding">
-      <Container>
-        <div
-          className="relative overflow-hidden rounded-3xl"
-          style={{
-            background:
-              "linear-gradient(135deg, var(--color-primary-900) 0%, var(--color-primary) 100%)",
-          }}
-        >
-          <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-[var(--color-accent-100)] opacity-10" />
-          <div className="absolute -bottom-10 -left-10 h-60 w-60 rounded-full bg-[var(--color-accent-100)] opacity-10" />
-
-          <div className="relative z-10 flex flex-col gap-6 p-10 md:flex-row md:items-center md:justify-between md:p-14">
-            <div className="max-w-2xl">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                Наш блог
-              </p>
-              <h2 className="heading-h1 text-[var(--color-on-primary)]">Культурний блог</h2>
-              <p className="mt-4 body-base text-[var(--color-on-primary-muted)]">
-                Есе та розповіді про традиції столярства, архітектурний контекст
-                і культуру матеріалу — від авторів і майстрів.
-              </p>
-            </div>
-
-            <div className="shrink-0">
-              <Link
-                href="/cultural"
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-7 py-3.5 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-accent-800)] hover:text-[var(--color-on-primary)]"
-              >
-                Читати блог
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
         </div>
       </Container>
     </section>
@@ -537,8 +495,8 @@ export default async function HomePage() {
       <ServicesSection services={services} />
       <BenefitsSection />
       <TestimonialsSection testimonials={testimonials} />
-      <CulturalBlogTeaser />
       <ContactCtaSection contacts={contacts} />
     </>
   );
 }
+

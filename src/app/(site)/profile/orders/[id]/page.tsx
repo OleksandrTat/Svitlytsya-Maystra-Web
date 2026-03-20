@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { OrderTimeline } from "@/components/orders/order-timeline";
@@ -7,7 +7,6 @@ import {
   getClientOrderById,
   getClientOrderMessages,
   getClientOrderTimeline,
-  getInvoicesByOrderForClient,
 } from "@/lib/data/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -35,11 +34,10 @@ export default async function ProfileOrderDetailsPage({
   }
 
   const { id } = await params;
-  const [order, timeline, messages, invoices] = await Promise.all([
+  const [order, timeline, messages] = await Promise.all([
     getClientOrderById(id, user.id),
     getClientOrderTimeline(id, user.id),
     getClientOrderMessages(id, user.id),
-    getInvoicesByOrderForClient(id, user.id),
   ]);
 
   if (!order) {
@@ -82,48 +80,6 @@ export default async function ProfileOrderDetailsPage({
                 Відкрити чат замовлення ({messages.length})
               </Link>
             </article>
-
-            {invoices.length > 0 && (
-              <article className="rounded-3xl border border-[var(--color-border)] bg-white p-6">
-                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Рахунки</h2>
-                <div className="mt-4 space-y-3">
-                  {invoices.map((invoice) => (
-                    <div
-                      key={invoice.id}
-                      className="rounded-xl border border-[var(--color-border)] p-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold">{invoice.invoice_number}</p>
-                          <p className="text-xs text-[var(--color-text-secondary)]">
-                            {invoice.total.toLocaleString("uk-UA")} грн
-                            {invoice.due_date &&
-                              ` · До: ${new Date(invoice.due_date).toLocaleDateString("uk-UA")}`}
-                          </p>
-                        </div>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            invoice.status === "paid"
-                              ? "bg-green-100 text-green-800"
-                              : invoice.status === "overdue"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-sky-100 text-sky-800"
-                          }`}
-                        >
-                          {invoice.status === "paid"
-                            ? "Оплачено"
-                            : invoice.status === "overdue"
-                              ? "Прострочено"
-                              : invoice.status === "partial"
-                                ? "Часткова оплата"
-                                : "Очікує оплати"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            )}
           </div>
 
           <article>

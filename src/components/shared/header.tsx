@@ -20,8 +20,6 @@ const links = [
   { href: "/catalog", label: "Каталог" },
   { href: "/products", label: "Продукти" },
   { href: "/services", label: "Послуги" },
-  { href: "/blog", label: "Блог" },
-  { href: "/cultural", label: "✦ Культурний" },
   { href: "/contact", label: "Контакти" },
 ];
 
@@ -59,7 +57,6 @@ export function SiteHeader() {
       { href: "/profile", label: "Профіль" },
       { href: "/profile/orders", label: "Мої замовлення" },
       { href: "/profile/support", label: "Підтримка" },
-      { href: "/profile/subscriptions", label: "Підписки" },
     ];
   }, [currentUser]);
 
@@ -176,7 +173,6 @@ export function SiteHeader() {
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => {
             const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-            const isCultural = link.href === "/cultural";
 
             return (
               <Link
@@ -186,9 +182,7 @@ export function SiteHeader() {
                   "rounded-lg px-3 py-2 text-sm transition",
                   isActive
                     ? "bg-[var(--color-surface)] text-[var(--color-primary)]"
-                    : isCultural
-                      ? "font-medium text-[var(--color-primary)] hover:bg-[var(--color-surface)]"
-                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)]",
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)]",
                 )}
               >
                 {link.label}

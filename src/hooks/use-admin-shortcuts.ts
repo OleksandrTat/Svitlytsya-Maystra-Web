@@ -28,7 +28,6 @@ const goToRoutes: Record<string, string> = {
   i: "/admin/inquiries",
   c: "/admin/clients",
   m: "/admin/inbox",
-  b: "/admin/blog",
 };
 
 export function useAdminShortcuts({ onTogglePalette, onToggleHelp }: AdminShortcutsOptions) {
@@ -98,4 +97,3 @@ export function useAdminShortcuts({ onTogglePalette, onToggleHelp }: AdminShortc
     };
   }, [onToggleHelp, onTogglePalette, router]);
 }
-

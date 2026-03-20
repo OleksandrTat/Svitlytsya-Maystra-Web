@@ -349,12 +349,12 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<Act
 
   const id = String(formData.get("id") || "").trim();
   if (!id) {
-    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вказано ID послуги." };
   }
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const isActive = parseFormBoolean(formData.get("is_active"));
@@ -367,7 +367,7 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<Act
     .maybeSingle();
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РѕРЅРѕРІРёС‚Рё СЃС‚Р°С‚СѓСЃ РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вдалося оновити статус послуги." };
   }
 
   await logActivity("update", "service", id, { is_active: isActive });
@@ -379,7 +379,7 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<Act
   }
   revalidatePath("/admin/services");
 
-  return { ok: true, message: "РЎС‚Р°С‚СѓСЃ РїРѕСЃР»СѓРіРё РѕРЅРѕРІР»РµРЅРѕ." };
+  return { ok: true, message: "Статус послуги оновлено." };
 }
 
 export async function toggleServiceFeaturedAction(formData: FormData): Promise<ActionResult> {
@@ -387,12 +387,12 @@ export async function toggleServiceFeaturedAction(formData: FormData): Promise<A
 
   const id = String(formData.get("id") || "").trim();
   if (!id) {
-    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вказано ID послуги." };
   }
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const isFeatured = parseFormBoolean(formData.get("is_featured"));
@@ -405,7 +405,7 @@ export async function toggleServiceFeaturedAction(formData: FormData): Promise<A
     .maybeSingle();
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РѕРЅРѕРІРёС‚Рё РІС–РґРѕР±СЂР°Р¶РµРЅРЅСЏ РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вдалося оновити виділення послуги." };
   }
 
   await logActivity("update", "service", id, { is_featured: isFeatured });
@@ -417,7 +417,7 @@ export async function toggleServiceFeaturedAction(formData: FormData): Promise<A
   }
   revalidatePath("/admin/services");
 
-  return { ok: true, message: "Р’РёРґРµР»РµРЅРЅСЏ РїРѕСЃР»СѓРіРё РѕРЅРѕРІР»РµРЅРѕ." };
+  return { ok: true, message: "Виділення послуги оновлено." };
 }
 
 export async function deleteServiceAction(formData: FormData): Promise<ActionResult> {

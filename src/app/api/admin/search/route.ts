@@ -4,8 +4,8 @@ import { isAdminUser } from "@/lib/auth/is-admin";
 
 type SearchResponseItem = {
   id: string;
-  type: "order" | "client" | "inquiry" | "cultural";
-  icon: "package" | "user" | "mail" | "pen";
+  type: "order" | "client" | "inquiry";
+  icon: "package" | "user" | "mail";
   title: string;
   meta: string;
   href: string;
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   const term = `%${query}%`;
   const db = createSupabaseServiceClient() ?? supabase;
 
-  const [ordersResult, clientsResult, inquiriesResult, culturalPostsResult] = await Promise.all([
+  const [ordersResult, clientsResult, inquiriesResult] = await Promise.all([
     db
       .from("orders")
       .select("id, order_number, status")
@@ -53,12 +53,6 @@ export async function GET(request: Request) {
       .select("id, name, phone, service_type, created_at")
       .or(`name.ilike.${term},phone.ilike.${term}`)
       .order("created_at", { ascending: false })
-      .limit(5),
-    db
-      .from("cultural_blog_posts")
-      .select("id, title, slug, is_published, updated_at")
-      .or(`title.ilike.${term},slug.ilike.${term}`)
-      .order("updated_at", { ascending: false })
       .limit(5),
   ]);
 
@@ -86,14 +80,6 @@ export async function GET(request: Request) {
       title: `Заявка від ${inquiry.name}`,
       meta: `${inquiry.service_type} • ${inquiry.phone ?? "без телефону"}`,
       href: `/admin/inquiries#${inquiry.id}`,
-    })),
-    ...(culturalPostsResult.data ?? []).map((post) => ({
-      id: post.id,
-      type: "cultural" as const,
-      icon: "pen" as const,
-      title: post.title,
-      meta: post.is_published ? "Культурний блог • Опубліковано" : "Культурний блог • Чернетка",
-      href: `/admin/cultural/${post.id}/edit`,
     })),
   ];
 

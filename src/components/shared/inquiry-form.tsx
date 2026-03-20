@@ -1,13 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, type BaseSyntheticEvent } from "react";
+import { useActionState, useEffect, useMemo, type BaseSyntheticEvent } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { submitInquiryAction } from "@/actions/inquiries";
 import { SERVICE_TYPES } from "@/lib/constants";
-import { capturePosthogEvent } from "@/lib/posthog/client";
 import { inquirySchema, type InquirySchema } from "@/lib/validation/inquiry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,6 @@ export function InquiryForm({
   compact = false,
 }: Props) {
   const pathname = usePathname();
-  const [lastSubmitted, setLastSubmitted] = useState<InquirySchema | null>(null);
   const [state, submit, isPending] = useActionState(submitInquiryAction, initialState);
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const serializedConfiguration = useMemo(
@@ -83,25 +81,13 @@ export function InquiryForm({
       turnstile_token: "",
     });
   }, [
-    state.success,
-    reset,
+    defaultServiceType,
     pathname,
     projectRefId,
-    defaultServiceType,
+    reset,
     serializedConfiguration,
+    state.success,
   ]);
-
-  useEffect(() => {
-    if (!state.success || !lastSubmitted) {
-      return;
-    }
-
-    capturePosthogEvent("inquiry_submitted", {
-      service_type: lastSubmitted.service_type,
-      source_page: lastSubmitted.source_page || pathname,
-      has_project_ref: Boolean(lastSubmitted.project_ref_id || projectRefId),
-    });
-  }, [lastSubmitted, pathname, projectRefId, state.success]);
 
   const onSubmit = handleSubmit(async (values: InquirySchema, event?: BaseSyntheticEvent) => {
     const formTarget = event?.target;
@@ -116,8 +102,6 @@ export function InquiryForm({
       configuration: serializedConfiguration || values.configuration || "",
     };
 
-    setLastSubmitted(payload);
-
     Object.entries(payload).forEach(([key, value]) => {
       formData.set(key, value ?? "");
     });
@@ -129,8 +113,8 @@ export function InquiryForm({
     <form onSubmit={onSubmit} className={cn("space-y-4", className)} noValidate>
       <div className={compact ? "grid gap-4" : "grid gap-4 md:grid-cols-2"}>
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">Імʼя *</span>
-          <Input {...register("name")} placeholder="Ваше імʼя" />
+          <span className="text-sm text-[var(--color-text-secondary)]">Ім&apos;я *</span>
+          <Input {...register("name")} placeholder="Ваше ім&apos;я" />
           {errors.name ? <p className="text-xs text-red-600">{errors.name.message}</p> : null}
         </label>
 
@@ -146,7 +130,9 @@ export function InquiryForm({
           {errors.email ? <p className="text-xs text-red-600">{errors.email.message}</p> : null}
         </label>
 
-        <p className="text-xs text-[var(--color-text-secondary)] md:col-span-2">Вкажіть телефон або email</p>
+        <p className="text-xs text-[var(--color-text-secondary)] md:col-span-2">
+          Вкажіть телефон або email
+        </p>
 
         <label className="space-y-2">
           <span className="text-sm text-[var(--color-text-secondary)]">Тип послуги *</span>
@@ -165,21 +151,13 @@ export function InquiryForm({
 
       <label className="space-y-2">
         <span className="text-sm text-[var(--color-text-secondary)]">Повідомлення</span>
-        <Textarea
-          {...register("message")}
-          rows={4}
-          placeholder="Коротко опишіть задачу"
-        />
+        <Textarea {...register("message")} rows={4} placeholder="Коротко опишіть задачу" />
         {errors.message ? <p className="text-xs text-red-600">{errors.message.message}</p> : null}
       </label>
 
       <input {...register("source_page")} type="hidden" value={pathname} />
       <input {...register("project_ref_id")} type="hidden" value={projectRefId ?? ""} />
-      <input
-        {...register("configuration")}
-        type="hidden"
-        value={serializedConfiguration}
-      />
+      <input {...register("configuration")} type="hidden" value={serializedConfiguration} />
       <input {...register("turnstile_token")} type="hidden" defaultValue="" />
 
       <div className="hidden" aria-hidden>
@@ -198,12 +176,7 @@ export function InquiryForm({
       ) : null}
 
       {state.message ? (
-        <p
-          className={cn(
-            "text-sm",
-            state.success ? "text-emerald-700" : "text-red-600",
-          )}
-        >
+        <p className={cn("text-sm", state.success ? "text-emerald-700" : "text-red-600")}>
           {state.message}
         </p>
       ) : null}

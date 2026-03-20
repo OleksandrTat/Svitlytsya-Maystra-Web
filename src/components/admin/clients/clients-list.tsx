@@ -7,10 +7,8 @@ import {
   Activity,
   ArrowUpRight,
   ChevronRight,
-  Mail,
   Search,
   ShoppingBag,
-  Star,
   TrendingUp,
   User,
   Users,
@@ -133,7 +131,6 @@ function ClientRow({
   const levelMeta = LEVEL_META[level];
   const name = client.display_name ?? "Без імені";
   const isBuyer = client.orders_count > 0;
-  const isSubscriber = client.account_types.includes("email_subscriber");
 
   return (
     <>
@@ -160,10 +157,7 @@ function ClientRow({
               {getInitials(name)}
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-semibold text-[var(--color-text-primary)]">{name}</p>
-                {isSubscriber ? <Star size={10} className="text-amber-500" /> : null}
-              </div>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{name}</p>
               <p className="font-mono text-[10px] text-[var(--color-text-secondary)]">
                 {client.id.slice(0, 8)}...
               </p>
@@ -212,11 +206,6 @@ function ClientRow({
                 Лід
               </span>
             )}
-            {isSubscriber ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                Підписник
-              </span>
-            ) : null}
           </div>
         </td>
 
@@ -256,9 +245,9 @@ function ClientRow({
                     value: String(client.orders_count),
                   },
                   {
-                    icon: <Mail size={12} />,
-                    label: "Підписник",
-                    value: isSubscriber ? "Так" : "Ні",
+                    icon: <User size={12} />,
+                    label: "Профіль",
+                    value: client.display_name ? "Заповнений" : "Базовий",
                   },
                   {
                     icon: <User size={12} />,
@@ -347,7 +336,6 @@ export function ClientsList({ clients }: ClientsListProps) {
       active: clients.filter((client) => getActivityLevel(client.last_seen_at) !== "ghost").length,
       hot: clients.filter((client) => getActivityLevel(client.last_seen_at) === "hot").length,
       buyers: clients.filter((client) => client.orders_count > 0).length,
-      subscribers: clients.filter((client) => client.account_types.includes("email_subscriber")).length,
       leads: clients.filter((client) => client.orders_count === 0).length,
     }),
     [clients],
@@ -355,7 +343,7 @@ export function ClientsList({ clients }: ClientsListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
+      <div className="grid grid-cols-3 gap-3 md:grid-cols-5">
         {[
           {
             label: "Всього",
@@ -384,13 +372,6 @@ export function ClientsList({ clients }: ClientsListProps) {
             icon: <ShoppingBag size={13} />,
             className: "bg-sky-50 border-sky-200",
             textClassName: "text-sky-700",
-          },
-          {
-            label: "Підписників",
-            value: stats.subscribers,
-            icon: <Mail size={13} />,
-            className: "bg-amber-50 border-amber-200",
-            textClassName: "text-amber-700",
           },
           {
             label: "Лідів",
@@ -469,7 +450,7 @@ export function ClientsList({ clients }: ClientsListProps) {
                   "Клієнт",
                   "Активність",
                   "Замовлення",
-                  "Сегменти",
+                  "Сегмент",
                   "Остання активн.",
                   "",
                 ].map((heading) => (
@@ -479,7 +460,7 @@ export function ClientsList({ clients }: ClientsListProps) {
                       "px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]",
                       heading === "" ? "w-10" : "",
                       heading === "Активність" ? "hidden md:table-cell" : "",
-                      heading === "Сегменти" ? "hidden xl:table-cell" : "",
+                      heading === "Сегмент" ? "hidden xl:table-cell" : "",
                       heading === "Остання активн." ? "hidden lg:table-cell" : "",
                     )}
                   >

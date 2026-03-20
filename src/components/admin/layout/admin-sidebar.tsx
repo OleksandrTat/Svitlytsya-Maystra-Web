@@ -5,10 +5,7 @@ import { type ComponentType } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  BarChart3,
-  BookOpen,
   Building2,
-  CalendarDays,
   Calculator,
   ChevronLeft,
   ChevronRight,
@@ -20,8 +17,6 @@ import {
   MessageSquare,
   Package,
   Package2,
-  PenSquare,
-  Receipt,
   Search,
   Settings,
   Shield,
@@ -54,22 +49,22 @@ type NavItem = {
 
 const primaryItems: NavItem[] = [
   { href: "/admin", label: "Панель", icon: LayoutDashboard },
-  { href: "/admin/inbox", label: "Повідомлення", icon: MessageSquare, badgeKey: "unreadMessages" },
+  {
+    href: "/admin/inbox",
+    label: "Повідомлення",
+    icon: MessageSquare,
+    badgeKey: "unreadMessages",
+  },
   { href: "/admin/inquiries", label: "Заявки", icon: Mail, badgeKey: "newInquiries" },
   { href: "/admin/orders", label: "Замовлення", icon: Package },
   { href: "/admin/clients", label: "Клієнти", icon: Users },
 ];
 
 const secondaryItems: NavItem[] = [
-  { href: "/admin/analytics", label: "Аналітика", icon: BarChart3 },
-  { href: "/admin/calendar", label: "Календар", icon: CalendarDays },
-  { href: "/admin/invoices", label: "Рахунки", icon: Receipt },
   { href: "/admin/products", label: "Продукти", icon: Package2 },
   { href: "/admin/services", label: "Послуги", icon: Wrench },
   { href: "/admin/projects", label: "Проєкти", icon: FileText },
   { href: "/admin/company", label: "Компанія", icon: Building2 },
-  { href: "/admin/blog", label: "Блог", icon: PenSquare },
-  { href: "/admin/cultural", label: "Культурний блог", icon: BookOpen },
   { href: "/admin/pricing", label: "Ціни", icon: Calculator },
   { href: "/admin/support", label: "Підтримка", icon: HeadphonesIcon, badgeKey: "unreadSupport" },
   { href: "/admin/security", label: "Безпека", icon: Shield },
@@ -193,7 +188,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
             <>
               <span className="flex-1 text-left">Пошук...</span>
               <kbd className="rounded border border-white/20 px-1 text-[10px] text-[color:var(--color-on-primary-faint)]">
-                ⌘K
+                Ctrl/Cmd+K
               </kbd>
             </>
           ) : null}

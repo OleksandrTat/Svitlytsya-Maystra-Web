@@ -1,6 +1,5 @@
-﻿import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 import { getAllProductsForAdmin, getAllPublicProjectSlugs, getServices } from "@/lib/data/queries";
-import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://svitlytsya.ua";
 
@@ -11,21 +10,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getAllProductsForAdmin().then((items) => items.filter((product) => product.status === "active")),
   ]);
 
-  const supabase = createSupabaseServiceClient();
-  const { data: culturalPosts } = supabase
-    ? await supabase
-        .from("cultural_blog_posts")
-        .select("slug")
-        .eq("is_published", true)
-    : { data: [] };
-
   const staticRoutes: MetadataRoute.Sitemap = [
     "",
     "/catalog",
     "/services",
     "/products",
-    "/blog",
-    "/cultural",
     "/contact",
     "/privacy",
     "/terms",
@@ -58,12 +47,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const culturalRoutes: MetadataRoute.Sitemap = (culturalPosts ?? []).map((post) => ({
-    url: `${baseUrl}/cultural/${post.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.6,
-  }));
-
-  return [...staticRoutes, ...productRoutes, ...projectRoutes, ...serviceRoutes, ...culturalRoutes];
+  return [...staticRoutes, ...productRoutes, ...projectRoutes, ...serviceRoutes];
 }

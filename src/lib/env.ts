@@ -13,8 +13,6 @@ const envSchema = z.object({
   ADMIN_EMAIL: z.string().email().optional(),
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
-  NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
-  NEXT_PUBLIC_POSTHOG_HOST: z.string().min(1).optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().default(DEFAULT_SITE_URL),
   BACKUP_S3_BUCKET: z.string().optional(),
   BACKUP_S3_REGION: z.string().optional(),
@@ -41,8 +39,6 @@ const rawEnv = {
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
   TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
-  NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
-  NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   BACKUP_S3_BUCKET: process.env.BACKUP_S3_BUCKET,
   BACKUP_S3_REGION: process.env.BACKUP_S3_REGION,
@@ -118,16 +114,12 @@ export const env = {
   backupS3SecretKey: pickString("BACKUP_S3_SECRET_KEY"),
   backupS3Prefix: pickString("BACKUP_S3_PREFIX"),
   backupNotifyEmail: pickString("BACKUP_NOTIFY_EMAIL"),
-  posthogKey: pickString("NEXT_PUBLIC_POSTHOG_KEY"),
-  posthogHost: pickString("NEXT_PUBLIC_POSTHOG_HOST"),
   siteUrl: getSiteUrl(),
 };
 
-export const hasSupabaseEnv =
-  Boolean(env.supabaseUrl) && Boolean(env.supabaseAnonKey);
+export const hasSupabaseEnv = Boolean(env.supabaseUrl) && Boolean(env.supabaseAnonKey);
 
-export const hasServiceRoleKey =
-  hasSupabaseEnv && Boolean(env.supabaseServiceRoleKey);
+export const hasServiceRoleKey = hasSupabaseEnv && Boolean(env.supabaseServiceRoleKey);
 
 export const hasEmailService = Boolean(env.resendApiKey);
 

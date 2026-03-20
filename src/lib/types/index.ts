@@ -10,15 +10,12 @@ export type InquiryStatus =
   | "done"
   | "archived";
 export type ProductStatus = "active" | "draft" | "archived";
-export type InvoiceStatus = "draft" | "sent" | "paid" | "partial" | "overdue" | "cancelled";
-export type PaymentMethod = "cash" | "bank_transfer" | "card" | "other";
 export type InquiryChannel = "web_form" | "ai_chat" | "phone" | "direct" | "referral";
 export type SupportChannel = "internal" | "email" | "viber" | "whatsapp";
 export type SupportChatStatus = "open" | "waiting" | "resolved" | "closed";
 export type SupportMessageSender = "client" | "admin" | "system";
 export type ChatRole = "user" | "assistant";
 export type ProductType = "door" | "furniture" | "window";
-export type BlogCommentStatus = "pending" | "approved" | "rejected";
 export type ProjectPrivacyLevel = "public" | "nda_partial" | "nda_full";
 export type OrderStatus =
   | "new"
@@ -130,31 +127,6 @@ export interface Service {
   updated_at: string;
 }
 
-export interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  cover_image: string | null;
-  category: string;
-  tags: string[];
-  author_name: string;
-  author_avatar: string | null;
-  reading_time_min: number;
-  is_published: boolean;
-  is_featured: boolean;
-  published_at: string | null;
-  views_count: number;
-  likes_count: number;
-  related_service_id: string | null;
-  related_product_id: string | null;
-  seo_title: string | null;
-  seo_description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Testimonial {
   id: string;
   author_name: string;
@@ -259,33 +231,6 @@ export interface CompanyInfo {
   team_members: CompanyTeamMember[];
   certificates: unknown[];
   updated_at: string;
-}
-
-export interface Invoice {
-  id: string;
-  invoice_number: string;
-  order_id: string;
-  total: number;
-  paid_amount: number;
-  status: InvoiceStatus;
-  due_date: string | null;
-  notes: string | null;
-  issued_at: string;
-  sent_at: string | null;
-  paid_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Payment {
-  id: string;
-  invoice_id: string;
-  order_id: string;
-  amount: number;
-  method: PaymentMethod;
-  notes: string | null;
-  paid_at: string;
-  created_at: string;
 }
 
 export interface SupportChat {

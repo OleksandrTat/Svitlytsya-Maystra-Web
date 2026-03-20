@@ -7,7 +7,6 @@ Next.js платформа для прийому заявок, каталогу 
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - Supabase (PostgreSQL, Auth, Storage, RLS)
 - Resend (transactional email)
-- PostHog (analytics)
 
 ## Local start
 
@@ -88,10 +87,6 @@ BACKUP_S3_ACCESS_KEY=EXAMPLEACCESSKEY
 BACKUP_S3_SECRET_KEY=EXAMPLESECRETKEY
 BACKUP_S3_PREFIX=prod/
 BACKUP_NOTIFY_EMAIL=ifpoleksandrtataryn@gmail.com
-
-# PostHog
-NEXT_PUBLIC_POSTHOG_KEY=phc_kdiajAf2BIbopxvTTk10u5qKtSzDRUw3JJxXzJsfp6W
-NEXT_PUBLIC_POSTHOG_HOST=https://us.posthog.com/project/sTMFPsFhdP1Ssg/replay/019cf640-905c-73d5-af01-1a6adb8f103f?t=0
 
 # Site
 NEXT_PUBLIC_SITE_URL=http://localhost:3000

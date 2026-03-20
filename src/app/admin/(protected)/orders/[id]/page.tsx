@@ -4,7 +4,6 @@ import {
 } from "@/actions/orders";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { OrderInvoicesPanel } from "@/components/admin/orders/order-invoices-panel";
 import { OrderExportActions } from "@/components/admin/orders/order-export-actions";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { OrderTimeline } from "@/components/orders/order-timeline";
@@ -12,11 +11,9 @@ import { ORDER_PRIORITY_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import {
   getAllInquiriesForAdmin,
   getClientsForAdmin,
-  getInvoicesByOrderForAdmin,
   getOrderByIdForAdmin,
   getOrderMessagesByOrderForAdmin,
   getOrderTimelineForAdmin,
-  getPaymentsByOrderForAdmin,
 } from "@/lib/data/queries";
 import type { OrderStatus } from "@/lib/types";
 import { formatInquiryDate } from "@/lib/utils";
@@ -43,14 +40,12 @@ export default async function AdminOrderDetailsPage({
   params: Promise<Params>;
 }) {
   const { id } = await params;
-  const [order, timeline, messages, inquiries, clients, invoices, payments] = await Promise.all([
+  const [order, timeline, messages, inquiries, clients] = await Promise.all([
     getOrderByIdForAdmin(id),
     getOrderTimelineForAdmin(id),
     getOrderMessagesByOrderForAdmin(id),
     getAllInquiriesForAdmin(),
     getClientsForAdmin(600),
-    getInvoicesByOrderForAdmin(id),
-    getPaymentsByOrderForAdmin(id),
   ]);
 
   const updateStatus = async (formData: FormData) => {
@@ -123,7 +118,9 @@ export default async function AdminOrderDetailsPage({
               {order.expected_date ?? "-"}
             </p>
             <p>
-              <span className="font-semibold text-[var(--color-text-primary)]">Internal notes:</span>{" "}
+              <span className="font-semibold text-[var(--color-text-primary)]">
+                Internal notes:
+              </span>{" "}
               {order.internal_notes ?? "-"}
             </p>
           </div>
@@ -175,7 +172,7 @@ export default async function AdminOrderDetailsPage({
               className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm"
             >
               <p className="text-xs text-[var(--color-text-secondary)]">
-                {message.sender_type} · {formatInquiryDate(message.created_at)}
+                {message.sender_type} • {formatInquiryDate(message.created_at)}
               </p>
               <p className="mt-1">{message.content}</p>
             </article>
@@ -199,8 +196,6 @@ export default async function AdminOrderDetailsPage({
           </button>
         </form>
       </AdminCard>
-
-      <OrderInvoicesPanel orderId={order.id} invoices={invoices} payments={payments} />
     </AdminShell>
   );
 }

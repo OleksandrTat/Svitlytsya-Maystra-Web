@@ -321,7 +321,7 @@ export function clientInvitationEmail(params: {
           greeting: `Hello${params.displayName ? `, ${name}` : ""}!`,
           intro: "You have been invited to your personal cabinet at Svitlytsya Maystra workshop.",
           b1: "Track the status of your order in real time",
-          b2: "View and pay invoices",
+          b2: "Open your order details in the cabinet",
           b3: "Communicate directly with the workshop",
           expiry: "The invitation link is valid for 7 days.",
           cta: "Create Account",
