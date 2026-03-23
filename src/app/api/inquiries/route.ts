@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   if (!supabase) {
     return NextResponse.json(
-      { ok: false, message: "Supabase не налаштований" },
+      { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№" },
       { status: 500 },
     );
   }
@@ -61,18 +61,16 @@ export async function POST(request: Request) {
     service_type: parsed.data.service_type,
     message: parsed.data.message?.trim() || null,
     source_page: parsed.data.source_page?.trim() || null,
-    project_ref_id: parsed.data.project_ref_id?.trim() || null,
     configuration,
     status: "new",
   });
 
   if (error) {
     return NextResponse.json(
-      { ok: false, message: "Помилка збереження заявки" },
+      { ok: false, message: "РџРѕРјРёР»РєР° Р·Р±РµСЂРµР¶РµРЅРЅСЏ Р·Р°СЏРІРєРё" },
       { status: 500 },
     );
   }
 
   return NextResponse.json({ ok: true });
 }
-

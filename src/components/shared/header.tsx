@@ -17,7 +17,6 @@ type HeaderUser = {
 };
 
 const links = [
-  { href: "/catalog", label: "Каталог" },
   { href: "/products", label: "Продукти" },
   { href: "/services", label: "Послуги" },
   { href: "/contact", label: "Контакти" },

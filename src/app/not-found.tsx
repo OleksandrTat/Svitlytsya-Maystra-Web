@@ -18,8 +18,8 @@ export default function NotFound() {
           Сторінку не знайдено
         </h1>
         <p className="mt-3 max-w-xl text-base text-[var(--color-text-secondary)]">
-          Схоже, ця сторінка була переміщена або її ніколи не існувало.
-          Перейдіть на головну або перегляньте каталог робіт.
+          Схоже, ця сторінка була переміщена або її більше не існує.
+          Перейдіть на головну або перегляньте продукти.
         </p>
 
         <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
@@ -30,10 +30,10 @@ export default function NotFound() {
             На головну
           </Link>
           <Link
-            href="/catalog"
+            href="/products"
             className="rounded-full border border-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface)]"
           >
-            Переглянути роботи
+            Переглянути продукти
           </Link>
         </div>
       </div>

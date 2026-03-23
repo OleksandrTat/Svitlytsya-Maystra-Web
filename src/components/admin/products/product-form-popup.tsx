@@ -26,8 +26,6 @@ type Props = {
   styleAttributes: Record<string, ProductAttribute[]>;
   materialAttributes: Record<string, ProductAttribute[]>;
   initialData?: Partial<Product>;
-  projects?: { id: string; title: string }[];
-  initialProjectId?: string;
 };
 
 const CATEGORIES = Object.entries(PRODUCT_CATEGORY_LABELS) as [string, string][];
@@ -62,8 +60,6 @@ export function ProductFormPopup({
   styleAttributes,
   materialAttributes,
   initialData,
-  projects = [],
-  initialProjectId,
 }: Props) {
   const router = useRouter();
   const { generate, loading: aiLoading, error: aiError } = useAiSeoAssist();
@@ -86,7 +82,6 @@ export function ProductFormPopup({
   const [seoDescription, setSeoDescription] = useState(initialData?.seo_description ?? "");
   const [images, setImages] = useState<string[]>(initialData?.images ?? []);
   const [coverImage, setCoverImage] = useState(initialData?.cover_image ?? "");
-  const [linkedProjectId, setLinkedProjectId] = useState(initialProjectId ?? "");
   const [saving, setSaving] = useState(false);
 
   const handleTitleChange = (nextTitle: string) => {
@@ -110,7 +105,7 @@ export function ProductFormPopup({
     if (!slugManual && result.slug) {
       setSlug(result.slug);
     }
-    toast.success("AI згенерував SEO поля та slug.");
+    toast.success("AI Р·РіРµРЅРµСЂСѓРІР°РІ SEO РїРѕР»СЏ С‚Р° slug.");
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -147,9 +142,6 @@ export function ProductFormPopup({
     if (seoDescription.trim()) {
       formData.set("seo_description", seoDescription.trim());
     }
-    if (linkedProjectId) {
-      formData.set("project_id", linkedProjectId);
-    }
 
     const result = await upsertProductAction(formData);
     if (!result.ok) {
@@ -185,7 +177,7 @@ export function ProductFormPopup({
             <form onSubmit={handleSubmit}>
               <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
                 <h2 className="font-display text-xl text-[var(--color-text-primary)]">
-                  {isEdit ? "Редагувати продукт" : "Новий продукт"}
+                  {isEdit ? "Р РµРґР°РіСѓРІР°С‚Рё РїСЂРѕРґСѓРєС‚" : "РќРѕРІРёР№ РїСЂРѕРґСѓРєС‚"}
                 </h2>
                 <button
                   type="button"
@@ -202,7 +194,7 @@ export function ProductFormPopup({
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                          Назва *
+                          РќР°Р·РІР° *
                         </label>
                         <button
                           type="button"
@@ -220,7 +212,7 @@ export function ProductFormPopup({
                         onChange={(event) => handleTitleChange(event.target.value)}
                         required
                         className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                        placeholder="Назва продукту"
+                        placeholder="РќР°Р·РІР° РїСЂРѕРґСѓРєС‚Сѓ"
                       />
                     </div>
 
@@ -238,7 +230,7 @@ export function ProductFormPopup({
                             }}
                             className="text-[10px] text-[var(--color-primary)] underline"
                           >
-                            Синхронізувати
+                            РЎРёРЅС…СЂРѕРЅС–Р·СѓРІР°С‚Рё
                           </button>
                         ) : null}
                       </div>
@@ -259,7 +251,7 @@ export function ProductFormPopup({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        Повний опис *
+                        РџРѕРІРЅРёР№ РѕРїРёСЃ *
                       </label>
                       <textarea
                         value={description}
@@ -267,20 +259,20 @@ export function ProductFormPopup({
                         required
                         rows={3}
                         className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                        placeholder="Детальний опис продукту"
+                        placeholder="Р”РµС‚Р°Р»СЊРЅРёР№ РѕРїРёСЃ РїСЂРѕРґСѓРєС‚Сѓ"
                       />
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        Короткий опис
+                        РљРѕСЂРѕС‚РєРёР№ РѕРїРёСЃ
                       </label>
                       <textarea
                         value={shortDescription}
                         onChange={(event) => setShortDescription(event.target.value)}
                         rows={2}
                         className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                        placeholder="Для карток та попереднього перегляду"
+                        placeholder="Р”Р»СЏ РєР°СЂС‚РѕРє С‚Р° РїРѕРїРµСЂРµРґРЅСЊРѕРіРѕ РїРµСЂРµРіР»СЏРґСѓ"
                       />
                     </div>
 
@@ -288,16 +280,16 @@ export function ProductFormPopup({
                       value={styles}
                       onChange={setStyles}
                       suggestions={categoryStyles}
-                      label="Стилі"
-                      placeholder="Додати стиль..."
+                      label="РЎС‚РёР»С–"
+                      placeholder="Р”РѕРґР°С‚Рё СЃС‚РёР»СЊ..."
                     />
 
                     <TagInput
                       value={materials}
                       onChange={setMaterials}
                       suggestions={categoryMaterials}
-                      label="Матеріали"
-                      placeholder="Додати матеріал..."
+                      label="РњР°С‚РµСЂС–Р°Р»Рё"
+                      placeholder="Р”РѕРґР°С‚Рё РјР°С‚РµСЂС–Р°Р»..."
                     />
 
                     <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
@@ -340,7 +332,7 @@ export function ProductFormPopup({
                   <div className="space-y-4 p-5">
                     <div className="space-y-1.5">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        Фотографії
+                        Р¤РѕС‚РѕРіСЂР°С„С–С—
                       </p>
                       <PhotoUploadPopup
                         folder="products"
@@ -356,7 +348,7 @@ export function ProductFormPopup({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        Категорія *
+                        РљР°С‚РµРіРѕСЂС–СЏ *
                       </label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {CATEGORIES.map(([value, label]) => (
@@ -378,7 +370,7 @@ export function ProductFormPopup({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        Статус
+                        РЎС‚Р°С‚СѓСЃ
                       </label>
                       <select
                         value={status}
@@ -393,48 +385,28 @@ export function ProductFormPopup({
                       </select>
                     </div>
 
-                    <PriorityBar value={priority} onChange={setPriority} label="Пріоритет" />
+                    <PriorityBar value={priority} onChange={setPriority} label="РџСЂС–РѕСЂРёС‚РµС‚" />
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        Ціна від (грн)
+                        Р¦С–РЅР° РІС–Рґ (РіСЂРЅ)
                       </label>
                       <input
                         type="number"
                         min="0"
                         value={priceFrom}
                         onChange={(event) => setPriceFrom(event.target.value)}
-                        placeholder="Залиште порожнім - ціна за запитом"
+                        placeholder="Р—Р°Р»РёС€С‚Рµ РїРѕСЂРѕР¶РЅС–Рј - С†С–РЅР° Р·Р° Р·Р°РїРёС‚РѕРј"
                         className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
                       />
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        Формула розрахунку
+                        Р¤РѕСЂРјСѓР»Р° СЂРѕР·СЂР°С…СѓРЅРєСѓ
                       </label>
                       <FormulaPicker formulas={formulas} value={formulaId} onChange={setFormulaId} />
                     </div>
-
-                    {projects.length > 0 ? (
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                          Додати у проєкт
-                        </label>
-                        <select
-                          value={linkedProjectId}
-                          onChange={(event) => setLinkedProjectId(event.target.value)}
-                          className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-                        >
-                          <option value="">Не додавати</option>
-                          {projects.map((project) => (
-                            <option key={project.id} value={project.id}>
-                              {project.title}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : null}
 
                     <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                       <input
@@ -442,7 +414,7 @@ export function ProductFormPopup({
                         checked={isFeatured}
                         onChange={(event) => setIsFeatured(event.target.checked)}
                       />
-                      Рекомендований
+                      Р РµРєРѕРјРµРЅРґРѕРІР°РЅРёР№
                     </label>
                   </div>
                 </div>
@@ -454,7 +426,7 @@ export function ProductFormPopup({
                   onClick={onClose}
                   className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm"
                 >
-                  Скасувати
+                  РЎРєР°СЃСѓРІР°С‚Рё
                 </button>
                 <button
                   type="submit"
@@ -462,10 +434,10 @@ export function ProductFormPopup({
                   className="rounded-xl bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
                 >
                   {saving
-                    ? "Збереження..."
+                    ? "Р—Р±РµСЂРµР¶РµРЅРЅСЏ..."
                     : isEdit
-                      ? "Зберегти зміни"
-                      : "Створити продукт"}
+                      ? "Р—Р±РµСЂРµРіС‚Рё Р·РјС–РЅРё"
+                      : "РЎС‚РІРѕСЂРёС‚Рё РїСЂРѕРґСѓРєС‚"}
                 </button>
               </div>
             </form>

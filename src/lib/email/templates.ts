@@ -271,7 +271,7 @@ export function clientInquiryConfirmationEmail(params: {
           service: "Service",
           message: "Message",
           closing: "We look forward to working with you.",
-          cta: "View Our Works",
+          cta: "View Products",
           workingHours: "Working hours: Mon-Fri 9:00-18:00",
         }
       : {
@@ -281,7 +281,7 @@ export function clientInquiryConfirmationEmail(params: {
           service: "Послуга",
           message: "Повідомлення",
           closing: "Дякуємо, що обрали нашу майстерню.",
-          cta: "Переглянути наші роботи",
+          cta: "Переглянути продукти",
           workingHours: "Робочий час: Пн-Пт 9:00-18:00",
         };
 
@@ -297,7 +297,7 @@ export function clientInquiryConfirmationEmail(params: {
     infoBlock(rows),
     paragraph(t.closing),
     paragraphHtml(`<em style="color:#9a8a8a;font-size:13px;">${escapeHtml(t.workingHours)}</em>`),
-    button(t.cta, `${params.siteUrl}/catalog`),
+    button(t.cta, `${params.siteUrl}/products`),
   ].join("");
 
   return { subject: t.subject, html: layout(content, lang) };

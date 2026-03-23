@@ -1,29 +1,21 @@
 "use client";
 
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState, useTransition } from "react";
 import {
   ArrowRight,
   Calendar,
   CheckCircle2,
-  ChevronRight,
-  FolderOpen,
-  Layers,
   MessageSquare,
   Package,
-  Pencil,
-  Plus,
   Search,
   Settings2,
-  Tag,
   User,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { updateOrderProjectAction, updateOrderStatusAction } from "@/actions/orders";
-import type { Order, OrderPriority, OrderStatus, Product, Project } from "@/lib/types";
-import { ORDER_PRIORITY_LABELS, ORDER_STATUS_LABELS, PRODUCT_CATEGORY_LABELS, PROJECT_CATEGORY_LABELS } from "@/lib/constants";
+import { updateOrderStatusAction } from "@/actions/orders";
+import type { Order, OrderStatus } from "@/lib/types";
+import { ORDER_STATUS_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 type EnrichedOrder = Order & {
@@ -33,91 +25,26 @@ type EnrichedOrder = Order & {
 
 type OrdersWorkspaceProps = {
   orders: EnrichedOrder[];
-  projects: Project[];
-  products: Product[];
-  projectProductMap: Record<string, string[]>;
 };
 
 const STATUS_META: Record<
   OrderStatus,
   { color: string; background: string; dot: string; step: number }
 > = {
-  new: {
-    color: "text-zinc-600",
-    background: "bg-zinc-100",
-    dot: "bg-zinc-400",
-    step: 1,
-  },
-  consulting: {
-    color: "text-sky-700",
-    background: "bg-sky-100",
-    dot: "bg-sky-500",
-    step: 2,
-  },
-  design: {
-    color: "text-violet-700",
-    background: "bg-violet-100",
-    dot: "bg-violet-500",
-    step: 3,
-  },
-  approved: {
-    color: "text-blue-700",
-    background: "bg-blue-100",
-    dot: "bg-blue-500",
-    step: 4,
-  },
-  production: {
-    color: "text-amber-700",
-    background: "bg-amber-100",
-    dot: "bg-amber-500",
-    step: 5,
-  },
-  ready: {
-    color: "text-teal-700",
-    background: "bg-teal-100",
-    dot: "bg-teal-500",
-    step: 6,
-  },
-  installation: {
-    color: "text-orange-700",
-    background: "bg-orange-100",
-    dot: "bg-orange-500",
-    step: 7,
-  },
-  completed: {
-    color: "text-emerald-700",
-    background: "bg-emerald-100",
-    dot: "bg-emerald-500",
-    step: 8,
-  },
-  archived: {
-    color: "text-zinc-400",
-    background: "bg-zinc-50",
-    dot: "bg-zinc-300",
-    step: 0,
-  },
+  new: { color: "text-zinc-600", background: "bg-zinc-100", dot: "bg-zinc-400", step: 1 },
+  consulting: { color: "text-sky-700", background: "bg-sky-100", dot: "bg-sky-500", step: 2 },
+  design: { color: "text-violet-700", background: "bg-violet-100", dot: "bg-violet-500", step: 3 },
+  approved: { color: "text-blue-700", background: "bg-blue-100", dot: "bg-blue-500", step: 4 },
+  production: { color: "text-amber-700", background: "bg-amber-100", dot: "bg-amber-500", step: 5 },
+  ready: { color: "text-teal-700", background: "bg-teal-100", dot: "bg-teal-500", step: 6 },
+  installation: { color: "text-orange-700", background: "bg-orange-100", dot: "bg-orange-500", step: 7 },
+  completed: { color: "text-emerald-700", background: "bg-emerald-100", dot: "bg-emerald-500", step: 8 },
+  archived: { color: "text-zinc-400", background: "bg-zinc-50", dot: "bg-zinc-300", step: 0 },
 };
 
 const ACTIVE_STATUSES = (Object.keys(STATUS_META) as OrderStatus[]).filter(
   (status) => status !== "archived",
 );
-
-const PRIORITY_META: Record<OrderPriority, { color: string }> = {
-  normal: { color: "text-[var(--color-text-secondary)]" },
-  urgent: { color: "text-red-700" },
-};
-
-function getCategoryLabel(category: string) {
-  if (category in PRODUCT_CATEGORY_LABELS) {
-    return PRODUCT_CATEGORY_LABELS[category as keyof typeof PRODUCT_CATEGORY_LABELS];
-  }
-
-  if (category in PROJECT_CATEGORY_LABELS) {
-    return PROJECT_CATEGORY_LABELS[category as keyof typeof PROJECT_CATEGORY_LABELS];
-  }
-
-  return category;
-}
 
 function ProgressBar({ status }: { status: OrderStatus }) {
   const meta = STATUS_META[status];
@@ -177,7 +104,7 @@ function OrderListItem({
               active ? "bg-white/20 text-amber-100" : "bg-amber-100 text-amber-700",
             )}
           >
-            ⚡
+            ТЕРМ
           </span>
         ) : null}
       </div>
@@ -190,7 +117,12 @@ function OrderListItem({
       >
         {order.clientName}
       </p>
-      <p className={cn("truncate text-xs", active ? "text-white/60" : "text-[var(--color-text-secondary)]")}>
+      <p
+        className={cn(
+          "truncate text-xs",
+          active ? "text-white/60" : "text-[var(--color-text-secondary)]",
+        )}
+      >
         {order.serviceType}
       </p>
 
@@ -221,239 +153,6 @@ function OrderListItem({
         ) : null}
       </div>
     </button>
-  );
-}
-
-function HierarchyView({
-  allProjects,
-  linkedProducts,
-  onLink,
-  order,
-  project,
-}: {
-  allProjects: Project[];
-  linkedProducts: Product[];
-  onLink: (projectId: string | null) => void;
-  order: EnrichedOrder;
-  project: Project | null;
-}) {
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  const filteredProjects = useMemo(() => {
-    const normalizedQuery = search.toLowerCase().trim();
-    return allProjects
-      .filter((item) =>
-        normalizedQuery ? item.title.toLowerCase().includes(normalizedQuery) : true,
-      )
-      .slice(0, 8);
-  }, [allProjects, search]);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-[var(--color-surface)] px-3 py-2">
-        <span className="flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs font-semibold shadow-sm">
-          <Package size={11} className="text-[var(--color-primary)]" />
-          {order.order_number}
-        </span>
-        <ChevronRight size={12} className="text-[var(--color-border)]" />
-        <span
-          className={cn(
-            "flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium",
-            project
-              ? "bg-white shadow-sm"
-              : "border border-dashed border-[var(--color-border)] text-[var(--color-text-secondary)]",
-          )}
-        >
-          <FolderOpen
-            size={11}
-            className={project ? "text-amber-500" : "text-[var(--color-border)]"}
-          />
-          {project ? project.title : "Без проєкту"}
-        </span>
-        {project ? (
-          <>
-            <ChevronRight size={12} className="text-[var(--color-border)]" />
-            <span className="flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs font-medium shadow-sm">
-              <Tag size={11} className="text-violet-500" />
-              {linkedProducts.length} продуктів
-            </span>
-          </>
-        ) : null}
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
-            <FolderOpen size={14} className="text-amber-500" />
-            Проєкт виробництва
-          </div>
-          <button
-            type="button"
-            onClick={() => setLinkOpen((value) => !value)}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-medium transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-          >
-            {project ? (
-              <>
-                <Pencil size={11} />
-                Змінити
-              </>
-            ) : (
-              <>
-                <Plus size={11} />
-                Прив&apos;язати
-              </>
-            )}
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {linkOpen ? (
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: "auto" }}
-              exit={{ height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="space-y-2 border-b border-[var(--color-border)] bg-[var(--color-primary-100)] p-3">
-                <div className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1.5">
-                  <Search size={12} className="text-[var(--color-text-secondary)]" />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Пошук проєктів..."
-                    className="flex-1 bg-transparent text-xs outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onLink(null);
-                      setLinkOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition hover:bg-white",
-                      !order.project_id ? "bg-white font-semibold" : "",
-                    )}
-                  >
-                    <X size={11} className="shrink-0 text-zinc-500" />
-                    Без проєкту
-                    {!order.project_id ? (
-                      <CheckCircle2 size={11} className="ml-auto text-[var(--color-primary)]" />
-                    ) : null}
-                  </button>
-                </div>
-
-                <div className="max-h-36 space-y-1 overflow-y-auto">
-                  {filteredProjects.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        onLink(item.id);
-                        setLinkOpen(false);
-                      }}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition hover:bg-white",
-                        order.project_id === item.id ? "bg-white font-semibold" : "",
-                      )}
-                    >
-                      <FolderOpen size={11} className="shrink-0 text-amber-500" />
-                      <span className="truncate">{item.title}</span>
-                      <span className="ml-auto shrink-0 text-[var(--color-text-secondary)]">
-                        {getCategoryLabel(item.category)}
-                      </span>
-                      {order.project_id === item.id ? (
-                        <CheckCircle2 size={11} className="text-[var(--color-primary)]" />
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-
-        {project ? (
-          <div className="p-4">
-            <div className="flex gap-3">
-              {project.cover_image ? (
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
-                  <Image src={project.cover_image} alt={project.title} fill className="object-cover" sizes="64px" />
-                </div>
-              ) : null}
-
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-[var(--color-text-primary)]">{project.title}</p>
-                <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
-                  {getCategoryLabel(project.category)}
-                  {project.location ? ` · ${project.location}` : ""}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {[...project.style.slice(0, 2), ...project.materials.slice(0, 2)].map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-[10px] text-[var(--color-text-secondary)]"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 py-8">
-            <FolderOpen size={24} className="text-[var(--color-border)]" />
-            <p className="text-sm text-[var(--color-text-secondary)]">Проєкт не прив&apos;язано</p>
-          </div>
-        )}
-      </div>
-
-      {project ? (
-        <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
-              <Tag size={14} className="text-violet-500" />
-              Продукти ({linkedProducts.length})
-            </div>
-            <a href="/admin/projects" className="text-xs text-[var(--color-primary)] hover:underline">
-              Керувати
-            </a>
-          </div>
-
-          <div className="space-y-2 p-3">
-            {linkedProducts.length === 0 ? (
-              <p className="py-4 text-center text-sm text-[var(--color-text-secondary)]">
-                У проєкті ще немає продуктів
-              </p>
-            ) : (
-              linkedProducts.map((product) => (
-                <div key={product.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] p-2.5">
-                  {product.cover_image ? (
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-                      <Image src={product.cover_image} alt={product.title} fill className="object-cover" sizes="40px" />
-                    </div>
-                  ) : null}
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
-                      {product.title}
-                    </p>
-                    <p className="text-[10px] text-[var(--color-text-secondary)]">
-                      {getCategoryLabel(product.category)}
-                      {product.price_from ? ` · від ${product.price_from.toLocaleString("uk-UA")} грн` : ""}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      ) : null}
-    </div>
   );
 }
 
@@ -489,51 +188,18 @@ function StatusPanel({
           );
         })}
       </div>
-
-      <div className="divide-y divide-[var(--color-border)] overflow-hidden rounded-xl border border-[var(--color-border)]">
-        {[
-          { label: "Номер", value: order.order_number },
-          { label: "Клієнт", value: order.clientName },
-          { label: "Послуга", value: order.serviceType },
-          {
-            label: "Пріоритет",
-            value: ORDER_PRIORITY_LABELS[order.priority],
-            valueClassName: PRIORITY_META[order.priority].color,
-          },
-          {
-            label: "Дата очікування",
-            value: order.expected_date ? new Date(order.expected_date).toLocaleDateString("uk-UA") : "—",
-          },
-          { label: "Нотатки", value: order.internal_notes ?? "—" },
-        ].map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-2 px-4 py-2.5">
-            <span className="text-xs text-[var(--color-text-secondary)]">{row.label}</span>
-            <span
-              className={cn(
-                "max-w-[180px] truncate text-right text-xs font-medium text-[var(--color-text-primary)]",
-                row.valueClassName ?? "",
-              )}
-            >
-              {row.value}
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
 
 export function OrdersWorkspace({
   orders: initialOrders,
-  products,
-  projectProductMap,
-  projects,
 }: OrdersWorkspaceProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [selectedId, setSelectedId] = useState<string | null>(initialOrders[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
-  const [activeTab, setActiveTab] = useState<"hierarchy" | "status" | "messages">("hierarchy");
+  const [activeTab, setActiveTab] = useState<"status" | "messages">("status");
   const [, startTransition] = useTransition();
 
   const effectiveSelectedId =
@@ -565,21 +231,6 @@ export function OrdersWorkspace({
       );
     });
   }, [orders, query, statusFilter]);
-
-  const selectedProject = selectedOrder?.project_id
-    ? projects.find((project) => project.id === selectedOrder.project_id) ?? null
-    : null;
-
-  const productMap = useMemo(
-    () => new Map(products.map((product) => [product.id, product])),
-    [products],
-  );
-
-  const linkedProducts = selectedOrder?.project_id
-    ? (projectProductMap[selectedOrder.project_id] ?? [])
-        .map((productId) => productMap.get(productId))
-        .filter((product): product is Product => Boolean(product))
-    : [];
 
   const activeCount = useMemo(
     () => orders.filter((order) => !["completed", "archived"].includes(order.status)).length,
@@ -619,41 +270,6 @@ export function OrdersWorkspace({
       } catch {
         setOrders(previousOrders);
         toast.error("Не вдалося оновити статус замовлення");
-      }
-    });
-  };
-
-  const linkProject = (projectId: string | null) => {
-    if (!selectedOrder) {
-      return;
-    }
-
-    const previousOrders = orders;
-    setOrders((current) =>
-      current.map((order) =>
-        order.id === selectedOrder.id ? { ...order, project_id: projectId } : order,
-      ),
-    );
-
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.set("order_id", selectedOrder.id);
-        if (projectId) {
-          formData.set("project_id", projectId);
-        }
-
-        const result = await updateOrderProjectAction(formData);
-        if (!result.ok) {
-          setOrders(previousOrders);
-          toast.error(result.message);
-          return;
-        }
-
-        toast.success(projectId ? "Проєкт прив'язано" : "Проєкт відв'язано");
-      } catch {
-        setOrders(previousOrders);
-        toast.error("Не вдалося оновити проєкт для замовлення");
       }
     });
   };
@@ -748,7 +364,7 @@ export function OrdersWorkspace({
                   </span>
                   {selectedOrder.priority === "urgent" ? (
                     <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                      ⚡ ТЕРМ
+                      ТЕРМ
                     </span>
                   ) : null}
                 </div>
@@ -770,8 +386,7 @@ export function OrdersWorkspace({
 
           <div className="flex border-b border-[var(--color-border)]">
             {[
-              { key: "hierarchy", label: "Проєкт і продукти", icon: <Layers size={13} /> },
-              { key: "status", label: "Статус і деталі", icon: <Settings2 size={13} /> },
+              { key: "status", label: "Статус", icon: <Settings2 size={13} /> },
               { key: "messages", label: "Повідомлення", icon: <MessageSquare size={13} /> },
             ].map((tab) => (
               <button
@@ -792,16 +407,6 @@ export function OrdersWorkspace({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
-            {activeTab === "hierarchy" ? (
-              <HierarchyView
-                order={selectedOrder}
-                project={selectedProject}
-                linkedProducts={linkedProducts}
-                allProjects={projects}
-                onLink={linkProject}
-              />
-            ) : null}
-
             {activeTab === "status" ? (
               <StatusPanel order={selectedOrder} onChange={(status) => changeStatus(selectedOrder.id, status)} />
             ) : null}

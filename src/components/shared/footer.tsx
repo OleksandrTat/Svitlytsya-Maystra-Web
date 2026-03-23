@@ -16,9 +16,6 @@ export function SiteFooter() {
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">Навігація</p>
           <ul className="mt-3 space-y-2 text-sm text-[var(--color-text-secondary)]">
             <li>
-              <Link href="/catalog">Каталог робіт</Link>
-            </li>
-            <li>
               <Link href="/products">Продукти</Link>
             </li>
             <li>

@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
@@ -77,8 +77,6 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: "Некоректні дані продукту." };
   }
 
-  const linkedProjectId = String(formData.get("project_id") || "").trim();
-
   const payload = {
     id: parsed.data.id ?? randomUUID(),
     title: parsed.data.title,
@@ -105,27 +103,9 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: error.message };
   }
 
-  if (linkedProjectId) {
-    const { error: linkError } = await supabase.from("project_products").upsert(
-      {
-        project_id: linkedProjectId,
-        product_id: payload.id,
-        quantity: 1,
-        notes: null,
-        sort_order: 0,
-      },
-      { onConflict: "project_id,product_id" },
-    );
-
-    if (linkError) {
-      return { ok: false, message: linkError.message };
-    }
-  }
-
   revalidatePath("/products");
   revalidatePath(`/products/${payload.slug}`);
   revalidatePath("/admin/products");
-  revalidatePath("/admin/projects");
 
   return { ok: true, message: "Продукт збережено." };
 }
@@ -170,66 +150,4 @@ export async function updateProductSortOrderAction(
   revalidatePath("/admin/products");
 
   return { ok: true, message: "Порядок оновлено." };
-}
-
-export async function linkProductToProjectAction(formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-  const supabase = createSupabaseServiceClient();
-  if (!supabase) {
-    return { ok: false, message: "Service client not configured." };
-  }
-
-  const projectId = String(formData.get("project_id") || "");
-  const productId = String(formData.get("product_id") || "");
-  const quantity = Number(formData.get("quantity") || 1);
-  const notes = String(formData.get("notes") || "");
-  const sortOrder = Number(formData.get("sort_order") || 0);
-
-  if (!projectId || !productId) {
-    return { ok: false, message: "project_id та product_id обов'язкові." };
-  }
-
-  const { error } = await supabase.from("project_products").upsert(
-    {
-      project_id: projectId,
-      product_id: productId,
-      quantity,
-      notes: notes || null,
-      sort_order: sortOrder,
-    },
-    { onConflict: "project_id,product_id" },
-  );
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
-
-  revalidatePath(`/catalog/${projectId}`);
-  revalidatePath("/admin/projects");
-
-  return { ok: true, message: "Продукт прив'язано до проєкту." };
-}
-
-export async function unlinkProductFromProjectAction(formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
-  const supabase = createSupabaseServiceClient();
-  if (!supabase) {
-    return { ok: false, message: "Service client not configured." };
-  }
-
-  const projectId = String(formData.get("project_id") || "");
-  const productId = String(formData.get("product_id") || "");
-
-  const { error } = await supabase
-    .from("project_products")
-    .delete()
-    .eq("project_id", projectId)
-    .eq("product_id", productId);
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
-
-  revalidatePath("/admin/projects");
-  return { ok: true, message: "Продукт відв'язано." };
 }

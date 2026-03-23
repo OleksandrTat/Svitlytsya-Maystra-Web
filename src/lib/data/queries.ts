@@ -1,12 +1,11 @@
 ﻿import { cache } from "react";
 import { unstable_cache } from "next/cache";
-import { mockInquiries, mockProjects, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
+import { mockInquiries, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
 import type {
   ActivityLog,
   AuditLogRecord,
   AIChatMessage,
   AIChatSession,
-  CatalogFilters,
   CompanyInfo,
   CompanyTeamMember,
   FormulaComponent,
@@ -18,7 +17,6 @@ import type {
   PricePreset,
   Product,
   ProductStatus,
-  Project,
   Service,
   ServiceFeature,
   ServiceProcessStep,
@@ -45,23 +43,6 @@ function splitCsvParam(value?: string) {
         .map((item) => item.trim())
         .filter(Boolean)
     : [];
-}
-
-export function parseCatalogFilters(searchParams: Record<string, string | string[] | undefined>): CatalogFilters {
-  const category = typeof searchParams.category === "string" ? searchParams.category : undefined;
-  const status = typeof searchParams.status === "string" ? searchParams.status : undefined;
-  const styles = splitCsvParam(typeof searchParams.style === "string" ? searchParams.style : undefined);
-  const materials = splitCsvParam(typeof searchParams.material === "string" ? searchParams.material : undefined);
-  const page = Number(typeof searchParams.page === "string" ? searchParams.page : "1") || 1;
-
-  return {
-    category: category as CatalogFilters["category"],
-    status: status as CatalogFilters["status"],
-    styles,
-    materials,
-    page: page > 0 ? page : 1,
-    pageSize: 9,
-  };
 }
 
 // ── PRODUCTS ──────────────────────────────────────────────
@@ -97,34 +78,6 @@ export function parseProductFilters(
     page: page > 0 ? page : 1,
     pageSize: 9,
   };
-}
-
-function applyCatalogFilters(items: Project[], filters: CatalogFilters) {
-  return items.filter((project) => {
-    if (filters.category && project.category !== filters.category) {
-      return false;
-    }
-
-    if (filters.status && project.status !== filters.status) {
-      return false;
-    }
-
-    if (filters.styles.length > 0) {
-      const hasStyle = filters.styles.every((style) => project.style.includes(style));
-      if (!hasStyle) {
-        return false;
-      }
-    }
-
-    if (filters.materials.length > 0) {
-      const hasMaterial = filters.materials.every((material) => project.materials.includes(material));
-      if (!hasMaterial) {
-        return false;
-      }
-    }
-
-    return true;
-  });
 }
 
 function parseServiceFeatures(value: unknown): ServiceFeature[] {
@@ -306,32 +259,6 @@ function mapService(row: Database["public"]["Tables"]["services"]["Row"]): Servi
   };
 }
 
-export const getFeaturedProjects = cache(async (limit = 6): Promise<Project[]> => {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return mockProjects
-      .filter((project) => project.is_featured)
-      .slice(0, limit);
-  }
-
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("is_featured", true)
-    .neq("status", "concept")
-    .order("completed_at", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) {
-    return mockProjects
-      .filter((project) => project.is_featured)
-      .slice(0, limit);
-  }
-
-  return data;
-});
-
 export const getVisibleTestimonials = cache(async (limit = 3): Promise<Testimonial[]> => {
   const supabase = await createSupabaseServerClient();
 
@@ -351,156 +278,6 @@ export const getVisibleTestimonials = cache(async (limit = 3): Promise<Testimoni
   }
 
   return data;
-});
-
-export async function getCatalogProjects(
-  filters: CatalogFilters,
-): Promise<{ items: Project[]; total: number }> {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    const filtered = applyCatalogFilters(mockProjects, filters);
-    const start = (filters.page - 1) * filters.pageSize;
-    const end = start + filters.pageSize;
-
-    return {
-      items: filtered.slice(start, end),
-      total: filtered.length,
-    };
-  }
-
-  let query = supabase
-    .from("projects")
-    .select("*", { count: "exact" })
-    .neq("status", "concept")
-    .order("completed_at", { ascending: false });
-
-  if (filters.category) {
-    query = query.eq("category", filters.category);
-  }
-
-  if (filters.status) {
-    query = query.eq("status", filters.status);
-  }
-
-  if (filters.styles.length > 0) {
-    query = query.contains("style", filters.styles);
-  }
-
-  if (filters.materials.length > 0) {
-    query = query.contains("materials", filters.materials);
-  }
-
-  const start = (filters.page - 1) * filters.pageSize;
-  const end = start + filters.pageSize - 1;
-
-  const { data, count, error } = await query.range(start, end);
-
-  if (error || !data) {
-    const filtered = applyCatalogFilters(
-      mockProjects.filter((item) => item.status !== "concept"),
-      filters,
-    );
-
-    return {
-      items: filtered.slice(start, start + filters.pageSize),
-      total: filtered.length,
-    };
-  }
-
-  return {
-    items: data,
-    total: count ?? data.length,
-  };
-}
-
-export const getProjectBySlug = cache(async (slug: string): Promise<Project | null> => {
-  const normalizedSlug = normalizeSlugValue(slug);
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return (
-      mockProjects.find(
-        (project) => project.slug === normalizedSlug || project.slug.toLowerCase() === normalizedSlug.toLowerCase(),
-      ) ?? null
-    );
-  }
-
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("slug", normalizedSlug)
-    .maybeSingle();
-
-  if (!error && data) {
-    return data;
-  }
-
-  const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
-    .from("projects")
-    .select("*")
-    .ilike("slug", normalizedSlug)
-    .maybeSingle();
-
-  if (!caseInsensitiveError && caseInsensitiveData) {
-    return caseInsensitiveData;
-  }
-
-  return (
-    mockProjects.find(
-      (project) => project.slug === normalizedSlug || project.slug.toLowerCase() === normalizedSlug.toLowerCase(),
-    ) ?? null
-  );
-});
-
-export async function getRelatedProjects(project: Project, limit = 4): Promise<Project[]> {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return mockProjects
-      .filter((item) => item.category === project.category && item.slug !== project.slug && item.status !== "concept")
-      .slice(0, limit);
-  }
-
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("category", project.category)
-    .neq("slug", project.slug)
-    .neq("status", "concept")
-    .order("completed_at", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) {
-    return mockProjects
-      .filter((item) => item.category === project.category && item.slug !== project.slug && item.status !== "concept")
-      .slice(0, limit);
-  }
-
-  return data;
-}
-
-export const getAllPublicProjectSlugs = cache(async () => {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return mockProjects
-      .filter((project) => project.status !== "concept")
-      .map((project) => project.slug);
-  }
-
-  const { data, error } = await supabase
-    .from("projects")
-    .select("slug")
-    .neq("status", "concept");
-
-  if (error || !data) {
-    return mockProjects
-      .filter((project) => project.status !== "concept")
-      .map((project) => project.slug);
-  }
-
-  return data.map((project) => project.slug);
 });
 
 export async function getProducts(
@@ -602,65 +379,6 @@ export async function getAllProductsForAdmin(): Promise<Product[]> {
     .order("sort_order", { ascending: true });
 
   return (data ?? []) as Product[];
-}
-
-export async function getProductsForProject(projectId: string): Promise<Product[]> {
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
-  if (!supabase) {
-    return [];
-  }
-
-  const { data } = await supabase
-    .from("project_products")
-    .select("product_id, sort_order, quantity, notes, products(*)")
-    .eq("project_id", projectId)
-    .order("sort_order", { ascending: true });
-
-  type ProjectProductRow = {
-    product_id: string;
-    sort_order: number;
-    quantity: number;
-    notes: string | null;
-    products: Database["public"]["Tables"]["products"]["Row"] | null;
-  };
-
-  const rows = (data ?? []) as unknown as ProjectProductRow[];
-
-  return rows
-    .map((row) => row.products)
-    .filter((product): product is Database["public"]["Tables"]["products"]["Row"] => product !== null)
-    .map((product) => product as Product);
-}
-
-export async function getProjectsForProduct(productId: string): Promise<Project[]> {
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
-  if (!supabase) {
-    return [];
-  }
-
-  const { data } = await supabase
-    .from("project_products")
-    .select("project_id, sort_order, quantity, notes, projects(*)")
-    .eq("product_id", productId)
-    .order("sort_order", { ascending: true });
-
-  type ProductProjectRow = {
-    project_id: string;
-    sort_order: number;
-    quantity: number;
-    notes: string | null;
-    projects: Database["public"]["Tables"]["projects"]["Row"] | null;
-  };
-
-  const rows = (data ?? []) as unknown as ProductProjectRow[];
-
-  return rows
-    .map((row) => row.projects)
-    .filter(
-      (project): project is Database["public"]["Tables"]["projects"]["Row"] =>
-        project !== null && project.status !== "concept",
-    )
-    .map((project) => project as Project);
 }
 
 export async function getPriceFormulaById(formulaId: string): Promise<PriceFormula | null> {
@@ -782,14 +500,12 @@ export async function getDashboardStats() {
   if (!supabase) {
     const today = new Date().toISOString().slice(0, 10);
     return {
-      totalProjects: mockProjects.length,
       totalInquiries: mockInquiries.length,
       newInquiriesToday: mockInquiries.filter((item) => item.created_at.startsWith(today)).length,
     };
   }
 
-  const [projectsResult, inquiriesResult, inquiriesTodayResult] = await Promise.all([
-    supabase.from("projects").select("id", { count: "exact", head: true }),
+  const [inquiriesResult, inquiriesTodayResult] = await Promise.all([
     supabase.from("inquiries").select("id", { count: "exact", head: true }),
     supabase
       .from("inquiries")
@@ -798,7 +514,6 @@ export async function getDashboardStats() {
   ]);
 
   return {
-    totalProjects: projectsResult.count ?? 0,
     totalInquiries: inquiriesResult.count ?? 0,
     newInquiriesToday: inquiriesTodayResult.count ?? 0,
   };
@@ -853,25 +568,6 @@ export async function getRecentInquiries(limit = 5): Promise<Inquiry[]> {
 
   if (error || !data) {
     return mockInquiries.slice(0, limit);
-  }
-
-  return data;
-}
-
-export async function getAllProjectsForAdmin(): Promise<Project[]> {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return [...mockProjects];
-  }
-
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error || !data) {
-    return [...mockProjects];
   }
 
   return data;

@@ -6,7 +6,7 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { cn } from "@/lib/utils";
 
-type ProjectGalleryProps = {
+type ProductGalleryProps = {
   images: string[];
   title: string;
 };
@@ -38,7 +38,7 @@ function clampIndex(index: number, length: number) {
   return index;
 }
 
-export function ProjectGallery({ images, title }: ProjectGalleryProps) {
+export function ProductGallery({ images, title }: ProductGalleryProps) {
   const safeImages = useMemo(
     () => images.map((item) => item.trim()).filter((item) => isSupportedImageSrc(item)),
     [images],

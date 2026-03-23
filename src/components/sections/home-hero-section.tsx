@@ -24,8 +24,8 @@ export function HomeHeroSection() {
             Svitlytsya Maystra — сімейна майстерня з 26+ роками досвіду та понад 20 000 реалізованих проєктів. Працюємо уважно до деталей і термінів.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/catalog">
-              <Button className="h-12 px-7">Переглянути роботи</Button>
+            <Link href="/products">
+              <Button className="h-12 px-7">Переглянути продукти</Button>
             </Link>
             <Link href="/contact">
               <Button variant="secondary" className="h-12 border-white/70 text-white hover:bg-white/10">

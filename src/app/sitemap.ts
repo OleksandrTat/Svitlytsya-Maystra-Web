@@ -1,18 +1,16 @@
 import type { MetadataRoute } from "next";
-import { getAllProductsForAdmin, getAllPublicProjectSlugs, getServices } from "@/lib/data/queries";
+import { getAllProductsForAdmin, getServices } from "@/lib/data/queries";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://svitlytsya.ua";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [projectSlugs, services, products] = await Promise.all([
-    getAllPublicProjectSlugs(),
+  const [services, products] = await Promise.all([
     getServices(),
     getAllProductsForAdmin().then((items) => items.filter((product) => product.status === "active")),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     "",
-    "/catalog",
     "/services",
     "/products",
     "/contact",
@@ -33,13 +31,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const projectRoutes: MetadataRoute.Sitemap = projectSlugs.map((slug) => ({
-    url: `${baseUrl}/catalog/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
-
   const serviceRoutes: MetadataRoute.Sitemap = services.map((service) => ({
     url: `${baseUrl}/services/${service.slug}`,
     lastModified: new Date(),
@@ -47,5 +38,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...productRoutes, ...projectRoutes, ...serviceRoutes];
+  return [...staticRoutes, ...productRoutes, ...serviceRoutes];
 }

@@ -2,7 +2,7 @@ import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { InquiryForm } from "@/components/shared/inquiry-form";
 
-export function FinalCtaSection({ projectRefId }: { projectRefId?: string }) {
+export function FinalCtaSection() {
   return (
     <section className="bg-[var(--color-primary)] py-14 md:py-20">
       <Container>
@@ -14,7 +14,7 @@ export function FinalCtaSection({ projectRefId }: { projectRefId?: string }) {
             className="text-white [&_h2]:text-white [&_p]:text-white/80"
           />
           <div className="rounded-3xl bg-white p-5 md:p-6">
-            <InquiryForm projectRefId={projectRefId} compact />
+            <InquiryForm compact />
           </div>
         </div>
       </Container>

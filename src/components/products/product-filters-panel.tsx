@@ -2,8 +2,11 @@
 
 import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CATALOG_MATERIALS, CATALOG_STYLES, PRODUCT_CATEGORY_LABELS } from "@/lib/constants";
+import { PRODUCT_CATEGORY_LABELS } from "@/lib/constants";
 import type { ProductFilters } from "@/lib/data/queries";
+
+const STYLE_OPTIONS = ["класика", "мінімалізм", "лофт", "скандинавський", "модерн"] as const;
+const MATERIAL_OPTIONS = ["дуб", "ясен", "сосна", "метал", "ПВХ", "скло"] as const;
 
 const categoryOptions: Array<{ value: keyof typeof PRODUCT_CATEGORY_LABELS; label: string }> = [
   { value: "doors", label: PRODUCT_CATEGORY_LABELS.doors },
@@ -97,7 +100,7 @@ export function ProductFiltersPanel({ filters }: Props) {
           Стиль
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {CATALOG_STYLES.map((style) => (
+          {STYLE_OPTIONS.map((style) => (
             <button
               key={style}
               type="button"
@@ -119,7 +122,7 @@ export function ProductFiltersPanel({ filters }: Props) {
           Матеріал
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {CATALOG_MATERIALS.map((material) => (
+          {MATERIAL_OPTIONS.map((material) => (
             <button
               key={material}
               type="button"

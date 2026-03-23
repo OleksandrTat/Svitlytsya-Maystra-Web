@@ -20,7 +20,6 @@ const initialState = {
 };
 
 type Props = {
-  projectRefId?: string;
   configuration?: Record<string, unknown> | null;
   defaultServiceType?: InquirySchema["service_type"];
   className?: string;
@@ -28,7 +27,6 @@ type Props = {
 };
 
 export function InquiryForm({
-  projectRefId,
   configuration,
   defaultServiceType = "Двері",
   className,
@@ -56,7 +54,6 @@ export function InquiryForm({
       service_type: defaultServiceType,
       message: "",
       source_page: pathname,
-      project_ref_id: projectRefId ?? "",
       configuration: serializedConfiguration,
       honeypot: "",
       turnstile_token: "",
@@ -75,19 +72,11 @@ export function InquiryForm({
       service_type: defaultServiceType,
       message: "",
       source_page: pathname,
-      project_ref_id: projectRefId ?? "",
       configuration: serializedConfiguration,
       honeypot: "",
       turnstile_token: "",
     });
-  }, [
-    defaultServiceType,
-    pathname,
-    projectRefId,
-    reset,
-    serializedConfiguration,
-    state.success,
-  ]);
+  }, [defaultServiceType, pathname, reset, serializedConfiguration, state.success]);
 
   const onSubmit = handleSubmit(async (values: InquirySchema, event?: BaseSyntheticEvent) => {
     const formTarget = event?.target;
@@ -98,7 +87,6 @@ export function InquiryForm({
       ...values,
       source_page: pathname,
       service_type: values.service_type || defaultServiceType,
-      project_ref_id: projectRefId ?? values.project_ref_id ?? "",
       configuration: serializedConfiguration || values.configuration || "",
     };
 
@@ -113,8 +101,8 @@ export function InquiryForm({
     <form onSubmit={onSubmit} className={cn("space-y-4", className)} noValidate>
       <div className={compact ? "grid gap-4" : "grid gap-4 md:grid-cols-2"}>
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">Ім&apos;я *</span>
-          <Input {...register("name")} placeholder="Ваше ім&apos;я" />
+          <span className="text-sm text-[var(--color-text-secondary)]">Ім'я *</span>
+          <Input {...register("name")} placeholder="Ваше ім'я" />
           {errors.name ? <p className="text-xs text-red-600">{errors.name.message}</p> : null}
         </label>
 
@@ -156,7 +144,6 @@ export function InquiryForm({
       </label>
 
       <input {...register("source_page")} type="hidden" value={pathname} />
-      <input {...register("project_ref_id")} type="hidden" value={projectRefId ?? ""} />
       <input {...register("configuration")} type="hidden" value={serializedConfiguration} />
       <input {...register("turnstile_token")} type="hidden" defaultValue="" />
 

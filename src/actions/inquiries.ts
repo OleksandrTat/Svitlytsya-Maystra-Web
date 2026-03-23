@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -41,7 +41,6 @@ function normalizeInquiryInput(input: InquirySchema) {
     service_type: input.service_type,
     message: input.message?.trim() || null,
     source_page: input.source_page?.trim() || null,
-    project_ref_id: input.project_ref_id?.trim() || null,
     configuration,
     status: "new" as const,
   };
@@ -118,7 +117,6 @@ export async function submitInquiryAction(
     service_type: formData.get("service_type"),
     message: formData.get("message"),
     source_page: formData.get("source_page"),
-    project_ref_id: formData.get("project_ref_id"),
     configuration: formData.get("configuration"),
     honeypot: formData.get("honeypot"),
     turnstile_token: formData.get("cf-turnstile-response") ?? formData.get("turnstile_token"),

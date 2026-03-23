@@ -11,13 +11,7 @@ export const metadata: Metadata = {
     "Зв'яжіться з майстернею Svitlytsya Maystra: консультація, прорахунок і старт проєкту.",
 };
 
-export default async function ContactPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = await searchParams;
-  const projectRef = typeof params.projectRef === "string" ? params.projectRef : undefined;
+export default async function ContactPage() {
   const contacts = await getContactSettings();
   const fallbackAddress = "Вул. Сонячна, 22, Слобідка, Тернопільська область, Україна, 47632";
   const mapAddress =
@@ -73,13 +67,13 @@ export default async function ContactPage({
             <div className="rounded-3xl border border-[var(--color-border)] bg-white p-6">
               <h2 className="font-display text-2xl text-[var(--color-text-primary)]">Форма заявки</h2>
               <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Заповніть коротку форму, і ми зв’яжемось найближчим часом.</p>
-              <InquiryForm projectRefId={projectRef} className="mt-6" compact />
+              <InquiryForm className="mt-6" compact />
             </div>
           </div>
         </Container>
       </section>
 
-      <FinalCtaSection projectRefId={projectRef} />
+      <FinalCtaSection />
     </>
   );
 }

@@ -43,58 +43,23 @@ async function getProductAttributes() {
   return { styles, materials };
 }
 
-async function getProjectsForAssignment() {
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
-  if (!supabase) {
-    return [];
-  }
-
-  const { data } = await supabase
-    .from("projects")
-    .select("id, title")
-    .order("title", { ascending: true })
-    .limit(100);
-
-  return data ?? [];
-}
-
-async function getProductProjectMap() {
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
-  if (!supabase) {
-    return {} as Record<string, string[]>;
-  }
-
-  const { data } = await supabase.from("project_products").select("product_id, project_id");
-
-  const map: Record<string, string[]> = {};
-  for (const row of data ?? []) {
-    map[row.product_id] = [...(map[row.product_id] ?? []), row.project_id];
-  }
-
-  return map;
-}
-
 export default async function AdminProductsPage() {
-  const [products, formulas, attributes, projects, productProjectMap] = await Promise.all([
+  const [products, formulas, attributes] = await Promise.all([
     getAllProductsForAdmin(),
     getPriceFormulasForAdmin(),
     getProductAttributes(),
-    getProjectsForAssignment(),
-    getProductProjectMap(),
   ]);
 
   return (
     <AdminShell
-      title="Продукти"
-      description="Керуйте каталогом продуктів: двері, меблі, вікна та реставрація."
+      title="РџСЂРѕРґСѓРєС‚Рё"
+      description="РљРµСЂСѓР№С‚Рµ РєР°С‚Р°Р»РѕРіРѕРј РїСЂРѕРґСѓРєС‚С–РІ: РґРІРµСЂС–, РјРµР±Р»С–, РІС–РєРЅР° С‚Р° СЂРµСЃС‚Р°РІСЂР°С†С–СЏ."
     >
       <AdminProductsClient
         products={products}
         formulas={formulas}
-        projects={projects}
         styleAttributes={attributes.styles}
         materialAttributes={attributes.materials}
-        productProjectMap={productProjectMap}
       />
     </AdminShell>
   );

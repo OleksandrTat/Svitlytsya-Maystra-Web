@@ -2,26 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ProjectCard } from "@/components/catalog/project-card";
 import { FinalCtaSection } from "@/components/sections/final-cta";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  getCatalogProjects,
-  getServiceBySlug,
-  getServices,
-  parseCatalogFilters,
-} from "@/lib/data/queries";
+import { getServiceBySlug, getServices } from "@/lib/data/queries";
 
 export const revalidate = 3600;
 
 type Params = { slug: string };
-
-const serviceCategoryMap: Record<string, "doors" | "furniture" | "windows" | undefined> = {
-  "dveri-na-zamovlennia": "doors",
-  "mebli-na-zamovlennia": "furniture",
-  "vikna-pvh": "windows",
-};
 
 export async function generateStaticParams() {
   const services = await getServices();
@@ -37,7 +25,7 @@ export async function generateMetadata({
   const service = await getServiceBySlug(slug);
 
   if (!service) {
-    return { title: "Послугу не знайдено" };
+    return { title: "РџРѕСЃР»СѓРіСѓ РЅРµ Р·РЅР°Р№РґРµРЅРѕ" };
   }
 
   return {
@@ -58,19 +46,6 @@ export default async function ServicePage({
     notFound();
   }
 
-  const category = serviceCategoryMap[slug];
-
-  const relatedProjects = category
-    ? (
-        await getCatalogProjects(
-          parseCatalogFilters({
-            category,
-            page: "1",
-          }),
-        )
-      ).items.slice(0, 4)
-    : [];
-
   return (
     <>
       <section className="py-14 md:py-20">
@@ -81,7 +56,7 @@ export default async function ServicePage({
                 <Image src={service.cover_image} alt={service.title} fill className="object-cover" priority />
               ) : (
                 <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,#a4511f,#3b2414)] text-7xl text-white">
-                  {service.icon ?? "🚪"}
+                  {service.icon ?? "рџљЄ"}
                 </div>
               )}
             </div>
@@ -98,27 +73,27 @@ export default async function ServicePage({
               <div className="flex flex-wrap gap-3">
                 {service.price_from ? (
                   <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)]">
-                    Вартість від {service.price_from.toLocaleString("uk-UA")} {service.price_unit ?? "грн"}
+                    Р’Р°СЂС‚С–СЃС‚СЊ РІС–Рґ {service.price_from.toLocaleString("uk-UA")} {service.price_unit ?? "РіСЂРЅ"}
                   </p>
                 ) : (
                   <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)]">
-                    Вартість визначається індивідуально після консультації.
+                    Р’Р°СЂС‚С–СЃС‚СЊ РІРёР·РЅР°С‡Р°С”С‚СЊСЃСЏ С–РЅРґРёРІС–РґСѓР°Р»СЊРЅРѕ РїС–СЃР»СЏ РєРѕРЅСЃСѓР»СЊС‚Р°С†С–С—.
                   </p>
                 )}
 
                 {service.duration_days_from ? (
                   <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)]">
-                    Орієнтовний термін: {service.duration_days_from}-{service.duration_days_to ?? service.duration_days_from} днів
+                    РћСЂС–С”РЅС‚РѕРІРЅРёР№ С‚РµСЂРјС–РЅ: {service.duration_days_from}-{service.duration_days_to ?? service.duration_days_from} РґРЅС–РІ
                   </p>
                 ) : null}
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <Link href="/contact" className="rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white">
-                  Замовити
+                  Р—Р°РјРѕРІРёС‚Рё
                 </Link>
                 <Link href="/contact" className="rounded-full border border-[var(--color-border)] px-6 py-3 text-sm text-[var(--color-text-secondary)]">
-                  Отримати розрахунок
+                  РћС‚СЂРёРјР°С‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє
                 </Link>
               </div>
             </div>
@@ -129,12 +104,12 @@ export default async function ServicePage({
       {service.process_steps.length > 0 ? (
         <section className="bg-[var(--color-surface)] py-14 md:py-20">
           <Container>
-            <SectionHeading title="Процес" />
+            <SectionHeading title="РџСЂРѕС†РµСЃ" />
             <ol className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {service.process_steps.map((step, index) => (
                 <li key={`${step.step}-${step.title}`} className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
                   <p className="text-xs uppercase tracking-[0.12em] text-[var(--color-secondary)]">
-                    Етап {index + 1}
+                    Р•С‚Р°Рї {index + 1}
                   </p>
                   <p className="mt-2 text-sm font-medium text-[var(--color-text-primary)]">{step.title}</p>
                   {step.description ? (
@@ -150,7 +125,7 @@ export default async function ServicePage({
       {service.features.length > 0 ? (
         <section className="py-14 md:py-20">
           <Container>
-            <SectionHeading title="Переваги сервісу" />
+            <SectionHeading title="РџРµСЂРµРІР°РіРё СЃРµСЂРІС–СЃСѓ" />
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {service.features.map((feature) => (
                 <article key={feature.title} className="rounded-2xl border border-[var(--color-border)] bg-white p-5">
@@ -159,19 +134,6 @@ export default async function ServicePage({
                     <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{feature.description}</p>
                   ) : null}
                 </article>
-              ))}
-            </div>
-          </Container>
-        </section>
-      ) : null}
-
-      {relatedProjects.length > 0 ? (
-        <section className="py-14 md:py-20">
-          <Container>
-            <SectionHeading title="Вибрані роботи за цією послугою" />
-            <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {relatedProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
               ))}
             </div>
           </Container>

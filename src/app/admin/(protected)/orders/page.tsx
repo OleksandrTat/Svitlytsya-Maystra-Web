@@ -6,45 +6,18 @@ import { OrdersWorkspace } from "@/components/admin/orders/orders-workspace";
 import { ORDER_PRIORITY_LABELS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import {
   getAllInquiriesForAdmin,
-  getAllProductsForAdmin,
-  getAllProjectsForAdmin,
   getClientsForAdmin,
   getOrderTemplatesForAdmin,
   getOrdersForAdmin,
 } from "@/lib/data/queries";
-import { createSupabaseServiceClient, createSupabaseServerClient } from "@/lib/supabase/server";
-
-async function getProjectProductMap() {
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
-  if (!supabase) {
-    return {} as Record<string, string[]>;
-  }
-
-  const { data } = await supabase
-    .from("project_products")
-    .select("project_id, product_id, sort_order")
-    .order("project_id", { ascending: true })
-    .order("sort_order", { ascending: true });
-
-  const map: Record<string, string[]> = {};
-  for (const row of data ?? []) {
-    map[row.project_id] = [...(map[row.project_id] ?? []), row.product_id];
-  }
-
-  return map;
-}
 
 export default async function AdminOrdersPage() {
-  const [rawOrders, inquiries, clients, projects, products, templates, projectProductMap] =
-    await Promise.all([
-      getOrdersForAdmin(300),
-      getAllInquiriesForAdmin(),
-      getClientsForAdmin(500),
-      getAllProjectsForAdmin(),
-      getAllProductsForAdmin(),
-      getOrderTemplatesForAdmin(),
-      getProjectProductMap(),
-    ]);
+  const [rawOrders, inquiries, clients, templates] = await Promise.all([
+    getOrdersForAdmin(300),
+    getAllInquiriesForAdmin(),
+    getClientsForAdmin(500),
+    getOrderTemplatesForAdmin(),
+  ]);
 
   const inquiryMap = new Map(inquiries.map((inquiry) => [inquiry.id, inquiry]));
   const clientMap = new Map(clients.map((client) => [client.id, client]));
@@ -55,8 +28,8 @@ export default async function AdminOrdersPage() {
 
     return {
       ...order,
-      clientName: client?.display_name ?? inquiry?.name ?? "Клієнт",
-      serviceType: inquiry?.service_type ?? "—",
+      clientName: client?.display_name ?? inquiry?.name ?? "РљР»С–С”РЅС‚",
+      serviceType: inquiry?.service_type ?? "вЂ”",
     };
   });
 
@@ -75,8 +48,8 @@ export default async function AdminOrdersPage() {
 
   return (
     <AdminShell
-      title="Замовлення"
-      description="Workspace для роботи із замовленнями: статуси, прив'язка до проєктів і продукти всередині проєкту."
+      title="Р—Р°РјРѕРІР»РµРЅРЅСЏ"
+      description="Workspace РґР»СЏ СЂРѕР±РѕС‚Рё С–Р· Р·Р°РјРѕРІР»РµРЅРЅСЏРјРё: СЃС‚Р°С‚СѓСЃРё, РєР»С–С”РЅС‚Рё, РїРѕРІС–РґРѕРјР»РµРЅРЅСЏ С‚Р° РїСЂРёРІ'СЏР·Р°РЅС– РїСЂРѕРґСѓРєС‚Рё."
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -90,18 +63,13 @@ export default async function AdminOrdersPage() {
             </Link>
           </div>
           <span className="text-xs text-[var(--color-text-secondary)]">
-            У workspace: {orders.length}
+            РЈ workspace: {orders.length}
           </span>
         </div>
 
         <CreateOrderForm inquiries={inquiries} templates={templates} />
 
-        <OrdersWorkspace
-          orders={orders}
-          projects={projects}
-          products={products}
-          projectProductMap={projectProductMap}
-        />
+        <OrdersWorkspace orders={orders} />
       </div>
     </AdminShell>
   );

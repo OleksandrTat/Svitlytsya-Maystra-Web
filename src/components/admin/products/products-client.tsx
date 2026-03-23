@@ -20,10 +20,8 @@ type ProductAttribute = {
 type Props = {
   products: Product[];
   formulas: PriceFormula[];
-  projects: { id: string; title: string }[];
   styleAttributes: Record<string, ProductAttribute[]>;
   materialAttributes: Record<string, ProductAttribute[]>;
-  productProjectMap?: Record<string, string[]>;
 };
 
 const STATUS_CHIP: Record<string, string> = {
@@ -74,10 +72,8 @@ function PriorityDots({ value }: { value: number }) {
 export default function AdminProductsClient({
   products: initialProducts,
   formulas,
-  projects,
   styleAttributes,
   materialAttributes,
-  productProjectMap = {},
 }: Props) {
   const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
@@ -357,7 +353,6 @@ export default function AdminProductsClient({
           formulas={formulas}
           styleAttributes={styleAttributes}
           materialAttributes={materialAttributes}
-          projects={projects}
         />
       ) : null}
 
@@ -372,8 +367,6 @@ export default function AdminProductsClient({
           formulas={formulas}
           styleAttributes={styleAttributes}
           materialAttributes={materialAttributes}
-          projects={projects}
-          initialProjectId={productProjectMap[editProduct.id]?.[0] ?? ""}
           initialData={editProduct}
         />
       ) : null}

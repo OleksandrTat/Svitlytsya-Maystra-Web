@@ -9,64 +9,6 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      projects: {
-        Row: {
-          id: string;
-          title: string;
-          slug: string;
-          description: string;
-          category: "doors" | "furniture" | "windows";
-          style: string[];
-          materials: string[];
-          dimensions: string | null;
-          location: string | null;
-          completed_at: string | null;
-          duration_days: number | null;
-          status: "public" | "nda" | "concept";
-          privacy_level: "public" | "nda_partial" | "nda_full";
-          is_featured: boolean;
-          sort_order: number;
-          cover_image: string;
-          images: string[];
-          blurred_images: string[];
-          private_client_name: string | null;
-          private_location: string | null;
-          private_notes: string | null;
-          seo_title: string | null;
-          seo_description: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          slug: string;
-          description: string;
-          category: "doors" | "furniture" | "windows";
-          style?: string[];
-          materials?: string[];
-          dimensions?: string | null;
-          location?: string | null;
-          completed_at?: string | null;
-          duration_days?: number | null;
-          status?: "public" | "nda" | "concept";
-          privacy_level?: "public" | "nda_partial" | "nda_full";
-          is_featured?: boolean;
-          sort_order?: number;
-          cover_image: string;
-          images?: string[];
-          blurred_images?: string[];
-          private_client_name?: string | null;
-          private_location?: string | null;
-          private_notes?: string | null;
-          seo_title?: string | null;
-          seo_description?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["projects"]["Insert"]>;
-        Relationships: [];
-      };
       products: {
         Row: {
           id: string;
@@ -135,28 +77,6 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["product_attributes"]["Insert"]>;
-        Relationships: [];
-      };
-      project_products: {
-        Row: {
-          id: string;
-          project_id: string;
-          product_id: string;
-          quantity: number;
-          notes: string | null;
-          sort_order: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          project_id: string;
-          product_id: string;
-          quantity?: number;
-          notes?: string | null;
-          sort_order?: number;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["project_products"]["Insert"]>;
         Relationships: [];
       };
       support_chats: {
@@ -312,7 +232,6 @@ export interface Database {
           service_type: string;
           message: string | null;
           source_page: string | null;
-          project_ref_id: string | null;
           configuration: Json | null;
           chat_session_id: string | null;
           channel: "web_form" | "ai_chat" | "phone" | "direct" | "referral";
@@ -335,7 +254,6 @@ export interface Database {
           service_type: string;
           message?: string | null;
           source_page?: string | null;
-          project_ref_id?: string | null;
           configuration?: Json | null;
           chat_session_id?: string | null;
           channel?: "web_form" | "ai_chat" | "phone" | "direct" | "referral";
@@ -913,29 +831,6 @@ export interface Database {
       };
     };
     Views: {
-      projects_public: {
-        Row: {
-          id: string;
-          title: string;
-          slug: string;
-          description: string;
-          category: "doors" | "furniture" | "windows";
-          style: string[];
-          materials: string[];
-          dimensions: string | null;
-          location: string | null;
-          cover_image: string | null;
-          images: string[];
-          status: "public" | "nda" | "concept";
-          privacy_level: "public" | "nda_partial" | "nda_full";
-          is_featured: boolean;
-          completed_at: string | null;
-          completed_year: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-      };
-
       orders_with_clients: {
         Row: {
           id: string;
@@ -967,8 +862,6 @@ export interface Database {
     };
     Functions: Record<string, never>;
     Enums: {
-      project_category: "doors" | "furniture" | "windows";
-      project_status: "public" | "nda" | "concept";
       product_status: "active" | "draft" | "archived";
       inquiry_status:
         | "new"
@@ -1002,7 +895,6 @@ export interface Database {
       support_channel: "internal" | "email" | "viber" | "whatsapp";
       support_chat_status: "open" | "waiting" | "resolved" | "closed";
       support_message_sender: "client" | "admin" | "system";
-      project_privacy_level: "public" | "nda_partial" | "nda_full";
       audit_actor_type: "admin" | "client" | "system" | "anonymous";
       audit_action: "INSERT" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "EXPORT";
     };

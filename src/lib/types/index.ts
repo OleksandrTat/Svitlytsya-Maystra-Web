@@ -1,5 +1,3 @@
-export type ProjectCategory = "doors" | "furniture" | "windows";
-export type ProjectStatus = "public" | "nda" | "concept";
 export type InquiryStatus =
   | "new"
   | "contacted"
@@ -16,7 +14,6 @@ export type SupportChatStatus = "open" | "waiting" | "resolved" | "closed";
 export type SupportMessageSender = "client" | "admin" | "system";
 export type ChatRole = "user" | "assistant";
 export type ProductType = "door" | "furniture" | "window";
-export type ProjectPrivacyLevel = "public" | "nda_partial" | "nda_full";
 export type OrderStatus =
   | "new"
   | "consulting"
@@ -48,34 +45,6 @@ export interface ServiceProcessStep {
   step: number;
   title: string;
   description: string;
-}
-
-export interface Project {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  category: ProjectCategory;
-  style: string[];
-  materials: string[];
-  dimensions: string | null;
-  location: string | null;
-  completed_at: string | null;
-  duration_days: number | null;
-  status: ProjectStatus;
-  privacy_level: ProjectPrivacyLevel;
-  is_featured: boolean;
-  sort_order: number;
-  cover_image: string;
-  images: string[];
-  blurred_images: string[];
-  private_client_name: string | null;
-  private_location: string | null;
-  private_notes: string | null;
-  seo_title: string | null;
-  seo_description: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface Product {
@@ -146,7 +115,6 @@ export interface Inquiry {
   service_type: string;
   message: string | null;
   source_page: string | null;
-  project_ref_id: string | null;
   configuration: Record<string, unknown> | null;
   chat_session_id: string | null;
   channel: InquiryChannel;
@@ -347,13 +315,4 @@ export interface ActivityLog {
   payload: Record<string, unknown> | null;
   created_at: string;
 }
-
-export type CatalogFilters = {
-  category?: ProjectCategory;
-  styles: string[];
-  materials: string[];
-  status?: Exclude<ProjectStatus, "concept">;
-  page: number;
-  pageSize: number;
-};
 

@@ -15,15 +15,12 @@ import {
 import { InquiryForm } from "@/components/shared/inquiry-form";
 import { Container } from "@/components/ui/container";
 import { Stars } from "@/components/ui/stars";
-import { PROJECT_CATEGORY_LABELS } from "@/lib/constants";
 import {
   getContactSettings,
-  getFeaturedProjects,
   getServices,
   getVisibleTestimonials,
 } from "@/lib/data/queries";
-import type { Project, Service, Testimonial } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { Service, Testimonial } from "@/lib/types";
 
 export const revalidate = 3600;
 
@@ -105,8 +102,8 @@ function HeroSection() {
           </div>
 
           <div className="mt-10 flex flex-wrap gap-3">
-            <Link href="/catalog" className={primaryLinkClass}>
-              Переглянути роботи
+            <Link href="/products" className={primaryLinkClass}>
+              Переглянути продукти
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/contact" className={secondaryLinkClass}>
@@ -153,80 +150,6 @@ function MetricsBar() {
               <p className="mt-3 font-semibold text-[var(--color-text-primary)]">{item.title}</p>
               <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{item.description}</p>
             </div>
-          ))}
-        </div>
-      </Container>
-    </section>
-  );
-}
-
-function FeaturedWorksSection({ projects }: { projects: Project[] }) {
-  return (
-    <section className="section-padding">
-      <Container>
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
-              Портфоліо
-            </p>
-            <h2 className="heading-h1 text-[var(--color-text-primary)]">Вибрані роботи</h2>
-            <p className="mt-3 body-base text-[var(--color-text-secondary)]">
-              Кілька прикладів, щоб відчути рівень виконання. Більше кейсів у
-              повному каталозі.
-            </p>
-          </div>
-
-          <Link
-            href="/catalog"
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-5 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-          >
-            Весь каталог
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project, index) => (
-            <Link
-              key={project.id}
-              href={`/catalog/${project.slug}`}
-              className={cn(
-                "group relative overflow-hidden rounded-3xl bg-[var(--color-surface)]",
-                index === 0 && "sm:col-span-2",
-              )}
-              style={{ aspectRatio: index === 0 ? "16 / 10" : "4 / 3" }}
-            >
-              <Image
-                src={project.cover_image}
-                alt={project.title}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover transition duration-700 group-hover:scale-105"
-              />
-
-              <div
-                className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                style={{
-                  background:
-                    "linear-gradient(to top, var(--color-primary) 0%, transparent 75%)",
-                }}
-              />
-
-              <div className="absolute left-4 top-4">
-                <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-semibold text-[var(--color-on-primary)]">
-                  {PROJECT_CATEGORY_LABELS[project.category]}
-                </span>
-              </div>
-
-              <div className="absolute bottom-4 left-4 right-4 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                <div className="rounded-2xl bg-[var(--color-background)] px-4 py-3">
-                  <p className="font-semibold text-[var(--color-text-primary)]">{project.title}</p>
-                  <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                    {PROJECT_CATEGORY_LABELS[project.category]} - {project.location ?? "Україна"}
-                  </p>
-                </div>
-              </div>
-            </Link>
           ))}
         </div>
       </Container>
@@ -480,8 +403,7 @@ function ContactCtaSection({ contacts }: { contacts: ContactSettings }) {
 }
 
 export default async function HomePage() {
-  const [featuredProjects, testimonials, services, contacts] = await Promise.all([
-    getFeaturedProjects(6),
+  const [testimonials, services, contacts] = await Promise.all([
     getVisibleTestimonials(3),
     getServices(),
     getContactSettings(),
@@ -491,7 +413,6 @@ export default async function HomePage() {
     <>
       <HeroSection />
       <MetricsBar />
-      <FeaturedWorksSection projects={featuredProjects} />
       <ServicesSection services={services} />
       <BenefitsSection />
       <TestimonialsSection testimonials={testimonials} />
