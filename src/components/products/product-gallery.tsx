@@ -71,7 +71,7 @@ export function ProductGallery({ images, title }: ProductGalleryProps) {
           fill
           className="object-cover"
           sizes="(max-width: 1024px) 100vw, 50vw"
-          priority
+          priority={true}
         />
       </div>
 
@@ -94,6 +94,8 @@ export function ProductGallery({ images, title }: ProductGalleryProps) {
               fill
               className="object-cover"
               sizes="120px"
+              loading="lazy"
+              priority={false}
             />
           </button>
         ))}

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sparkles, X } from "lucide-react";
+import { Box, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { upsertProductAction } from "@/actions/admin/products";
 import { FormulaPicker } from "@/components/admin/shared/formula-picker";
@@ -12,6 +12,7 @@ import { PriorityBar } from "@/components/admin/shared/priority-bar";
 import { TagInput } from "@/components/admin/shared/tag-input";
 import { useAiSeoAssist } from "@/hooks/use-ai-seo-assist";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { PriceFormula, Product } from "@/lib/types";
 
 type ProductAttribute = {
@@ -75,6 +76,7 @@ export function ProductFormPopup({
   const [styles, setStyles] = useState<string[]>(initialData?.style ?? []);
   const [status, setStatus] = useState<Product["status"]>(initialData?.status ?? "draft");
   const [priority, setPriority] = useState(getInitialPriority(initialData));
+  const [sortOrder, setSortOrder] = useState(initialData?.sort_order?.toString() ?? "0");
   const [priceFrom, setPriceFrom] = useState(initialData?.price_from?.toString() ?? "");
   const [formulaId, setFormulaId] = useState(initialData?.formula_id ?? "");
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? false);
@@ -82,6 +84,7 @@ export function ProductFormPopup({
   const [seoDescription, setSeoDescription] = useState(initialData?.seo_description ?? "");
   const [images, setImages] = useState<string[]>(initialData?.images ?? []);
   const [coverImage, setCoverImage] = useState(initialData?.cover_image ?? "");
+  const [model3dUrl, setModel3dUrl] = useState(initialData?.model_3d_url ?? "");
   const [saving, setSaving] = useState(false);
 
   const handleTitleChange = (nextTitle: string) => {
@@ -93,6 +96,61 @@ export function ProductFormPopup({
 
   const categoryStyles = (styleAttributes[category] ?? []).map((item) => item.value);
   const categoryMaterials = (materialAttributes[category] ?? []).map((item) => item.value);
+
+  const onModel3dUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const normalizedName = file.name.toLowerCase();
+    if (!normalizedName.endsWith(".glb") && !normalizedName.endsWith(".gltf")) {
+      toast.error("Тільки .glb або .gltf файли");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Файл завеликий. Максимум 50MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const safeName = file.name.replace(/\s+/g, "-");
+      const path = `models/${Date.now()}-${safeName}`;
+      const contentType = normalizedName.endsWith(".gltf")
+        ? "model/gltf+json"
+        : "model/gltf-binary";
+      const uploadFile =
+        file.type === contentType
+          ? file
+          : new File([file], file.name, {
+              type: contentType,
+              lastModified: file.lastModified,
+            });
+
+      const { error } = await supabase.storage
+        .from("product-models")
+        .upload(path, uploadFile, { contentType, upsert: false });
+
+      if (error) {
+        toast.error(`Помилка завантаження: ${error.message}`);
+        return;
+      }
+
+      const { data } = supabase.storage.from("product-models").getPublicUrl(path);
+      setModel3dUrl(data.publicUrl);
+      toast.success("3D-модель завантажено");
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error ? uploadError.message : "Не вдалося завантажити 3D-модель.";
+      toast.error(message);
+    } finally {
+      event.target.value = "";
+    }
+  };
 
   const handleAiGenerate = async () => {
     const result = await generate({ title, description, category });
@@ -126,9 +184,10 @@ export function ProductFormPopup({
     formData.set("style", styles.join(","));
     formData.set("status", status);
     formData.set("priority", String(priority));
-    formData.set("sort_order", String(priority));
+    formData.set("sort_order", sortOrder.trim() || "0");
     formData.set("is_featured", isFeatured ? "true" : "false");
     formData.set("cover_image", resolvedCoverImage);
+    formData.set("model_3d_url", model3dUrl);
     formData.set("images", images.join(","));
     if (priceFrom) {
       formData.set("price_from", priceFrom);
@@ -347,6 +406,50 @@ export function ProductFormPopup({
                     </div>
 
                     <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                        3D-модель (.glb/.gltf)
+                      </p>
+                      {model3dUrl ? (
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                          <Box size={14} className="text-emerald-600" />
+                          <span className="flex-1 truncate text-xs text-emerald-700">
+                            Модель завантажена
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setModel3dUrl("")}
+                            className="text-xs text-red-600"
+                          >
+                            Видалити
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] px-3 py-3 text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-primary)]">
+                          <Box size={14} />
+                          Завантажити .glb/.gltf файл
+                          <input
+                            type="file"
+                            accept=".glb,.gltf"
+                            onChange={onModel3dUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                      <input type="hidden" name="model_3d_url" value={model3dUrl} />
+                      <p className="text-[10px] text-[var(--color-text-secondary)]">
+                        Рекомендований розмір: до 5MB для швидкого завантаження. Конвертація:{" "}
+                        <a
+                          href="https://products.aspose.app/3d"
+                          className="underline"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          aspose.app
+                        </a>
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
                         РљР°С‚РµРіРѕСЂС–СЏ *
                       </label>
@@ -386,6 +489,19 @@ export function ProductFormPopup({
                     </div>
 
                     <PriorityBar value={priority} onChange={setPriority} label="РџСЂС–РѕСЂРёС‚РµС‚" />
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-[var(--color-text-secondary)]">
+                        РџРѕСЂСЏРґРѕРє СЃРѕСЂС‚СѓРІР°РЅРЅСЏ
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={sortOrder}
+                        onChange={(event) => setSortOrder(event.target.value)}
+                        className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
+                      />
+                    </div>
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">

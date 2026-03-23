@@ -23,7 +23,11 @@ import type {
   SupportMessage,
   Testimonial,
 } from "@/lib/types";
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceClient,
+  type SupabaseDataClient,
+} from "@/lib/supabase/server";
 import {
   parseOrderTemplates,
   type OrderTemplate,
@@ -48,9 +52,12 @@ export type ProductFilters = {
   styles: string[];
   status?: ProductStatus;
   featured?: boolean;
+  sort: "default" | "price_asc" | "price_desc" | "newest";
   page: number;
   pageSize: number;
 };
+
+const PRODUCT_SORT_VALUES = ["default", "price_asc", "price_desc", "newest"] as const;
 
 export function parseProductFilters(
   searchParams: Record<string, string | string[] | undefined>,
@@ -60,6 +67,10 @@ export function parseProductFilters(
   const styles = splitCsvParam(typeof searchParams.style === "string" ? searchParams.style : undefined);
   const materials = splitCsvParam(typeof searchParams.material === "string" ? searchParams.material : undefined);
   const featuredValue = typeof searchParams.featured === "string" ? searchParams.featured : undefined;
+  const sortParam = typeof searchParams.sort === "string" ? searchParams.sort : "default";
+  const sort = PRODUCT_SORT_VALUES.includes(sortParam as (typeof PRODUCT_SORT_VALUES)[number])
+    ? (sortParam as ProductFilters["sort"])
+    : "default";
   const featured =
     featuredValue === "true" || featuredValue === "1" || featuredValue === "yes";
   const page = Number(typeof searchParams.page === "string" ? searchParams.page : "1") || 1;
@@ -70,8 +81,62 @@ export function parseProductFilters(
     styles,
     materials,
     featured: featured || undefined,
+    sort,
     page: page > 0 ? page : 1,
     pageSize: 9,
+  };
+}
+
+export async function getProductFilterOptions(): Promise<{
+  styles: string[];
+  materials: string[];
+  categories: string[];
+}> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return { styles: [], materials: [], categories: [] };
+  }
+
+  const [stylesResult, materialsResult, productsResult] = await Promise.all([
+    supabase
+      .from("product_attributes")
+      .select("value")
+      .eq("type", "style")
+      .order("usage_count", { ascending: false }),
+    supabase
+      .from("product_attributes")
+      .select("value")
+      .eq("type", "material")
+      .order("usage_count", { ascending: false }),
+    supabase
+      .from("products")
+      .select("category")
+      .eq("status", "active")
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  return {
+    styles: Array.from(
+      new Set(
+        (stylesResult.data ?? [])
+          .map((row) => (typeof row.value === "string" ? row.value.trim() : ""))
+          .filter(Boolean),
+      ),
+    ),
+    materials: Array.from(
+      new Set(
+        (materialsResult.data ?? [])
+          .map((row) => (typeof row.value === "string" ? row.value.trim() : ""))
+          .filter(Boolean),
+      ),
+    ),
+    categories: Array.from(
+      new Set(
+        (productsResult.data ?? [])
+          .map((product) => (typeof product.category === "string" ? product.category.trim() : ""))
+          .filter(Boolean),
+      ),
+    ),
   };
 }
 
@@ -268,8 +333,22 @@ export async function getProducts(
   let query = supabase
     .from("products")
     .select("*", { count: "exact" })
-    .eq("status", "active")
-    .order("sort_order", { ascending: true });
+    .eq("status", filters.status ?? "active");
+
+  switch (filters.sort) {
+    case "price_asc":
+      query = query.order("price_from", { ascending: true, nullsFirst: false });
+      break;
+    case "price_desc":
+      query = query.order("price_from", { ascending: false, nullsFirst: false });
+      break;
+    case "newest":
+      query = query.order("created_at", { ascending: false });
+      break;
+    default:
+      query = query.order("sort_order", { ascending: true });
+      break;
+  }
 
   if (filters.category) {
     query = query.eq("category", filters.category);
@@ -307,24 +386,14 @@ export const getProductBySlug = cache(async (slug: string): Promise<Product | nu
   const { data, error } = await supabase
     .from("products")
     .select("*")
-    .eq("slug", normalizedSlug)
-    .maybeSingle();
-
-  if (!error && data) {
-    return data as Product;
-  }
-
-  const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
-    .from("products")
-    .select("*")
     .ilike("slug", normalizedSlug)
     .maybeSingle();
 
-  if (caseInsensitiveError || !caseInsensitiveData) {
+  if (error || !data) {
     return null;
   }
 
-  return caseInsensitiveData as Product;
+  return data as Product;
 });
 
 export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
@@ -358,8 +427,31 @@ export async function getAllProductsForAdmin(): Promise<Product[]> {
   return (data ?? []) as Product[];
 }
 
-export async function getPriceFormulaById(formulaId: string): Promise<PriceFormula | null> {
+export async function getAllActiveProducts(): Promise<Product[]> {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("status", "active")
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data as Product[];
+}
+
+export async function getPriceFormulaById(
+  formulaId: string,
+  supabaseClient?: SupabaseDataClient | null,
+): Promise<PriceFormula | null> {
+  const supabase =
+    supabaseClient ?? createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase || !formulaId) {
     return null;
   }
@@ -377,8 +469,12 @@ export async function getPriceFormulaById(formulaId: string): Promise<PriceFormu
   return data as PriceFormula;
 }
 
-export async function getPricePresetsForFormula(formulaId: string): Promise<PricePreset[]> {
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+export async function getPricePresetsForFormula(
+  formulaId: string,
+  supabaseClient?: SupabaseDataClient | null,
+): Promise<PricePreset[]> {
+  const supabase =
+    supabaseClient ?? createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase || !formulaId) {
     return [];
   }
@@ -424,6 +520,118 @@ export async function getPricePresetsForFormula(formulaId: string): Promise<Pric
   return (data as PricePreset[]).filter(
     (preset) => presetIds.has(preset.id) || presetKeys.has(preset.variable_key),
   );
+}
+
+export async function getRelatedProducts(
+  productId: string,
+  category: string,
+  styles: string[],
+  limit = 3,
+): Promise<Product[]> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return [];
+  }
+
+  if (styles.length > 0) {
+    const { data: byStyle, error: byStyleError } = await supabase
+      .from("products")
+      .select("*")
+      .eq("status", "active")
+      .eq("category", category)
+      .neq("id", productId)
+      .contains("style", styles.slice(0, 1))
+      .order("sort_order", { ascending: true })
+      .limit(limit);
+
+    if (!byStyleError && byStyle && byStyle.length >= 2) {
+      return byStyle as Product[];
+    }
+  }
+
+  const { data: byCategory, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("status", "active")
+    .eq("category", category)
+    .neq("id", productId)
+    .order("sort_order", { ascending: true })
+    .limit(limit);
+
+  if (error || !byCategory) {
+    return [];
+  }
+
+  return byCategory as Product[];
+}
+
+export async function getRelatedServices(category: string): Promise<Service[]> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return [];
+  }
+
+  const serviceCategoryMap: Record<string, string> = {
+    doors: "installation",
+    windows: "installation",
+    furniture: "production",
+    restoration: "restoration",
+  };
+
+  const serviceCategory = serviceCategoryMap[category];
+  if (!serviceCategory) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("services")
+    .select("*")
+    .eq("is_active", true)
+    .eq("category", serviceCategory)
+    .order("sort_order", { ascending: true })
+    .limit(2);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map(mapService);
+}
+
+export async function getTestimonialsForProduct(
+  productId: string,
+  limit = 3,
+): Promise<Testimonial[]> {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) {
+    return [];
+  }
+
+  const { data: linked, error: linkedError } = await supabase
+    .from("testimonials")
+    .select("*")
+    .eq("is_visible", true)
+    .eq("project_id", productId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!linkedError && linked && linked.length >= 2) {
+    return linked as Testimonial[];
+  }
+
+  const { data: general, error: generalError } = await supabase
+    .from("testimonials")
+    .select("*")
+    .eq("is_visible", true)
+    .is("project_id", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (generalError && linkedError) {
+    return [];
+  }
+
+  return [...(linked ?? []), ...(general ?? [])].slice(0, limit) as Testimonial[];
 }
 
 export const getServices = cache(async (): Promise<Service[]> => {

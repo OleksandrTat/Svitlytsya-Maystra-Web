@@ -29,6 +29,7 @@ export const testimonialFormSchema = z.object({
   author_location: z.string().optional(),
   content: z.string().min(10),
   rating: z.coerce.number().int().min(1).max(5),
+  project_id: z.string().uuid().optional(),
   is_visible: z.boolean().default(true),
 });
 

@@ -1,14 +1,20 @@
-import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceClient,
+  type SupabaseDataClient,
+} from "@/lib/supabase/server";
 import type { FormulaComponent } from "@/lib/types";
 
 export async function getFormulaComponentsForProduct(
   formulaId: string,
+  supabaseClient?: SupabaseDataClient | null,
 ): Promise<FormulaComponent[]> {
   if (!formulaId) {
     return [];
   }
 
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  const supabase =
+    supabaseClient ?? createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
     return [];
   }

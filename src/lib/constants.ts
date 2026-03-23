@@ -1,7 +1,8 @@
-﻿import type {
+import type {
   InquiryStatus,
   OrderPriority,
   OrderStatus,
+  ProductType,
   ProductStatus,
 } from "@/lib/types";
 
@@ -19,6 +20,14 @@ export const PRODUCT_STATUS_LABELS: Record<ProductStatus, string> = {
   active: "Активний",
   draft: "Чернетка",
   archived: "Архів",
+};
+
+export const PRODUCT_CATEGORY_TO_PRODUCT_TYPE: Partial<
+  Record<keyof typeof PRODUCT_CATEGORY_LABELS, ProductType>
+> = {
+  doors: "door",
+  furniture: "furniture",
+  windows: "window",
 };
 
 export const INQUIRY_STATUS_LABELS: Record<InquiryStatus, string> = {

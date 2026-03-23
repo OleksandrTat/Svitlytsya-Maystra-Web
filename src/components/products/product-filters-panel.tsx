@@ -1,24 +1,15 @@
-﻿"use client";
+"use client";
 
 import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PRODUCT_CATEGORY_LABELS } from "@/lib/constants";
 import type { ProductFilters } from "@/lib/data/queries";
 
-const STYLE_OPTIONS = ["класика", "мінімалізм", "лофт", "скандинавський", "модерн"] as const;
-const MATERIAL_OPTIONS = ["дуб", "ясен", "сосна", "метал", "ПВХ", "скло"] as const;
-
-const categoryOptions: Array<{ value: keyof typeof PRODUCT_CATEGORY_LABELS; label: string }> = [
-  { value: "doors", label: PRODUCT_CATEGORY_LABELS.doors },
-  { value: "furniture", label: PRODUCT_CATEGORY_LABELS.furniture },
-  { value: "windows", label: PRODUCT_CATEGORY_LABELS.windows },
-  { value: "restoration", label: PRODUCT_CATEGORY_LABELS.restoration },
-];
-
 function parseCsv(value: string | null) {
   if (!value) {
     return [];
   }
+
   return value.split(",").filter(Boolean);
 }
 
@@ -32,9 +23,17 @@ function updateCsv(values: string[], value: string) {
 
 type Props = {
   filters: ProductFilters;
+  categoryOptions: string[];
+  styleOptions: string[];
+  materialOptions: string[];
 };
 
-export function ProductFiltersPanel({ filters }: Props) {
+export function ProductFiltersPanel({
+  filters,
+  categoryOptions,
+  styleOptions,
+  materialOptions,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -51,7 +50,8 @@ export function ProductFiltersPanel({ filters }: Props) {
     }
 
     params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
+    const nextSearch = params.toString();
+    router.push(nextSearch ? `${pathname}?${nextSearch}` : pathname);
   };
 
   const toggleParamValue = (key: string, value: string) => {
@@ -78,18 +78,18 @@ export function ProductFiltersPanel({ filters }: Props) {
           >
             Всі
           </button>
-          {categoryOptions.map((option) => (
+          {categoryOptions.map((category) => (
             <button
-              key={option.value}
+              key={category}
               type="button"
-              onClick={() => setParam("category", option.value)}
+              onClick={() => setParam("category", category)}
               className={`rounded-full px-3 py-1 text-sm ${
-                filters.category === option.value
+                filters.category === category
                   ? "bg-[var(--color-primary)] text-white"
                   : "bg-white text-[var(--color-text-secondary)]"
               }`}
             >
-              {option.label}
+              {PRODUCT_CATEGORY_LABELS[category as keyof typeof PRODUCT_CATEGORY_LABELS] ?? category}
             </button>
           ))}
         </div>
@@ -100,7 +100,7 @@ export function ProductFiltersPanel({ filters }: Props) {
           Стиль
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {STYLE_OPTIONS.map((style) => (
+          {styleOptions.map((style) => (
             <button
               key={style}
               type="button"
@@ -122,7 +122,7 @@ export function ProductFiltersPanel({ filters }: Props) {
           Матеріал
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {MATERIAL_OPTIONS.map((material) => (
+          {materialOptions.map((material) => (
             <button
               key={material}
               type="button"

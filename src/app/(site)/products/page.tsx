@@ -1,17 +1,26 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { ComparisonBar } from "@/components/products/comparison-bar";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductFiltersPanel } from "@/components/products/product-filters-panel";
+import { ProductsPagination } from "@/components/products/products-pagination";
+import { ProductsSortSelect } from "@/components/products/products-sort-select";
 import { SimilarProductsSearch } from "@/components/products/similar-products-search";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { getProducts, parseProductFilters } from "@/lib/data/queries";
+import {
+  getAllActiveProducts,
+  getProductFilterOptions,
+  getProducts,
+  parseProductFilters,
+} from "@/lib/data/queries";
+import { hasOpenAi } from "@/lib/env";
 
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Продукти",
-  description: "Каталог продуктів майстерні: двері, меблі, вікна.",
+  description: "Каталог продуктів майстерні: двері, меблі та вікна на замовлення.",
 };
 
 function ProductFiltersFallback() {
@@ -46,37 +55,68 @@ export default async function ProductsPage({
 }) {
   const params = await searchParams;
   const filters = parseProductFilters(params);
-  const { items } = await getProducts(filters);
+  const [{ items, total }, filterOptions, comparisonProducts] = await Promise.all([
+    getProducts(filters),
+    getProductFilterOptions(),
+    getAllActiveProducts(),
+  ]);
+  const totalPages = Math.ceil(total / filters.pageSize);
 
   return (
-    <section className="py-14 md:py-20">
+    <section className="py-14 pb-24 md:py-20 md:pb-28">
       <Container>
         <SectionHeading
           eyebrow="Продукти"
           title="Наш асортимент"
           description="Оберіть продукт та отримайте індивідуальний розрахунок вартості."
         />
-        <div className="mt-8">
-          <SimilarProductsSearch />
-        </div>
+
+        {hasOpenAi ? (
+          <div className="mt-8">
+            <SimilarProductsSearch />
+          </div>
+        ) : null}
+
         <div className="mt-10 grid gap-6 lg:grid-cols-[280px_1fr]">
           <Suspense fallback={<ProductFiltersFallback />}>
-            <ProductFiltersPanel filters={filters} />
+            <ProductFiltersPanel
+              filters={filters}
+              categoryOptions={filterOptions.categories}
+              styleOptions={filterOptions.styles}
+              materialOptions={filterOptions.materials}
+            />
           </Suspense>
+
           <div>
+            <div className="mb-5 flex justify-end">
+              <ProductsSortSelect current={filters.sort} />
+            </div>
+
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
-            {items.length === 0 && (
+
+            {items.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-[var(--color-border)] p-8 text-center text-sm text-[var(--color-text-secondary)]">
                 За обраними фільтрами продуктів не знайдено.
               </p>
-            )}
+            ) : null}
+
+            <div className="mt-8 space-y-4">
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Знайдено {total} продуктів
+              </p>
+              {totalPages > 1 ? (
+                <ProductsPagination currentPage={filters.page} totalPages={totalPages} />
+              ) : null}
+            </div>
           </div>
         </div>
       </Container>
+
+      {comparisonProducts.length > 0 ? <ComparisonBar products={comparisonProducts} /> : null}
     </section>
   );
 }

@@ -1,5 +1,9 @@
-﻿import Image from "next/image";
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
+import { GitCompare } from "lucide-react";
+import { useComparison } from "@/hooks/use-comparison";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -10,8 +14,11 @@ type Props = {
 };
 
 export function ProductCard({ product, showStatus = false }: Props) {
+  const { toggle, isInComparison, isFull } = useComparison();
+  const inComparison = isInComparison(product.id);
+
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white transition hover:-translate-y-1 hover:shadow-lg">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white transition hover:-translate-y-1 hover:shadow-lg">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--color-bg-section)]">
         {product.cover_image ? (
           <Image
@@ -25,11 +32,29 @@ export function ProductCard({ product, showStatus = false }: Props) {
             Немає зображення
           </div>
         )}
-        {product.is_featured && (
+        {product.is_featured ? (
           <span className="absolute left-3 top-3 rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-[10px] font-semibold text-white">
             Featured
           </span>
-        )}
+        ) : null}
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            toggle(product.id);
+          }}
+          disabled={isFull && !inComparison}
+          className={cn(
+            "absolute right-3 top-3 rounded-full p-1.5 text-xs transition",
+            inComparison
+              ? "bg-[var(--color-primary)] text-white"
+              : "bg-white/90 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]",
+            isFull && !inComparison && "cursor-not-allowed opacity-50",
+          )}
+          title={inComparison ? "Прибрати з порівняння" : "Додати до порівняння"}
+        >
+          <GitCompare size={14} />
+        </button>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -46,9 +71,7 @@ export function ProductCard({ product, showStatus = false }: Props) {
         </div>
 
         {product.short_description ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {product.short_description}
-          </p>
+          <p className="text-sm text-[var(--color-text-secondary)]">{product.short_description}</p>
         ) : null}
 
         <div className="mt-auto flex items-center justify-between text-sm">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Calculator, ChevronDown, ChevronUp, Minus, Plus } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   evaluatePricingCondition,
   evaluatePricingExpression,
@@ -17,9 +18,10 @@ type Props = {
   presets: PricePreset[];
   priceFrom: number | null;
   components?: FormulaComponent[];
+  contactHref?: string;
 };
 
-function fallbackBlock(priceFrom: number | null) {
+function fallbackBlock(priceFrom: number | null, contactHref: string) {
   if (!priceFrom) {
     return null;
   }
@@ -34,7 +36,7 @@ function fallbackBlock(priceFrom: number | null) {
         Точна вартість визначається після консультації та виміру.
       </p>
       <Link
-        href="/contact"
+        href={contactHref}
         className="mt-3 inline-block rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
       >
         Отримати розрахунок
@@ -103,9 +105,11 @@ export function ProductPriceCalculator({
   presets,
   priceFrom,
   components = [],
+  contactHref = "/contact",
 }: Props) {
   const inputSchema = useMemo(() => getFormulaUserInputs(formula), [formula]);
   const [values, setValues] = useState<PricingRuntimeInputs>(() => buildDefaultValues(formula));
+  const debouncedValues = useDebounce(values, 250);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const presetById = useMemo(() => new Map(presets.map((preset) => [preset.id, preset])), [presets]);
 
@@ -122,7 +126,7 @@ export function ProductPriceCalculator({
       const presetValue = component.preset_id ? (presetById.get(component.preset_id)?.value ?? null) : null;
       const visible = evaluatePricingCondition(component.condition, {
         presets,
-        inputs: values,
+        inputs: debouncedValues,
         presetValue,
       });
 
@@ -132,7 +136,7 @@ export function ProductPriceCalculator({
 
       const value = evaluatePricingExpression(component.expression, {
         presets,
-        inputs: values,
+        inputs: debouncedValues,
         presetValue,
       });
 
@@ -152,10 +156,10 @@ export function ProductPriceCalculator({
       total: Math.max(0, Math.round(total)),
       breakdown,
     };
-  }, [components, formula, presetById, presets, values]);
+  }, [components, debouncedValues, formula, presetById, presets]);
 
   if (!formula || components.length === 0) {
-    return fallbackBlock(priceFrom);
+    return fallbackBlock(priceFrom, contactHref);
   }
 
   return (
@@ -245,7 +249,12 @@ export function ProductPriceCalculator({
                 {result.breakdown.map((row, index) => (
                   <div key={`${row.label}-${index}`} className="flex items-center justify-between gap-2 text-sm">
                     <span className="text-[var(--color-text-secondary)]">{row.label}</span>
-                    <span className={cn("font-semibold", row.isDiscount ? "text-red-600" : "text-[var(--color-text-primary)]")}>
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        row.isDiscount ? "text-red-600" : "text-[var(--color-text-primary)]",
+                      )}
+                    >
                       {row.isDiscount ? "−" : "+"}
                       {row.value.toLocaleString("uk-UA")} грн
                     </span>
@@ -269,13 +278,13 @@ export function ProductPriceCalculator({
 
         <div className="flex gap-2">
           <Link
-            href="/contact"
+            href={contactHref}
             className="flex-1 rounded-xl bg-[var(--color-primary)] py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]"
           >
             Замовити
           </Link>
           <Link
-            href="/contact"
+            href={contactHref}
             className="flex-1 rounded-xl border border-[var(--color-border)] py-2.5 text-center text-sm text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface)]"
           >
             Консультація

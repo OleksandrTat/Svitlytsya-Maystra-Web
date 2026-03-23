@@ -56,6 +56,7 @@ export interface Product {
   materials: string[];
   style: string[];
   cover_image: string | null;
+  model_3d_url: string | null;
   images: string[];
   price_from: number | null;
   formula_id: string | null;
@@ -93,6 +94,16 @@ export interface Service {
   sort_order: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface SavedConfiguration {
+  id: string;
+  session_id: string | null;
+  user_id: string | null;
+  product_type: ProductType;
+  configuration: Record<string, unknown>;
+  name: string | null;
+  created_at: string;
 }
 
 export interface Testimonial {

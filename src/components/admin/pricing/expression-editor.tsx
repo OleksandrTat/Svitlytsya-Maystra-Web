@@ -39,7 +39,7 @@ const OPERATORS = [
   { label: "-", value: "-" },
   { label: "×", value: "*" },
   { label: "÷", value: "/" },
-  { label: "^", value: "**" },
+  { label: "^", value: "^" },
   { label: "%", value: "%" },
 ];
 

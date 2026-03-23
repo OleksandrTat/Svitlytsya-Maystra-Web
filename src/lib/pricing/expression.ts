@@ -1,3 +1,4 @@
+import { evaluate } from "mathjs";
 import type { PriceFormula, PricePreset } from "@/lib/types";
 
 export type PricingInputDefinition = {
@@ -26,6 +27,9 @@ const RESERVED_IDENTIFIERS = new Set([
   "nan",
   "infinity",
   "preset_value",
+  "and",
+  "or",
+  "not",
 ]);
 
 const CYRILLIC_TO_LATIN: Record<string, string> = {
@@ -68,14 +72,6 @@ const CYRILLIC_TO_LATIN: Record<string, string> = {
   ъ: "",
 };
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function replaceToken(source: string, key: string, replacement: string) {
-  return source.replace(new RegExp(`\\b${escapeRegExp(key)}\\b`, "g"), replacement);
-}
-
 function normalizeInputDefinition(value: unknown): PricingInputDefinition | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -99,13 +95,15 @@ function normalizeInputDefinition(value: unknown): PricingInputDefinition | null
     label,
     unit,
     type,
-    default_value: Number.isFinite(defaultValue) ? defaultValue : type === "boolean" ? 0 : 0,
+    default_value: Number.isFinite(defaultValue) ? defaultValue : 0,
     min: Number.isFinite(min) ? min : undefined,
     max: Number.isFinite(max) ? max : undefined,
   };
 }
 
-function getFormulaInputSource(formula: Pick<PriceFormula, "user_inputs" | "input_schema"> | null | undefined) {
+function getFormulaInputSource(
+  formula: Pick<PriceFormula, "user_inputs" | "input_schema"> | null | undefined,
+) {
   if (Array.isArray(formula?.user_inputs)) {
     return formula.user_inputs;
   }
@@ -148,40 +146,38 @@ export function extractPricingIdentifiers(value: string) {
   );
 }
 
-function formatRuntimeValue(value: PricingRuntimeValue | null | undefined) {
-  if (typeof value === "boolean") {
-    return value ? "true" : "false";
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-
-  return "0";
+function normalizePricingExpressionSyntax(source: string) {
+  return source
+    .replace(/\*\*/g, "^")
+    .replace(/!==/g, "!=")
+    .replace(/===/g, "==")
+    .replace(/&&/g, " and ")
+    .replace(/\|\|/g, " or ");
 }
 
-function applyPricingContext(
-  source: string,
-  presets: PricePreset[],
-  inputs: PricingRuntimeInputs,
-  presetValue: number | null | undefined,
-) {
-  let next = replaceToken(source, "preset_value", String(presetValue ?? 0));
+function buildPricingScope(options: {
+  presets: PricePreset[];
+  inputs?: PricingRuntimeInputs;
+  presetValue?: number | null;
+}) {
+  const scope: Record<string, number | boolean> = {
+    preset_value: options.presetValue ?? 0,
+  };
 
-  for (const preset of presets) {
+  for (const preset of options.presets) {
     const variableKey = preset.variable_key?.trim();
     if (!variableKey) {
       continue;
     }
 
-    next = replaceToken(next, variableKey, String(preset.value));
+    scope[variableKey] = preset.value;
   }
 
-  for (const [key, value] of Object.entries(inputs)) {
-    next = replaceToken(next, key, formatRuntimeValue(value));
+  for (const [key, value] of Object.entries(options.inputs ?? {})) {
+    scope[key] = typeof value === "boolean" ? (value ? 1 : 0) : value;
   }
 
-  return next;
+  return scope;
 }
 
 export function evaluatePricingExpression(
@@ -198,14 +194,11 @@ export function evaluatePricingExpression(
   }
 
   try {
-    const prepared = applyPricingContext(
-      source,
-      options.presets,
-      options.inputs ?? {},
-      options.presetValue,
+    const result = evaluate(
+      normalizePricingExpressionSyntax(source),
+      buildPricingScope(options),
     );
 
-    const result = Function(`"use strict"; return (${prepared});`)();
     if (typeof result === "number" && Number.isFinite(result)) {
       return result;
     }
@@ -233,14 +226,15 @@ export function evaluatePricingCondition(
   }
 
   try {
-    const prepared = applyPricingContext(
-      condition.trim(),
-      options.presets,
-      options.inputs ?? {},
-      options.presetValue,
+    const result = evaluate(
+      normalizePricingExpressionSyntax(condition.trim()),
+      buildPricingScope(options),
     );
 
-    const result = Function(`"use strict"; return (${prepared});`)();
+    if (typeof result === "number") {
+      return Number.isFinite(result) && result !== 0;
+    }
+
     return Boolean(result);
   } catch {
     return false;

@@ -20,6 +20,7 @@ export interface Database {
           materials: string[];
           style: string[];
           cover_image: string | null;
+          model_3d_url: string | null;
           images: string[];
           price_from: number | null;
           formula_id: string | null;
@@ -42,6 +43,7 @@ export interface Database {
           materials?: string[];
           style?: string[];
           cover_image?: string | null;
+          model_3d_url?: string | null;
           images?: string[];
           price_from?: number | null;
           formula_id?: string | null;
@@ -77,6 +79,28 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["product_attributes"]["Insert"]>;
+        Relationships: [];
+      };
+      saved_configurations: {
+        Row: {
+          id: string;
+          session_id: string | null;
+          user_id: string | null;
+          product_type: "door" | "furniture" | "window";
+          configuration: Json;
+          name: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id?: string | null;
+          user_id?: string | null;
+          product_type: "door" | "furniture" | "window";
+          configuration?: Json;
+          name?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["saved_configurations"]["Insert"]>;
         Relationships: [];
       };
       support_chats: {

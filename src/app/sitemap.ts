@@ -3,6 +3,13 @@ import { getAllProductsForAdmin, getServices } from "@/lib/data/queries";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://svitlytsya.ua";
 
+function toMaterialSlug(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [services, products] = await Promise.all([
     getServices(),
@@ -38,5 +45,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...productRoutes, ...serviceRoutes];
+  const seenMaterialRoutes = new Set<string>();
+  const materialRoutes: MetadataRoute.Sitemap = [];
+
+  for (const product of products) {
+    for (const material of product.materials) {
+      const materialSlug = toMaterialSlug(material);
+      const route = `/products/${product.category}/${materialSlug}`;
+      if (seenMaterialRoutes.has(route)) {
+        continue;
+      }
+
+      seenMaterialRoutes.add(route);
+      materialRoutes.push({
+        url: `${baseUrl}${route}`,
+        lastModified: new Date(product.updated_at),
+        changeFrequency: "weekly",
+        priority: 0.6,
+      });
+    }
+  }
+
+  return [...staticRoutes, ...productRoutes, ...serviceRoutes, ...materialRoutes];
 }

@@ -292,6 +292,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
     author_location: formData.get("author_location") || undefined,
     content: formData.get("content"),
     rating: formData.get("rating"),
+    project_id: formData.get("product_id") || undefined,
     is_visible: parseFormBoolean(formData.get("is_visible")),
   });
 
@@ -305,6 +306,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
     author_location: parsed.data.author_location || null,
     content: parsed.data.content,
     rating: parsed.data.rating,
+    project_id: parsed.data.project_id || null,
     is_visible: parsed.data.is_visible,
   };
 

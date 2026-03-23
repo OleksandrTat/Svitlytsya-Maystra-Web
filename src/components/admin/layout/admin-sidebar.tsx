@@ -63,7 +63,6 @@ const primaryItems: NavItem[] = [
 const secondaryItems: NavItem[] = [
   { href: "/admin/products", label: "Продукти", icon: Package2 },
   { href: "/admin/services", label: "Послуги", icon: Wrench },
-  { href: "/admin/projects", label: "Проєкти", icon: FileText },
   { href: "/admin/company", label: "Компанія", icon: Building2 },
   { href: "/admin/pricing", label: "Ціни", icon: Calculator },
   { href: "/admin/support", label: "Підтримка", icon: HeadphonesIcon, badgeKey: "unreadSupport" },

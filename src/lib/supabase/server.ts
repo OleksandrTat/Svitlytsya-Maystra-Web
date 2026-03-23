@@ -57,3 +57,7 @@ export function createSupabaseServiceClient() {
   });
 }
 
+export type SupabaseServerClient = NonNullable<Awaited<ReturnType<typeof createSupabaseServerClient>>>;
+export type SupabaseServiceClient = NonNullable<ReturnType<typeof createSupabaseServiceClient>>;
+export type SupabaseDataClient = SupabaseServerClient | SupabaseServiceClient;
+

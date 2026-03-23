@@ -413,7 +413,7 @@ export function FormulaBuilderPopup({
                                 />
                                 <div className="space-y-1">
                                   <label className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Умова</label>
-                                  <input value={component.condition} onChange={(event) => updateComponent(component.id, { condition: event.target.value })} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 font-mono text-xs outline-none transition focus:border-[var(--color-primary)]" placeholder="has_glass === true" />
+                                  <input value={component.condition} onChange={(event) => updateComponent(component.id, { condition: event.target.value })} className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 font-mono text-xs outline-none transition focus:border-[var(--color-primary)]" placeholder="has_glass == true" />
                                   <p className="text-[10px] text-[var(--color-text-secondary)]">Якщо умова хибна, рядок ігнорується</p>
                                 </div>
                                 <div className="space-y-1">
