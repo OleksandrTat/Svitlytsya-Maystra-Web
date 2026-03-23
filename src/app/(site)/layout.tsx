@@ -1,6 +1,5 @@
 import { SiteHeader } from "@/components/shared/header";
 import { SiteFooter } from "@/components/shared/footer";
-import { AIChatWidget } from "@/components/chat/ai-chat-widget";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,7 +7,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <SiteHeader />
       <main>{children}</main>
       <SiteFooter />
-      <AIChatWidget />
     </div>
   );
 }

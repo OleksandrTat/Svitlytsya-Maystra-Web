@@ -8,11 +8,10 @@ export type InquiryStatus =
   | "done"
   | "archived";
 export type ProductStatus = "active" | "draft" | "archived";
-export type InquiryChannel = "web_form" | "ai_chat" | "phone" | "direct" | "referral";
+export type InquiryChannel = "web_form" | "phone" | "direct" | "referral";
 export type SupportChannel = "internal" | "email" | "viber" | "whatsapp";
 export type SupportChatStatus = "open" | "waiting" | "resolved" | "closed";
 export type SupportMessageSender = "client" | "admin" | "system";
-export type ChatRole = "user" | "assistant";
 export type ProductType = "door" | "furniture" | "window";
 export type OrderStatus =
   | "new"
@@ -119,27 +118,6 @@ export interface Inquiry {
   chat_session_id: string | null;
   channel: InquiryChannel;
   status: InquiryStatus;
-  created_at: string;
-}
-
-export interface AIChatSession {
-  id: string;
-  session_id: string;
-  user_id: string | null;
-  language: string;
-  messages_count: number;
-  resulted_in_inquiry: boolean;
-  inquiry_id: string | null;
-  created_at: string;
-  last_message_at: string;
-}
-
-export interface AIChatMessage {
-  id: string;
-  chat_session_id: string;
-  role: ChatRole;
-  content: string;
-  tokens_used: number;
   created_at: string;
 }
 

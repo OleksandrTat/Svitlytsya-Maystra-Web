@@ -124,10 +124,4 @@ export const mockSiteSettings: SiteSetting[] = [
     },
     description: "Контактні дані компанії",
   },
-  {
-    key: "ai_chat_system_prompt",
-    value:
-      "You are Mykola, digital assistant of Svitlytsya Maystra. Reply in Ukrainian or user language, never in Russian.",
-    description: "System prompt for AI chat",
-  },
 ];

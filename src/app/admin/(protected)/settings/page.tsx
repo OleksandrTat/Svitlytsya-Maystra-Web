@@ -1,28 +1,24 @@
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { NotificationSettings } from "@/components/admin/settings/notification-settings";
 import { OrderTemplatesSettings } from "@/components/admin/orders/order-templates-settings";
 import { upsertSiteSettingAction } from "@/actions/admin";
 import {
-  getAdminNotificationSettingsForAdmin,
   getOrderTemplatesForAdmin,
   getSiteSettingsForAdmin,
 } from "@/lib/data/queries";
 
 export default async function AdminSettingsPage() {
-  const [settings, notificationSettings, orderTemplates] = await Promise.all([
+  const [settings, orderTemplates] = await Promise.all([
     getSiteSettingsForAdmin(),
-    getAdminNotificationSettingsForAdmin(),
     getOrderTemplatesForAdmin(),
   ]);
 
   return (
     <AdminShell
       title="Налаштування"
-      description="Системні параметри, канали сповіщень і шаблони замовлень."
+      description="Системні параметри та шаблони замовлень."
     >
-      <NotificationSettings initial={notificationSettings} />
       <OrderTemplatesSettings initial={orderTemplates} />
 
       <AdminCard>

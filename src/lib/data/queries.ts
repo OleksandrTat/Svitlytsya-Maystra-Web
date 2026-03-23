@@ -4,8 +4,6 @@ import { mockInquiries, mockServices, mockSiteSettings, mockTestimonials } from 
 import type {
   ActivityLog,
   AuditLogRecord,
-  AIChatMessage,
-  AIChatSession,
   CompanyInfo,
   CompanyTeamMember,
   FormulaComponent,
@@ -26,11 +24,8 @@ import type {
   Testimonial,
 } from "@/lib/types";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
-import { DEFAULT_CHAT_SYSTEM_PROMPT } from "@/lib/chat/constants";
 import {
-  parseAdminNotificationSettings,
   parseOrderTemplates,
-  type AdminNotificationSettingsPayload,
   type OrderTemplate,
 } from "@/lib/admin/config";
 import { extractPricingIdentifiers } from "@/lib/pricing/expression";
@@ -219,24 +214,6 @@ function normalizeSlugValue(value: string) {
   } catch {
     return trimmed;
   }
-}
-
-function extractStringSetting(value: unknown) {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (
-    value &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    "prompt" in value &&
-    typeof value.prompt === "string"
-  ) {
-    return value.prompt;
-  }
-
-  return null;
 }
 
 function mapService(row: Database["public"]["Tables"]["services"]["Row"]): Service {
@@ -649,49 +626,6 @@ export async function getSiteSettingsForAdmin(): Promise<SiteSetting[]> {
   return data;
 }
 
-export async function getChatSystemPrompt(): Promise<string> {
-  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
-
-  let basePrompt = DEFAULT_CHAT_SYSTEM_PROMPT;
-
-  if (supabase) {
-    const [settingResult, productsResult] = await Promise.all([
-      supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "ai_chat_system_prompt")
-        .maybeSingle(),
-      supabase
-        .from("products")
-        .select("title, category, description, price_from, materials")
-        .eq("status", "active")
-        .order("sort_order", { ascending: true })
-        .limit(20),
-    ]);
-
-    const customPrompt = extractStringSetting(settingResult.data?.value);
-    if (customPrompt) {
-      basePrompt = customPrompt;
-    }
-
-    const products = productsResult.data ?? [];
-    if (products.length > 0) {
-      const productList = products
-        .map(
-          (product) =>
-            `- ${product.title} (${product.category})${
-              product.price_from ? `, від ${product.price_from} грн` : ""
-            }${product.materials?.length ? `, матеріали: ${product.materials.join(", ")}` : ""}`,
-        )
-        .join("\n");
-
-      basePrompt += `\n\nАктуальний асортимент майстерні:\n${productList}\n\nКоли клієнт питає про продукти — посилайся на ці позиції.`;
-    }
-  }
-
-  return basePrompt;
-}
-
 export async function getContactSettings() {
   const settings = await getSiteSettingsForAdmin();
   const contacts = settings.find((setting) => setting.key === "contacts")?.value;
@@ -738,47 +672,6 @@ export async function getActivityLogsForAdmin(limit = 100): Promise<ActivityLog[
   }
 
   return data as ActivityLog[];
-}
-
-export async function getChatSessionsForAdmin(limit = 100): Promise<AIChatSession[]> {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("ai_chat_sessions")
-    .select("*")
-    .order("last_message_at", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data as AIChatSession[];
-}
-
-export async function getChatMessagesForAdmin(chatSessionId: string, limit = 100): Promise<AIChatMessage[]> {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("ai_chat_messages")
-    .select("*")
-    .eq("chat_session_id", chatSessionId)
-    .order("created_at", { ascending: true })
-    .limit(limit);
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data as AIChatMessage[];
 }
 
 // ── SUPPORT CHAT ──────────────────────────────────────────
@@ -1067,22 +960,6 @@ export async function getClientOrderMessages(orderId: string, userId: string): P
   return data as OrderMessage[];
 }
 
-export async function getClientUnreadOrderNotificationsCount(userId: string) {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase || !userId) {
-    return 0;
-  }
-
-  const { count } = await supabase
-    .from("order_notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("is_read", false);
-
-  return count ?? 0;
-}
-
 export async function getOrdersForAdmin(limit = 200): Promise<Order[]> {
   const supabase = await getSupabaseForAdminQueries();
 
@@ -1339,25 +1216,6 @@ export async function getOrderTemplatesForAdmin(): Promise<OrderTemplate[]> {
   }
 
   return parseOrderTemplates(data?.value ?? null);
-}
-
-export async function getAdminNotificationSettingsForAdmin(): Promise<AdminNotificationSettingsPayload> {
-  const supabase = await getSupabaseForAdminQueries();
-  if (!supabase) {
-    return parseAdminNotificationSettings(null);
-  }
-
-  const { data, error } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "admin_notification_settings")
-    .maybeSingle();
-
-  if (error) {
-    return parseAdminNotificationSettings(null);
-  }
-
-  return parseAdminNotificationSettings(data?.value ?? null);
 }
 
 

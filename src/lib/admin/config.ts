@@ -53,33 +53,6 @@ export const DEFAULT_ORDER_TEMPLATES: OrderTemplate[] = [
   },
 ];
 
-export type NotificationEventKey =
-  | "new_inquiry"
-  | "new_message"
-  | "status_change"
-  | "new_comment"
-  | "deadline";
-
-export type NotificationChannel = "email" | "sound" | "push";
-
-export type NotificationSettings = Record<
-  NotificationEventKey,
-  Record<NotificationChannel, boolean>
->;
-
-export type AdminNotificationSettingsPayload = {
-  settings: NotificationSettings;
-  emailAddress: string | null;
-};
-
-export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
-  new_inquiry: { email: true, sound: true, push: true },
-  new_message: { email: true, sound: true, push: true },
-  status_change: { email: false, sound: false, push: true },
-  new_comment: { email: true, sound: false, push: false },
-  deadline: { email: true, sound: false, push: true },
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -142,44 +115,4 @@ export function parseOrderTemplates(value: unknown): OrderTemplate[] {
     .filter((item): item is OrderTemplate => item !== null);
 
   return templates.length > 0 ? templates : DEFAULT_ORDER_TEMPLATES;
-}
-
-export function parseAdminNotificationSettings(
-  value: unknown,
-): AdminNotificationSettingsPayload {
-  if (!isRecord(value)) {
-    return {
-      settings: DEFAULT_NOTIFICATION_SETTINGS,
-      emailAddress: null,
-    };
-  }
-
-  const rawSettings = isRecord(value.settings) ? value.settings : {};
-  const normalized: NotificationSettings = {
-    new_inquiry: { ...DEFAULT_NOTIFICATION_SETTINGS.new_inquiry },
-    new_message: { ...DEFAULT_NOTIFICATION_SETTINGS.new_message },
-    status_change: { ...DEFAULT_NOTIFICATION_SETTINGS.status_change },
-    new_comment: { ...DEFAULT_NOTIFICATION_SETTINGS.new_comment },
-    deadline: { ...DEFAULT_NOTIFICATION_SETTINGS.deadline },
-  };
-
-  const events = Object.keys(normalized) as NotificationEventKey[];
-  const channels: NotificationChannel[] = ["email", "sound", "push"];
-
-  for (const event of events) {
-    const entry = rawSettings[event];
-    if (!isRecord(entry)) {
-      continue;
-    }
-    for (const channel of channels) {
-      if (typeof entry[channel] === "boolean") {
-        normalized[event][channel] = entry[channel];
-      }
-    }
-  }
-
-  return {
-    settings: normalized,
-    emailAddress: typeof value.emailAddress === "string" ? value.emailAddress : null,
-  };
 }

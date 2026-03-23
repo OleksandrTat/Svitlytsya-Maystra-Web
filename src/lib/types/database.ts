@@ -234,7 +234,7 @@ export interface Database {
           source_page: string | null;
           configuration: Json | null;
           chat_session_id: string | null;
-          channel: "web_form" | "ai_chat" | "phone" | "direct" | "referral";
+          channel: "web_form" | "phone" | "direct" | "referral";
           status:
             | "new"
             | "contacted"
@@ -256,7 +256,7 @@ export interface Database {
           source_page?: string | null;
           configuration?: Json | null;
           chat_session_id?: string | null;
-          channel?: "web_form" | "ai_chat" | "phone" | "direct" | "referral";
+          channel?: "web_form" | "phone" | "direct" | "referral";
           status?:
             | "new"
             | "contacted"
@@ -295,52 +295,6 @@ export interface Database {
           accepted_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["client_invitations"]["Insert"]>;
-        Relationships: [];
-      };
-      ai_chat_sessions: {
-        Row: {
-          id: string;
-          session_id: string;
-          user_id: string | null;
-          language: string;
-          messages_count: number;
-          resulted_in_inquiry: boolean;
-          inquiry_id: string | null;
-          created_at: string;
-          last_message_at: string;
-        };
-        Insert: {
-          id?: string;
-          session_id: string;
-          user_id?: string | null;
-          language?: string;
-          messages_count?: number;
-          resulted_in_inquiry?: boolean;
-          inquiry_id?: string | null;
-          created_at?: string;
-          last_message_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["ai_chat_sessions"]["Insert"]>;
-        Relationships: [];
-      };
-      ai_chat_messages: {
-        Row: {
-          id: string;
-          chat_session_id: string;
-          role: "user" | "assistant";
-          content: string;
-          tokens_used: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          chat_session_id: string;
-          role: "user" | "assistant";
-          content: string;
-          tokens_used?: number;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["ai_chat_messages"]["Insert"]>;
         Relationships: [];
       };
       user_profiles: {
@@ -581,26 +535,6 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["order_messages"]["Insert"]>;
-        Relationships: [];
-      };
-      order_notifications: {
-        Row: {
-          id: string;
-          order_id: string;
-          user_id: string;
-          type: "status_changed" | "photo_added" | "message_received" | "order_ready";
-          is_read: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          order_id: string;
-          user_id: string;
-          type: "status_changed" | "photo_added" | "message_received" | "order_ready";
-          is_read?: boolean;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["order_notifications"]["Insert"]>;
         Relationships: [];
       };
       price_presets: {
@@ -872,8 +806,7 @@ export interface Database {
         | "in_progress"
         | "done"
         | "archived";
-      inquiry_channel: "web_form" | "ai_chat" | "phone" | "direct" | "referral";
-      chat_role: "user" | "assistant";
+      inquiry_channel: "web_form" | "phone" | "direct" | "referral";
       product_type: "door" | "furniture" | "window";
       order_status:
         | "new"
@@ -888,7 +821,6 @@ export interface Database {
       order_priority: "normal" | "urgent";
       order_message_sender_type: "client" | "admin";
       order_document_type: "contract" | "act";
-      order_notification_type: "status_changed" | "photo_added" | "message_received" | "order_ready";
       price_preset_category: "material" | "consumable" | "labor" | "overhead";
       pricing_product_type: "door" | "furniture" | "window" | "restoration";
       formula_component_type: "material" | "consumable" | "labor" | "overhead" | "tax" | "margin";
