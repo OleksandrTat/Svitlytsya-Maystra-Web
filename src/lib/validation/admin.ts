@@ -13,7 +13,7 @@ export const serviceFormSchema = z.object({
   process_steps: z.string().default(""),
   cover_image: z.union([z.string().url(), z.literal("")]).default(""),
   price_from: z.coerce.number().min(0).optional(),
-  price_unit: z.string().default("РіСЂРЅ"),
+  price_unit: z.string().default("???"),
   duration_days_from: z.coerce.number().int().min(1).optional(),
   duration_days_to: z.coerce.number().int().min(1).optional(),
   is_active: z.boolean().default(true),

@@ -84,7 +84,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const parsed = serviceFormSchema.safeParse({
@@ -100,7 +100,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     process_steps: formData.get("process_steps") || "[]",
     cover_image: formData.get("cover_image") || "",
     price_from: formData.get("price_from") || undefined,
-    price_unit: formData.get("price_unit") || "РіСЂРЅ",
+    price_unit: formData.get("price_unit") || "???",
     duration_days_from: formData.get("duration_days_from") || undefined,
     duration_days_to: formData.get("duration_days_to") || undefined,
     is_active: parseFormBoolean(formData.get("is_active")),
@@ -111,7 +111,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
   });
 
   if (!parsed.success) {
-    return { ok: false, message: "РќРµРєРѕСЂРµРєС‚РЅС– РґР°РЅС– РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Некоректні дані послуги." };
   }
 
   const { data: existing } = parsed.data.id
@@ -136,7 +136,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     cover_image: parsed.data.cover_image || null,
     gallery: Array.isArray(existing?.gallery) ? existing.gallery : [],
     price_from: parseNullableNumber(formData.get("price_from")),
-    price_unit: parsed.data.price_unit || "РіСЂРЅ",
+    price_unit: parsed.data.price_unit || "???",
     duration_days_from: parseNullableInteger(formData.get("duration_days_from")),
     duration_days_to: parseNullableInteger(formData.get("duration_days_to")),
     is_active: parsed.data.is_active,
@@ -149,7 +149,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
   const { error } = await supabase.from("services").upsert(payload);
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РїРѕСЃР»СѓРіСѓ." };
+    return { ok: false, message: "Не вдалося зберегти послугу." };
   }
 
   await logActivity(parsed.data.id ? "update" : "create", "service", payload.id, payload);
@@ -162,7 +162,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
   revalidatePath(`/services/${payload.slug}`);
   revalidatePath("/admin/services");
 
-  return { ok: true, message: "РџРѕСЃР»СѓРіСѓ Р·Р±РµСЂРµР¶РµРЅРѕ." };
+  return { ok: true, message: "Послугу збережено." };
 }
 
 export async function toggleServiceActiveAction(formData: FormData): Promise<ActionResult> {
@@ -170,12 +170,12 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<Act
 
   const id = String(formData.get("id") || "").trim();
   if (!id) {
-    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вказано ID послуги." };
   }
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const isActive = parseFormBoolean(formData.get("is_active"));
@@ -188,7 +188,7 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<Act
     .maybeSingle();
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РѕРЅРѕРІРёС‚Рё СЃС‚Р°С‚СѓСЃ РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вдалося оновити статус послуги." };
   }
 
   await logActivity("update", "service", id, { is_active: isActive });
@@ -200,7 +200,7 @@ export async function toggleServiceActiveAction(formData: FormData): Promise<Act
   }
   revalidatePath("/admin/services");
 
-  return { ok: true, message: "РЎС‚Р°С‚СѓСЃ РїРѕСЃР»СѓРіРё РѕРЅРѕРІР»РµРЅРѕ." };
+  return { ok: true, message: "Статус послуги оновлено." };
 }
 
 export async function toggleServiceFeaturedAction(formData: FormData): Promise<ActionResult> {
@@ -208,12 +208,12 @@ export async function toggleServiceFeaturedAction(formData: FormData): Promise<A
 
   const id = String(formData.get("id") || "").trim();
   if (!id) {
-    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вказано ID послуги." };
   }
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const isFeatured = parseFormBoolean(formData.get("is_featured"));
@@ -226,7 +226,7 @@ export async function toggleServiceFeaturedAction(formData: FormData): Promise<A
     .maybeSingle();
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РѕРЅРѕРІРёС‚Рё РІРёРґС–Р»РµРЅРЅСЏ РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вдалося оновити виділення послуги." };
   }
 
   await logActivity("update", "service", id, { is_featured: isFeatured });
@@ -238,7 +238,7 @@ export async function toggleServiceFeaturedAction(formData: FormData): Promise<A
   }
   revalidatePath("/admin/services");
 
-  return { ok: true, message: "Р’РёРґС–Р»РµРЅРЅСЏ РїРѕСЃР»СѓРіРё РѕРЅРѕРІР»РµРЅРѕ." };
+  return { ok: true, message: "Виділення послуги оновлено." };
 }
 
 export async function deleteServiceAction(formData: FormData): Promise<ActionResult> {
@@ -246,12 +246,12 @@ export async function deleteServiceAction(formData: FormData): Promise<ActionRes
 
   const id = String(formData.get("id") || "");
   if (!id) {
-    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РїРѕСЃР»СѓРіРё." };
+    return { ok: false, message: "Не вказано ID послуги." };
   }
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const { data: existing } = await supabase
@@ -263,7 +263,7 @@ export async function deleteServiceAction(formData: FormData): Promise<ActionRes
   const { error } = await supabase.from("services").delete().eq("id", id);
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РІРёРґР°Р»РёС‚Рё РїРѕСЃР»СѓРіСѓ." };
+    return { ok: false, message: "Не вдалося видалити послугу." };
   }
 
   await logActivity("delete", "service", id, null);
@@ -275,7 +275,7 @@ export async function deleteServiceAction(formData: FormData): Promise<ActionRes
   }
   revalidatePath("/admin/services");
 
-  return { ok: true, message: "РџРѕСЃР»СѓРіСѓ РІРёРґР°Р»РµРЅРѕ." };
+  return { ok: true, message: "Послугу видалено." };
 }
 
 export async function upsertTestimonialAction(formData: FormData): Promise<ActionResult> {
@@ -283,7 +283,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const parsed = testimonialFormSchema.safeParse({
@@ -297,7 +297,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
   });
 
   if (!parsed.success) {
-    return { ok: false, message: "РќРµРєРѕСЂРµРєС‚РЅС– РґР°РЅС– РІС–РґРіСѓРєСѓ." };
+    return { ok: false, message: "Некоректні дані відгуку." };
   }
 
   const payload = {
@@ -313,7 +313,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
   const { error } = await supabase.from("testimonials").upsert(payload);
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РІС–РґРіСѓРє." };
+    return { ok: false, message: "Не вдалося зберегти відгук." };
   }
 
   await logActivity(parsed.data.id ? "update" : "create", "testimonial", payload.id, payload);
@@ -321,7 +321,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
   revalidatePath("/");
   revalidatePath("/admin/testimonials");
 
-  return { ok: true, message: "Р’С–РґРіСѓРє Р·Р±РµСЂРµР¶РµРЅРѕ." };
+  return { ok: true, message: "Відгук збережено." };
 }
 
 export async function deleteTestimonialAction(formData: FormData): Promise<ActionResult> {
@@ -329,18 +329,18 @@ export async function deleteTestimonialAction(formData: FormData): Promise<Actio
 
   const id = String(formData.get("id") || "");
   if (!id) {
-    return { ok: false, message: "РќРµ РІРєР°Р·Р°РЅРѕ ID РІС–РґРіСѓРєСѓ." };
+    return { ok: false, message: "Не вказано ID відгуку." };
   }
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const { error } = await supabase.from("testimonials").delete().eq("id", id);
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ РІРёРґР°Р»РёС‚Рё РІС–РґРіСѓРє." };
+    return { ok: false, message: "Не вдалося видалити відгук." };
   }
 
   await logActivity("delete", "testimonial", id, null);
@@ -348,7 +348,7 @@ export async function deleteTestimonialAction(formData: FormData): Promise<Actio
   revalidatePath("/");
   revalidatePath("/admin/testimonials");
 
-  return { ok: true, message: "Р’С–РґРіСѓРє РІРёРґР°Р»РµРЅРѕ." };
+  return { ok: true, message: "Відгук видалено." };
 }
 
 export async function updateInquiryStatusAction(formData: FormData): Promise<ActionResult> {
@@ -358,18 +358,18 @@ export async function updateInquiryStatusAction(formData: FormData): Promise<Act
   const status = String(formData.get("status") || "") as InquiryStatus;
 
   if (!id || !status) {
-    return { ok: false, message: "РќРµРєРѕСЂРµРєС‚РЅС– РґР°РЅС– Р·Р°СЏРІРєРё." };
+    return { ok: false, message: "Некоректні дані заявки." };
   }
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const { error } = await supabase.from("inquiries").update({ status }).eq("id", id);
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ Р·РјС–РЅРёС‚Рё СЃС‚Р°С‚СѓСЃ Р·Р°СЏРІРєРё." };
+    return { ok: false, message: "Не вдалося змінити статус заявки." };
   }
 
   await logActivity("update", "inquiry", id, { status });
@@ -378,7 +378,7 @@ export async function updateInquiryStatusAction(formData: FormData): Promise<Act
   revalidatePath("/admin/inquiries");
   revalidateTag("admin-counts", "default");
 
-  return { ok: true, message: "РЎС‚Р°С‚СѓСЃ Р·Р°СЏРІРєРё РѕРЅРѕРІР»РµРЅРѕ." };
+  return { ok: true, message: "Статус заявки оновлено." };
 }
 
 export async function upsertCompanyInfoAction(formData: FormData): Promise<ActionResult> {
@@ -386,14 +386,14 @@ export async function upsertCompanyInfoAction(formData: FormData): Promise<Actio
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const providedId = String(formData.get("id") || "").trim();
   const name = String(formData.get("name") || "").trim();
 
   if (!name) {
-    return { ok: false, message: "РќР°Р·РІР° РєРѕРјРїР°РЅС–С— РѕР±РѕРІ'СЏР·РєРѕРІР°." };
+    return { ok: false, message: "Назва компанії обов'язкова." };
   }
 
   let companyId = providedId;
@@ -431,7 +431,7 @@ export async function upsertCompanyInfoAction(formData: FormData): Promise<Actio
   const { error } = await supabase.from("company_info").upsert(payload);
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РґР°РЅС– РєРѕРјРїР°РЅС–С—." };
+    return { ok: false, message: "Не вдалося зберегти дані компанії." };
   }
 
   await logActivity(providedId ? "update" : "create", "company_info", companyId, payload);
@@ -441,7 +441,7 @@ export async function upsertCompanyInfoAction(formData: FormData): Promise<Actio
   revalidatePath("/admin");
   revalidatePath("/admin/company");
 
-  return { ok: true, message: "Р”Р°РЅС– РєРѕРјРїР°РЅС–С— Р·Р±РµСЂРµР¶РµРЅРѕ." };
+  return { ok: true, message: "Дані компанії збережено." };
 }
 
 export async function upsertSiteSettingAction(formData: FormData): Promise<ActionResult> {
@@ -449,7 +449,7 @@ export async function upsertSiteSettingAction(formData: FormData): Promise<Actio
 
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
-    return { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№." };
+    return { ok: false, message: "Supabase не налаштований." };
   }
 
   const parsed = settingFormSchema.safeParse({
@@ -459,7 +459,7 @@ export async function upsertSiteSettingAction(formData: FormData): Promise<Actio
   });
 
   if (!parsed.success) {
-    return { ok: false, message: "РќРµРєРѕСЂРµРєС‚РЅС– РґР°РЅС– РЅР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ." };
+    return { ok: false, message: "Некоректні дані налаштування." };
   }
 
   let parsedValue: unknown = parsed.data.value;
@@ -478,7 +478,7 @@ export async function upsertSiteSettingAction(formData: FormData): Promise<Actio
   const { error } = await supabase.from("site_settings").upsert(payload);
 
   if (error) {
-    return { ok: false, message: "РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РЅР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ." };
+    return { ok: false, message: "Не вдалося зберегти налаштування." };
   }
 
   await logActivity("update", "site_setting", payload.key, payload as Record<string, unknown>);
@@ -487,5 +487,5 @@ export async function upsertSiteSettingAction(formData: FormData): Promise<Actio
   revalidatePath("/contact");
   revalidatePath("/admin/settings");
 
-  return { ok: true, message: "РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РѕРЅРѕРІР»РµРЅРѕ." };
+  return { ok: true, message: "Налаштування оновлено." };
 }

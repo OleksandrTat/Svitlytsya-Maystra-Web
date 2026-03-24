@@ -25,7 +25,7 @@ export async function generateMetadata({
   const service = await getServiceBySlug(slug);
 
   if (!service) {
-    return { title: "РџРѕСЃР»СѓРіСѓ РЅРµ Р·РЅР°Р№РґРµРЅРѕ" };
+    return { title: "Послугу не знайдено" };
   }
 
   return {
@@ -56,7 +56,7 @@ export default async function ServicePage({
                 <Image src={service.cover_image} alt={service.title} fill className="object-cover" priority />
               ) : (
                 <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,#a4511f,#3b2414)] text-7xl text-white">
-                  {service.icon ?? "рџљЄ"}
+                  {service.icon ?? "??"}
                 </div>
               )}
             </div>
@@ -73,27 +73,27 @@ export default async function ServicePage({
               <div className="flex flex-wrap gap-3">
                 {service.price_from ? (
                   <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)]">
-                    Р’Р°СЂС‚С–СЃС‚СЊ РІС–Рґ {service.price_from.toLocaleString("uk-UA")} {service.price_unit ?? "РіСЂРЅ"}
+                    Вартість від {service.price_from.toLocaleString("uk-UA")} {service.price_unit ?? "грн"}
                   </p>
                 ) : (
                   <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)]">
-                    Р’Р°СЂС‚С–СЃС‚СЊ РІРёР·РЅР°С‡Р°С”С‚СЊСЃСЏ С–РЅРґРёРІС–РґСѓР°Р»СЊРЅРѕ РїС–СЃР»СЏ РєРѕРЅСЃСѓР»СЊС‚Р°С†С–С—.
+                    ???????? ???????????? ????????????? ????? ????????????.
                   </p>
                 )}
 
                 {service.duration_days_from ? (
                   <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)]">
-                    РћСЂС–С”РЅС‚РѕРІРЅРёР№ С‚РµСЂРјС–РЅ: {service.duration_days_from}-{service.duration_days_to ?? service.duration_days_from} РґРЅС–РІ
+                    Орієнтовний термін: {service.duration_days_from}-{service.duration_days_to ?? service.duration_days_from} днів
                   </p>
                 ) : null}
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <Link href="/contact" className="rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white">
-                  Р—Р°РјРѕРІРёС‚Рё
+                  ????????
                 </Link>
                 <Link href="/contact" className="rounded-full border border-[var(--color-border)] px-6 py-3 text-sm text-[var(--color-text-secondary)]">
-                  РћС‚СЂРёРјР°С‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє
+                  ???????? ??????????
                 </Link>
               </div>
             </div>
@@ -104,12 +104,12 @@ export default async function ServicePage({
       {service.process_steps.length > 0 ? (
         <section className="bg-[var(--color-surface)] py-14 md:py-20">
           <Container>
-            <SectionHeading title="РџСЂРѕС†РµСЃ" />
+            <SectionHeading title="??????" />
             <ol className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {service.process_steps.map((step, index) => (
                 <li key={`${step.step}-${step.title}`} className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
                   <p className="text-xs uppercase tracking-[0.12em] text-[var(--color-secondary)]">
-                    Р•С‚Р°Рї {index + 1}
+                    ???? {index + 1}
                   </p>
                   <p className="mt-2 text-sm font-medium text-[var(--color-text-primary)]">{step.title}</p>
                   {step.description ? (
@@ -125,7 +125,7 @@ export default async function ServicePage({
       {service.features.length > 0 ? (
         <section className="py-14 md:py-20">
           <Container>
-            <SectionHeading title="РџРµСЂРµРІР°РіРё СЃРµСЂРІС–СЃСѓ" />
+            <SectionHeading title="Переваги сервісу" />
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {service.features.map((feature) => (
                 <article key={feature.title} className="rounded-2xl border border-[var(--color-border)] bg-white p-5">

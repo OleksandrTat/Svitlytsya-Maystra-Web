@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   if (!supabase) {
     return NextResponse.json(
-      { ok: false, message: "Supabase РЅРµ РЅР°Р»Р°С€С‚РѕРІР°РЅРёР№" },
+      { ok: false, message: "Supabase не налаштований" },
       { status: 500 },
     );
   }
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json(
-      { ok: false, message: "РџРѕРјРёР»РєР° Р·Р±РµСЂРµР¶РµРЅРЅСЏ Р·Р°СЏРІРєРё" },
+      { ok: false, message: "Помилка збереження заявки" },
       { status: 500 },
     );
   }

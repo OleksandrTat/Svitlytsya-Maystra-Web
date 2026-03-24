@@ -28,8 +28,8 @@ export default async function AdminOrdersPage() {
 
     return {
       ...order,
-      clientName: client?.display_name ?? inquiry?.name ?? "РљР»С–С”РЅС‚",
-      serviceType: inquiry?.service_type ?? "вЂ”",
+      clientName: client?.display_name ?? inquiry?.name ?? "??????",
+      serviceType: inquiry?.service_type ?? "?",
     };
   });
 
@@ -48,8 +48,8 @@ export default async function AdminOrdersPage() {
 
   return (
     <AdminShell
-      title="Р—Р°РјРѕРІР»РµРЅРЅСЏ"
-      description="Workspace РґР»СЏ СЂРѕР±РѕС‚Рё С–Р· Р·Р°РјРѕРІР»РµРЅРЅСЏРјРё: СЃС‚Р°С‚СѓСЃРё, РєР»С–С”РЅС‚Рё, РїРѕРІС–РґРѕРјР»РµРЅРЅСЏ С‚Р° РїСЂРёРІ'СЏР·Р°РЅС– РїСЂРѕРґСѓРєС‚Рё."
+      title="Замовлення"
+      description="Workspace для роботи із замовленнями: статуси, клієнти, повідомлення та прив'язані продукти."
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
