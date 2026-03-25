@@ -144,8 +144,6 @@ export default async function ProductPage({
     (testimonial) => testimonial.project_id === product.id,
   ).length;
   const model3dUrl = product.model_3d_url?.trim() || null;
-  const arPlacement =
-    product.category === "doors" || product.category === "windows" ? "wall" : "floor";
 
   return (
     <>
@@ -169,12 +167,7 @@ export default async function ProductPage({
               <ProductGallery images={galleryImages} title={product.title} />
 
               {model3dUrl ? (
-                <Product3DViewer
-                  modelUrl={model3dUrl}
-                  posterUrl={product.cover_image ?? undefined}
-                  productTitle={product.title}
-                  arPlacement={arPlacement}
-                />
+                <Product3DViewer modelUrl={model3dUrl} productTitle={product.title} />
               ) : null}
             </div>
 
@@ -185,7 +178,7 @@ export default async function ProductPage({
                 </span>
                 {product.status !== "active" ? (
                   <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                    {PRODUCT_STATUS_LABELS[product.status]} · лише для адміна
+                    {PRODUCT_STATUS_LABELS[product.status]} • лише для адміна
                   </span>
                 ) : null}
               </div>
@@ -242,7 +235,7 @@ export default async function ProductPage({
                   href="/products"
                   className="rounded-full border border-[var(--color-border)] px-6 py-3 text-sm text-[var(--color-text-secondary)]"
                 >
-                  Повернутись до каталогу
+                  Повернутися до каталогу
                 </Link>
               </div>
 

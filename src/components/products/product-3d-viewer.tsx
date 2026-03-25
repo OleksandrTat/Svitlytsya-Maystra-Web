@@ -1,79 +1,284 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Box, Info, RotateCcw, Smartphone } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-type ModelViewerInstance = HTMLElement & {
-  resetTurntableRotation?: () => void;
-};
+import { Box, RotateCcw } from "lucide-react";
+import {
+  ACESFilmicToneMapping,
+  Box3,
+  Clock,
+  Color,
+  DirectionalLight,
+  DoubleSide,
+  Group,
+  HemisphereLight,
+  Mesh,
+  MeshStandardMaterial,
+  Object3D,
+  PCFSoftShadowMap,
+  PerspectiveCamera,
+  Scene,
+  SRGBColorSpace,
+  Vector3,
+  WebGLRenderer,
+} from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 type Props = {
   modelUrl: string;
-  posterUrl?: string;
   productTitle: string;
-  arPlacement?: "wall" | "floor";
 };
 
-export function Product3DViewer({
-  modelUrl,
-  posterUrl,
-  productTitle,
-  arPlacement = "wall",
-}: Props) {
-  const viewerRef = useRef<ModelViewerInstance | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [isARSupported, setIsARSupported] = useState(false);
-  const [showTip, setShowTip] = useState(true);
+type ViewerState = "loading" | "ready" | "error";
 
-  useEffect(() => {
-    void import("@google/model-viewer");
-  }, []);
+type ViewerRuntime = {
+  camera: PerspectiveCamera;
+  controls: OrbitControls;
+  renderFrame: () => void;
+  focusModel: () => void;
+};
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
+function isMesh(value: Object3D): value is Mesh {
+  return "isMesh" in value && Boolean(value.isMesh);
+}
+
+function disposeObject(root: Object3D) {
+  root.traverse((child: Object3D) => {
+    if (!isMesh(child)) {
       return;
     }
 
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent);
-    setIsARSupported(isMobile);
-  }, []);
+    child.geometry.dispose();
 
-  useEffect(() => {
-    const viewer = viewerRef.current;
-    if (!viewer) {
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    for (const material of materials) {
+      material.dispose();
+    }
+  });
+}
+
+function prepareModel(root: Object3D) {
+  root.traverse((child: Object3D) => {
+    if (!isMesh(child)) {
       return;
     }
 
-    const handleLoad = () => {
-      setIsLoaded(true);
-      setIsLoading(false);
-      window.setTimeout(() => setShowTip(false), 3000);
+    child.castShadow = true;
+    child.receiveShadow = true;
+
+    if (!child.geometry.attributes.normal) {
+      child.geometry.computeVertexNormals();
+    }
+
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    for (const material of materials) {
+      material.side = DoubleSide;
+      material.needsUpdate = true;
+
+      if (material instanceof MeshStandardMaterial) {
+        material.roughness = Math.max(material.roughness, 0.38);
+        material.metalness = Math.min(material.metalness, 0.32);
+      }
+    }
+  });
+}
+
+function fitCameraToObject(camera: PerspectiveCamera, controls: OrbitControls, object: Object3D) {
+  const box = new Box3().setFromObject(object);
+  if (box.isEmpty()) {
+    return;
+  }
+
+  const size = box.getSize(new Vector3());
+  const center = box.getCenter(new Vector3());
+  const maxDimension = Math.max(size.x, size.y, size.z, 0.25);
+  const fov = (camera.fov * Math.PI) / 180;
+  const distance = (maxDimension / (2 * Math.tan(fov / 2))) * 1.8;
+  const direction = new Vector3(1, 0.55, 1).normalize();
+
+  camera.position.copy(center).add(direction.multiplyScalar(distance));
+  camera.near = Math.max(distance / 100, 0.01);
+  camera.far = Math.max(distance * 25, 100);
+  camera.updateProjectionMatrix();
+
+  controls.target.copy(center);
+  controls.minDistance = Math.max(maxDimension * 0.45, 0.5);
+  controls.maxDistance = Math.max(maxDimension * 9, 8);
+  controls.update();
+}
+
+function setRendererSize(
+  renderer: WebGLRenderer,
+  camera: PerspectiveCamera,
+  container: HTMLDivElement,
+) {
+  const width = Math.max(container.clientWidth, 1);
+  const height = Math.max(container.clientHeight, 1);
+
+  renderer.setSize(width, height, false);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+}
+
+export function Product3DViewer({ modelUrl, productTitle }: Props) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const runtimeRef = useRef<ViewerRuntime | null>(null);
+  const [viewerState, setViewerState] = useState<ViewerState>("loading");
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    let isDisposed = false;
+    let currentModel: Group | null = null;
+
+    const scene = new Scene();
+    scene.background = new Color("#f2eadf");
+
+    const camera = new PerspectiveCamera(36, 1, 0.1, 1000);
+    const renderer = new WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance",
+    });
+    renderer.outputColorSpace = SRGBColorSpace;
+    renderer.toneMapping = ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = PCFSoftShadowMap;
+    renderer.domElement.className = "h-full w-full";
+    container.innerHTML = "";
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.screenSpacePanning = false;
+    controls.minPolarAngle = Math.PI * 0.18;
+    controls.maxPolarAngle = Math.PI * 0.48;
+
+    const hemiLight = new HemisphereLight("#fff5e6", "#7b624f", 1.7);
+    scene.add(hemiLight);
+
+    const keyLight = new DirectionalLight("#fff8ef", 2.6);
+    keyLight.position.set(5, 8, 6);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+
+    const fillLight = new DirectionalLight("#f5e6d3", 1.2);
+    fillLight.position.set(-5, 3, -4);
+    scene.add(fillLight);
+
+    const loader = new GLTFLoader();
+    loader.setCrossOrigin("anonymous");
+
+    const clock = new Clock();
+
+    const renderFrame = () => {
+      if (isDisposed) {
+        return;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
     };
 
-    const handleError = () => {
-      setHasError(true);
-      setIsLoading(false);
+    const animationLoop = () => {
+      if (isDisposed) {
+        return;
+      }
+
+      clock.getDelta();
+      renderFrame();
+      window.requestAnimationFrame(animationLoop);
     };
 
-    viewer.addEventListener("load", handleLoad);
-    viewer.addEventListener("error", handleError);
+    const focusModel = () => {
+      if (!currentModel) {
+        return;
+      }
+
+      fitCameraToObject(camera, controls, currentModel);
+      renderFrame();
+    };
+
+    runtimeRef.current = {
+      camera,
+      controls,
+      renderFrame,
+      focusModel,
+    };
+
+    const handleResize = () => {
+      setRendererSize(renderer, camera, container);
+      renderFrame();
+    };
+
+    handleResize();
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
+
+    loader.load(
+      modelUrl,
+      (gltf: GLTF) => {
+        if (isDisposed) {
+          return;
+        }
+
+        currentModel = gltf.scene;
+        prepareModel(currentModel);
+        scene.add(currentModel);
+        focusModel();
+        setProgress(100);
+        setViewerState("ready");
+      },
+      (event: ProgressEvent<EventTarget>) => {
+        if (isDisposed) {
+          return;
+        }
+
+        if (event.total > 0) {
+          setProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+        }
+      },
+      () => {
+        if (!isDisposed) {
+          setViewerState("error");
+        }
+      },
+    );
+
+    window.requestAnimationFrame(animationLoop);
 
     return () => {
-      viewer.removeEventListener("load", handleLoad);
-      viewer.removeEventListener("error", handleError);
+      isDisposed = true;
+      resizeObserver.disconnect();
+      controls.dispose();
+      runtimeRef.current = null;
+
+      if (currentModel) {
+        scene.remove(currentModel);
+        disposeObject(currentModel);
+      }
+
+      renderer.dispose();
+      container.innerHTML = "";
     };
   }, [modelUrl]);
 
-  if (hasError) {
+  if (viewerState === "error") {
     return (
-      <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="flex h-72 items-center justify-center rounded-3xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="text-center">
           <Box size={32} className="mx-auto text-[var(--color-border)]" />
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-            3D-модель недоступна
+            3D-модель не вдалося показати
           </p>
         </div>
       </div>
@@ -82,100 +287,41 @@ export function Product3DViewer({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Box size={16} className="text-[var(--color-primary)]" />
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">3D-перегляд</p>
         </div>
-        {isARSupported ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-            <Smartphone size={10} />
-            AR доступний
-          </span>
-        ) : null}
+
+        <button
+          type="button"
+          onClick={() => runtimeRef.current?.focusModel()}
+          disabled={viewerState !== "ready"}
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <RotateCcw size={12} />
+          Скинути ракурс
+        </button>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-        {isLoading ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]">
+      <div className="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[radial-gradient(circle_at_top,#fff7ee_0%,#f4ebdf_55%,#eadfce_100%)]">
+        <div ref={containerRef} className="h-[480px] w-full" aria-label={productTitle} />
+
+        {viewerState === "loading" ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]/82 backdrop-blur-sm">
             <div className="text-center">
               <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
               <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-                Завантаження 3D-моделі...
+                Завантаження 3D-моделі{progress > 0 ? ` (${progress}%)` : "..."}
               </p>
             </div>
           </div>
         ) : null}
-
-        {isLoaded && showTip ? (
-          <div className="absolute bottom-14 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white backdrop-blur-sm">
-            Перетягніть для обертання · Прокрутіть для масштабу
-          </div>
-        ) : null}
-
-        <model-viewer
-          ref={viewerRef}
-          src={modelUrl}
-          poster={posterUrl}
-          alt={`3D модель: ${productTitle}`}
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-placement={arPlacement}
-          camera-controls
-          auto-rotate
-          auto-rotate-delay="3000"
-          rotation-per-second="20deg"
-          shadow-intensity="1"
-          shadow-softness="0.8"
-          environment-image="neutral"
-          exposure="0.9"
-          loading="eager"
-          reveal="auto"
-          interaction-prompt="auto"
-          className="h-[420px] w-full bg-transparent"
-        >
-          <button
-            slot="ar-button"
-            className={cn(
-              "absolute bottom-4 right-4 flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold shadow-lg transition",
-              "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-700)]",
-            )}
-          >
-            <Smartphone size={16} />
-            Переглянути в AR
-          </button>
-        </model-viewer>
-
-        {isLoaded ? (
-          <div className="absolute left-3 top-3 flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={() => viewerRef.current?.resetTurntableRotation?.()}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm hover:bg-white"
-              title="Скинути вигляд"
-            >
-              <RotateCcw size={13} />
-            </button>
-          </div>
-        ) : null}
       </div>
 
-      {isARSupported && isLoaded ? (
-        <div className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3">
-          <Info size={14} className="mt-0.5 shrink-0 text-sky-600" />
-          <p className="text-xs text-sky-700">
-            Натисніть <strong>&quot;Переглянути в AR&quot;</strong>, щоб розмістити{" "}
-            {arPlacement === "wall" ? "двері на стіні" : "виріб у своєму просторі"} за допомогою
-            камери.
-          </p>
-        </div>
-      ) : null}
-
-      {!isARSupported && isLoaded ? (
-        <p className="text-center text-xs text-[var(--color-text-secondary)]">
-          Відкрийте на смартфоні, щоб використати AR-перегляд
-        </p>
-      ) : null}
+      <p className="text-center text-xs text-[var(--color-text-secondary)]">
+        Потягніть, щоб обертати модель, і прокрутіть, щоб змінити масштаб.
+      </p>
     </div>
   );
 }

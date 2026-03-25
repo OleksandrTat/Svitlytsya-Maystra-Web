@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { isSupportedProductModelUrl } from "@/lib/models/product-models";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import type { ProductStatus } from "@/lib/types";
 
@@ -19,7 +20,11 @@ const productSchema = z.object({
   materials: z.string().default(""),
   style: z.string().default(""),
   cover_image: z.string().url().optional().or(z.literal("")),
-  model_3d_url: z.string().url().optional().or(z.literal("")),
+  model_3d_url: z
+    .union([z.literal(""), z.string().url()])
+    .refine((value) => value === "" || isSupportedProductModelUrl(value), {
+      message: "Model URL must point to a .glb file.",
+    }),
   images: z.string().default(""),
   price_from: z.coerce.number().min(0).optional(),
   formula_id: z.string().uuid().optional().or(z.literal("")),

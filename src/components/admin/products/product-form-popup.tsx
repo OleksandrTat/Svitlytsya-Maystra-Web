@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,13 @@ import { PriorityBar } from "@/components/admin/shared/priority-bar";
 import { TagInput } from "@/components/admin/shared/tag-input";
 import { useAiSeoAssist } from "@/hooks/use-ai-seo-assist";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
+import {
+  buildProductModelPath,
+  PRODUCT_MODEL_BUCKET,
+  PRODUCT_MODEL_CONTENT_TYPE,
+  PRODUCT_MODEL_MAX_SIZE_BYTES,
+  isSupportedProductModelFileName,
+} from "@/lib/models/product-models";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { PriceFormula, Product } from "@/lib/types";
 
@@ -102,15 +109,13 @@ export function ProductFormPopup({
     if (!file) {
       return;
     }
-
-    const normalizedName = file.name.toLowerCase();
-    if (!normalizedName.endsWith(".glb") && !normalizedName.endsWith(".gltf")) {
-      toast.error("Тільки .glb або .gltf файли");
+    if (!isSupportedProductModelFileName(file.name)) {
+      toast.error("Тільки .glb файли");
       event.target.value = "";
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
+    if (file.size > PRODUCT_MODEL_MAX_SIZE_BYTES) {
       toast.error("Файл завеликий. Максимум 50MB.");
       event.target.value = "";
       return;
@@ -118,29 +123,28 @@ export function ProductFormPopup({
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const safeName = file.name.replace(/\s+/g, "-");
-      const path = `models/${Date.now()}-${safeName}`;
-      const contentType = normalizedName.endsWith(".gltf")
-        ? "model/gltf+json"
-        : "model/gltf-binary";
+      const path = buildProductModelPath(file.name);
       const uploadFile =
-        file.type === contentType
+        file.type === PRODUCT_MODEL_CONTENT_TYPE
           ? file
           : new File([file], file.name, {
-              type: contentType,
+              type: PRODUCT_MODEL_CONTENT_TYPE,
               lastModified: file.lastModified,
             });
 
       const { error } = await supabase.storage
-        .from("product-models")
-        .upload(path, uploadFile, { contentType, upsert: false });
+        .from(PRODUCT_MODEL_BUCKET)
+        .upload(path, uploadFile, {
+          contentType: PRODUCT_MODEL_CONTENT_TYPE,
+          upsert: false,
+        });
 
       if (error) {
-        toast.error(`Помилка завантаження: ${error.message}`);
+        toast.error("Помилка завантаження: " + error.message);
         return;
       }
 
-      const { data } = supabase.storage.from("product-models").getPublicUrl(path);
+      const { data } = supabase.storage.from(PRODUCT_MODEL_BUCKET).getPublicUrl(path);
       setModel3dUrl(data.publicUrl);
       toast.success("3D-модель завантажено");
     } catch (uploadError) {
@@ -163,7 +167,7 @@ export function ProductFormPopup({
     if (!slugManual && result.slug) {
       setSlug(result.slug);
     }
-    toast.success("AI згенерував SEO поля та slug.");
+    toast.success("AI згенерував SEO-поля та slug.");
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -289,7 +293,7 @@ export function ProductFormPopup({
                             }}
                             className="text-[10px] text-[var(--color-primary)] underline"
                           >
-                            ??????????????
+                            Авто з назви
                           </button>
                         ) : null}
                       </div>
@@ -310,7 +314,7 @@ export function ProductFormPopup({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        ?????? ???? *
+                        Опис продукту *
                       </label>
                       <textarea
                         value={description}
@@ -324,7 +328,7 @@ export function ProductFormPopup({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        ???????? ????
+                        Короткий опис
                       </label>
                       <textarea
                         value={shortDescription}
@@ -339,7 +343,7 @@ export function ProductFormPopup({
                       value={styles}
                       onChange={setStyles}
                       suggestions={categoryStyles}
-                      label="?????"
+                      label="Стилі"
                       placeholder="Додати стиль..."
                     />
 
@@ -407,7 +411,7 @@ export function ProductFormPopup({
 
                     <div className="space-y-1.5">
                       <p className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        3D-модель (.glb/.gltf)
+                        3D-модель (.glb)
                       </p>
                       {model3dUrl ? (
                         <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
@@ -426,10 +430,10 @@ export function ProductFormPopup({
                       ) : (
                         <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] px-3 py-3 text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-primary)]">
                           <Box size={14} />
-                          Завантажити .glb/.gltf файл
+                          Завантажити .glb файл
                           <input
                             type="file"
-                            accept=".glb,.gltf"
+                            accept=".glb"
                             onChange={onModel3dUpload}
                             className="hidden"
                           />
@@ -437,7 +441,8 @@ export function ProductFormPopup({
                       )}
                       <input type="hidden" name="model_3d_url" value={model3dUrl} />
                       <p className="text-[10px] text-[var(--color-text-secondary)]">
-                        Рекомендований розмір: до 5MB для швидкого завантаження. Конвертація:{" "}
+                        Рекомендований формат: один .glb файл без зовнішніх залежностей. Рекомендований розмір: до 5MB
+                        для швидкого завантаження. Конвертація:{" "}
                         <a
                           href="https://products.aspose.app/3d"
                           className="underline"
@@ -473,7 +478,7 @@ export function ProductFormPopup({
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        ??????
+                        Статус
                       </label>
                       <select
                         value={status}
@@ -488,11 +493,11 @@ export function ProductFormPopup({
                       </select>
                     </div>
 
-                    <PriorityBar value={priority} onChange={setPriority} label="?????????" />
+                    <PriorityBar value={priority} onChange={setPriority} label="Пріоритет" />
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        ??????? ??????????
+                        Порядок сортування
                       </label>
                       <input
                         type="number"
@@ -512,14 +517,14 @@ export function ProductFormPopup({
                         min="0"
                         value={priceFrom}
                         onChange={(event) => setPriceFrom(event.target.value)}
-                        placeholder="??????? ???????? - ???? ?? ???????"
+                        placeholder="Необов'язково, якщо є стартова ціна"
                         className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
                       />
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-[var(--color-text-secondary)]">
-                        ??????? ??????????
+                        Формула ціноутворення
                       </label>
                       <FormulaPicker formulas={formulas} value={formulaId} onChange={setFormulaId} />
                     </div>
@@ -553,7 +558,7 @@ export function ProductFormPopup({
                     ? "Збереження..."
                     : isEdit
                       ? "Зберегти зміни"
-                      : "???????? ???????"}
+                      : "Створити продукт"}
                 </button>
               </div>
             </form>
@@ -563,3 +568,5 @@ export function ProductFormPopup({
     </AnimatePresence>
   );
 }
+
+
