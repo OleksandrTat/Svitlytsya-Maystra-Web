@@ -77,7 +77,7 @@ export default async function ServicePage({
                   </p>
                 ) : (
                   <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)]">
-                    ???????? ???????????? ????????????? ????? ????????????.
+                    Вартість за запитом
                   </p>
                 )}
 
@@ -90,10 +90,10 @@ export default async function ServicePage({
 
               <div className="flex flex-wrap gap-3">
                 <Link href="/contact" className="rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white">
-                  ????????
+                    Замовити послугу
                 </Link>
                 <Link href="/contact" className="rounded-full border border-[var(--color-border)] px-6 py-3 text-sm text-[var(--color-text-secondary)]">
-                  ???????? ??????????
+                    Консультація
                 </Link>
               </div>
             </div>
@@ -104,12 +104,12 @@ export default async function ServicePage({
       {service.process_steps.length > 0 ? (
         <section className="bg-[var(--color-surface)] py-14 md:py-20">
           <Container>
-            <SectionHeading title="??????" />
+            <SectionHeading title="Фази" />
             <ol className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {service.process_steps.map((step, index) => (
                 <li key={`${step.step}-${step.title}`} className="rounded-2xl border border-[var(--color-border)] bg-white p-4">
                   <p className="text-xs uppercase tracking-[0.12em] text-[var(--color-secondary)]">
-                    ???? {index + 1}
+                    Етап {index + 1}
                   </p>
                   <p className="mt-2 text-sm font-medium text-[var(--color-text-primary)]">{step.title}</p>
                   {step.description ? (

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Box, RotateCcw } from "lucide-react";
+import type { ModelViewerElement } from "@google/model-viewer";
+import { Box, RotateCcw, Smartphone } from "lucide-react";
+import { toast } from "sonner";
 import {
   ACESFilmicToneMapping,
   Box3,
@@ -27,6 +29,7 @@ import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 type Props = {
   modelUrl: string;
   productTitle: string;
+  arPlacement?: "floor" | "wall";
 };
 
 type ViewerState = "loading" | "ready" | "error";
@@ -37,6 +40,8 @@ type ViewerRuntime = {
   renderFrame: () => void;
   focusModel: () => void;
 };
+
+const AR_DEVICE_PATTERN = /android|iphone|ipad|ipod/i;
 
 function isMesh(value: Object3D): value is Mesh {
   return "isMesh" in value && Boolean(value.isMesh);
@@ -120,11 +125,55 @@ function setRendererSize(
   camera.updateProjectionMatrix();
 }
 
-export function Product3DViewer({ modelUrl, productTitle }: Props) {
+export function Product3DViewer({
+  modelUrl,
+  productTitle,
+  arPlacement = "floor",
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const runtimeRef = useRef<ViewerRuntime | null>(null);
+  const arViewerRef = useRef<ModelViewerElement | null>(null);
   const [viewerState, setViewerState] = useState<ViewerState>("loading");
   const [progress, setProgress] = useState(0);
+  const [isArEligibleDevice, setIsArEligibleDevice] = useState(false);
+  const [isArReady, setIsArReady] = useState(false);
+  const [isArLaunching, setIsArLaunching] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const isEligibleDevice =
+      window.isSecureContext && AR_DEVICE_PATTERN.test(window.navigator.userAgent);
+
+    setIsArEligibleDevice(isEligibleDevice);
+    setIsArReady(false);
+
+    if (!isEligibleDevice) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void import("@google/model-viewer")
+      .then(() => customElements.whenDefined("model-viewer"))
+      .then(() => {
+        if (!cancelled) {
+          setIsArReady(true);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load model-viewer AR runtime", error);
+        if (!cancelled) {
+          setIsArEligibleDevice(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -285,23 +334,61 @@ export function Product3DViewer({ modelUrl, productTitle }: Props) {
     );
   }
 
+  const handleActivateAr = async () => {
+    const arViewer = arViewerRef.current;
+    if (!arViewer) {
+      toast.error("AR ще готується.");
+      return;
+    }
+
+    if (!arViewer.canActivateAR) {
+      toast.error("AR недоступний у цьому браузері. Спробуйте Safari на iPhone/iPad або Chrome на Android.");
+      return;
+    }
+
+    setIsArLaunching(true);
+
+    try {
+      await arViewer.activateAR();
+    } catch (error) {
+      console.error("Failed to activate AR", error);
+      toast.error("Не вдалося відкрити AR.");
+    } finally {
+      setIsArLaunching(false);
+    }
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="relative space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Box size={16} className="text-[var(--color-primary)]" />
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">3D-перегляд</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => runtimeRef.current?.focusModel()}
-          disabled={viewerState !== "ready"}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <RotateCcw size={12} />
-          Скинути ракурс
-        </button>
+        <div className="flex items-center gap-2">
+          {isArEligibleDevice ? (
+            <button
+              type="button"
+              onClick={handleActivateAr}
+              disabled={!isArReady || isArLaunching}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Smartphone size={12} />
+              {isArLaunching ? "Відкриваємо AR..." : isArReady ? "Відкрити AR" : "Підготовка AR..."}
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => runtimeRef.current?.focusModel()}
+            disabled={viewerState !== "ready"}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RotateCcw size={12} />
+            Скинути ракурс
+          </button>
+        </div>
       </div>
 
       <div className="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[radial-gradient(circle_at_top,#fff7ee_0%,#f4ebdf_55%,#eadfce_100%)]">
@@ -322,6 +409,36 @@ export function Product3DViewer({ modelUrl, productTitle }: Props) {
       <p className="text-center text-xs text-[var(--color-text-secondary)]">
         Потягніть, щоб обертати модель, і прокрутіть, щоб змінити масштаб.
       </p>
+
+      {isArEligibleDevice ? (
+        <p className="text-center text-[11px] text-[var(--color-text-secondary)]">
+          AR працює на iPhone/iPad у Safari та на Android у Chrome.
+        </p>
+      ) : null}
+
+      {isArEligibleDevice ? (
+        <model-viewer
+          ref={arViewerRef}
+          src={modelUrl}
+          alt={productTitle}
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-placement={arPlacement}
+          interaction-prompt="none"
+          loading="eager"
+          reveal="auto"
+          aria-hidden="true"
+          tabIndex={-1}
+          style={{
+            position: "absolute",
+            width: "1px",
+            height: "1px",
+            opacity: 0,
+            pointerEvents: "none",
+            overflow: "hidden",
+          }}
+        />
+      ) : null}
     </div>
   );
 }
