@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AccountDeletionRequestForm } from "@/components/profile/account-deletion-request-form";
 import { ProfileForm } from "@/components/profile/profile-form";
-import { Container } from "@/components/ui/container";
+import { ProfileLayout } from "@/components/layout/profile-layout";
+import { PageHero } from "@/components/ui/page-hero";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
   const supabase = await createSupabaseServerClient();
@@ -27,29 +27,38 @@ export default async function ProfilePage() {
     .maybeSingle();
 
   return (
-    <section className="py-16">
-      <Container>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-3xl text-[var(--color-text-primary)]">Мій профіль</h1>
-          <div className="flex gap-3 text-sm">
-            <Link href="/profile/orders" className="underline">
-              Мої замовлення
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+    <>
+      <PageHero
+        title="Мій профіль"
+        breadcrumbs={[
+          { label: "Головна", href: "/" },
+          { label: "Профіль" },
+        ]}
+        height="h-[180px]"
+      />
+      <ProfileLayout>
+        <div className="space-y-8">
           <ProfileForm
             userId={user.id}
             email={user.email ?? ""}
-            initialDisplayName={profile?.display_name ?? (user.user_metadata?.display_name as string) ?? ""}
+            initialDisplayName={
+              profile?.display_name ?? (user.user_metadata?.display_name as string) ?? ""
+            }
             initialBio={profile?.bio ?? ""}
             initialAvatarUrl={profile?.avatar_url ?? ""}
           />
 
-          <AccountDeletionRequestForm />
+          <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6">
+            <h3 className="font-display text-lg font-semibold text-red-900">Небезпечна зона</h3>
+            <p className="mt-1 text-sm text-red-700/70">
+              Видалення акаунту є незворотнім і призведе до втрати всіх даних.
+            </p>
+            <div className="mt-4">
+              <AccountDeletionRequestForm />
+            </div>
+          </div>
         </div>
-      </Container>
-    </section>
+      </ProfileLayout>
+    </>
   );
 }

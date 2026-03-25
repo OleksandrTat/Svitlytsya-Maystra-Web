@@ -1,28 +1,65 @@
 import type { Metadata } from "next";
-import { Container } from "@/components/ui/container";
+import { LegalPageLayout } from "@/components/layout/legal-page-layout";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy",
+  title: "Політика Cookie",
 };
+
+const SECTIONS = [
+  { id: "what-are-cookies", title: "Що таке Cookies" },
+  { id: "types", title: "Типи Cookies" },
+  { id: "management", title: "Керування Cookies" },
+];
 
 export default function CookiesPage() {
   return (
-    <section className="py-14 md:py-20">
-      <Container className="max-w-4xl">
-        <h1 className="font-display text-4xl text-[var(--color-text-primary)]">Cookie Policy</h1>
-        <div className="prose mt-8 max-w-none text-[var(--color-text-secondary)]">
-          <p>
-            Сайт використовує технічні cookies для коректної роботи сесій та аналітичні cookies PostHog для оцінки поведінки користувачів.
-          </p>
-          <p>
-            При першому відвідуванні ви можете прийняти або відхилити аналітичні cookies через banner.
-          </p>
-          <p>
-            Якщо ви відмовляєтесь від аналітичних cookies, PostHog не ініціалізується.
-          </p>
-        </div>
-      </Container>
-    </section>
+    <LegalPageLayout
+      title="Політика Cookie"
+      lastUpdated="01.01.2025"
+      sections={SECTIONS}
+    >
+      <section id="what-are-cookies">
+        <h2>Що таке Cookies</h2>
+        <p>
+          Cookies — це невеликі текстові файли, які зберігаються у вашому
+          браузері при відвідуванні вебсайту. Вони допомагають забезпечити
+          коректну роботу сайту та покращити ваш досвід.
+        </p>
+      </section>
+
+      <section id="types">
+        <h2>Типи Cookies, які ми використовуємо</h2>
+        <h3>Технічні (обов&rsquo;язкові)</h3>
+        <p>
+          Необхідні для коректної роботи сесій, авторизації та базової
+          функціональності сайту. Без них сайт не зможе працювати належним
+          чином.
+        </p>
+        <h3>Аналітичні</h3>
+        <p>
+          Сайт використовує аналітичні cookies PostHog для оцінки поведінки
+          користувачів. Ці дані допомагають нам покращувати сайт та послуги.
+        </p>
+        <p>
+          При першому відвідуванні ви можете прийняти або відхилити аналітичні
+          cookies через банер. Якщо ви відмовляєтесь від аналітичних cookies,
+          PostHog не ініціалізується.
+        </p>
+      </section>
+
+      <section id="management">
+        <h2>Керування Cookies</h2>
+        <p>
+          Ви можете керувати cookies через налаштування вашого браузера.
+          Зверніть увагу, що вимкнення технічних cookies може вплинути на роботу
+          сайту.
+        </p>
+        <p>
+          Для зміни налаштувань аналітичних cookies ви можете скористатися
+          банером, який з&rsquo;являється при першому відвідуванні, або
+          очистити cookies у браузері.
+        </p>
+      </section>
+    </LegalPageLayout>
   );
 }
-

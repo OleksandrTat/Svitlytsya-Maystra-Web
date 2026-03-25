@@ -1,31 +1,82 @@
 import type { Metadata } from "next";
-import { Container } from "@/components/ui/container";
+import { LegalPageLayout } from "@/components/layout/legal-page-layout";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
+  title: "Політика конфіденційності",
 };
+
+const SECTIONS = [
+  { id: "intro", title: "Вступ" },
+  { id: "data-collection", title: "Збір даних" },
+  { id: "data-usage", title: "Використання даних" },
+  { id: "third-parties", title: "Треті сторони" },
+  { id: "rights", title: "Ваші права" },
+];
 
 export default function PrivacyPage() {
   return (
-    <section className="py-14 md:py-20">
-      <Container className="max-w-4xl">
-        <h1 className="font-display text-4xl text-[var(--color-text-primary)]">Privacy Policy</h1>
-        <div className="prose mt-8 max-w-none text-[var(--color-text-secondary)]">
-          <p>Останнє оновлення: 2025-01-01.</p>
-          <p>
-            Ми збираємо дані, які ви добровільно залишаєте у формах: ім’я, телефон, email та зміст запиту.
-            Дані використовуються виключно для обробки заявок і зв’язку з клієнтом.
-          </p>
-          <p>
-            Дані не передаються третім особам, окрім технічних сервісів, які забезпечують роботу платформи (Supabase, Resend, PostHog).
-          </p>
-          <p>
-            Ви можете звернутися на email для видалення або уточнення ваших персональних даних.
-          </p>
-        </div>
-      </Container>
-    </section>
+    <LegalPageLayout
+      title="Політика конфіденційності"
+      lastUpdated="01.01.2025"
+      sections={SECTIONS}
+    >
+      <section id="intro">
+        <h2>Вступ</h2>
+        <p>
+          Ця політика конфіденційності описує, як Svitlytsya Maystra збирає,
+          використовує та захищає ваші персональні дані при використанні нашого
+          вебсайту та послуг.
+        </p>
+      </section>
+
+      <section id="data-collection">
+        <h2>Збір даних</h2>
+        <p>
+          Ми збираємо дані, які ви добровільно залишаєте у формах: ім&rsquo;я,
+          телефон, email та зміст запиту. Дані використовуються виключно для
+          обробки заявок і зв&rsquo;язку з клієнтом.
+        </p>
+        <h3>Автоматичний збір</h3>
+        <p>
+          При відвідуванні сайту автоматично збираються технічні дані: IP-адреса,
+          тип браузера, час відвідування, сторінки, які ви переглядаєте. Ці дані
+          використовуються для покращення роботи сайту.
+        </p>
+      </section>
+
+      <section id="data-usage">
+        <h2>Використання даних</h2>
+        <p>Ваші дані використовуються для:</p>
+        <ul>
+          <li>Обробки заявок та замовлень</li>
+          <li>Зв&rsquo;язку з вами щодо ваших запитів</li>
+          <li>Покращення якості наших послуг</li>
+          <li>Аналітики використання сайту</li>
+        </ul>
+      </section>
+
+      <section id="third-parties">
+        <h2>Треті сторони</h2>
+        <p>
+          Дані не передаються третім особам, окрім технічних сервісів, які
+          забезпечують роботу платформи (Supabase, Resend, PostHog). Кожен з цих
+          сервісів має власну політику конфіденційності та відповідає стандартам
+          захисту даних.
+        </p>
+      </section>
+
+      <section id="rights">
+        <h2>Ваші права</h2>
+        <p>
+          Ви маєте право на доступ, виправлення та видалення ваших персональних
+          даних. Для цього зверніться до нас на email або через форму зворотного
+          зв&rsquo;язку.
+        </p>
+        <p>
+          Ви також можете експортувати свої дані через особистий кабінет у розділі
+          &laquo;Мої дані&raquo;.
+        </p>
+      </section>
+    </LegalPageLayout>
   );
 }
-
-

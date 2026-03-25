@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Eye, EyeOff, KeyRound } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -10,6 +11,7 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,55 +49,86 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <section className="py-16">
+    <section className="flex min-h-[calc(100vh-72px)] items-center justify-center px-4 py-16">
       <Container>
-        <div className="mx-auto max-w-md rounded-3xl border border-[var(--color-border)] bg-white p-8">
-          <h1 className="font-display text-3xl text-[var(--color-text-primary)]">Новий пароль</h1>
-          <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-            Введіть новий пароль для вашого акаунту.
+        <div className="mx-auto max-w-[440px] rounded-2xl border border-[var(--color-border)] bg-white p-10 shadow-sm">
+          <div className="flex justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-100)]">
+              <KeyRound size={24} className="text-[var(--color-primary)]" />
+            </span>
+          </div>
+
+          <h1 className="mt-5 text-center font-display text-[28px] font-semibold text-[var(--color-text-primary)]">
+            Новий пароль
+          </h1>
+          <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">
+            Введіть новий пароль для вашого акаунту
           </p>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <label className="block space-y-2">
-              <span className="text-sm text-[var(--color-text-secondary)]">Новий пароль</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                minLength={8}
-                className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-              />
+          <form onSubmit={onSubmit} className="mt-6 space-y-5">
+            <label className="block">
+              <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+                Новий пароль
+              </span>
+              <div className="relative mt-1.5">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  placeholder="Мінімум 8 символів"
+                  className="block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 pr-11 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-secondary)]"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm text-[var(--color-text-secondary)]">Підтвердіть пароль</span>
+            <label className="block">
+              <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+                Підтвердіть пароль
+              </span>
               <input
                 type="password"
                 value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
+                placeholder="Повторіть пароль"
+                className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
               />
             </label>
 
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error && (
+              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)] disabled:opacity-60"
             >
               {loading ? "Оновлення..." : "Оновити пароль"}
             </button>
-          </form>
 
-          <p className="mt-5 text-sm text-[var(--color-text-secondary)]">
-            <Link href="/auth/login" className="text-[var(--color-primary)] underline">
-              Повернутись до входу
-            </Link>
-          </p>
+            <div className="text-center">
+              <Link
+                href="/auth/login"
+                className="text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
+              >
+                &larr; Повернутись до входу
+              </Link>
+            </div>
+          </form>
         </div>
       </Container>
     </section>

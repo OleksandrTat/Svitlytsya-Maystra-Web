@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import { FinalCtaSection } from "@/components/sections/final-cta";
 import { InquiryForm } from "@/components/shared/inquiry-form";
 import { Container } from "@/components/ui/container";
-import { SectionHeading } from "@/components/ui/section-heading";
+import { PageHero } from "@/components/ui/page-hero";
 import { PRODUCT_CATEGORY_LABELS, SERVICE_TYPES } from "@/lib/constants";
 import { getContactSettings, getProductBySlug } from "@/lib/data/queries";
 import type { InquirySchema } from "@/lib/validation/inquiry";
@@ -22,10 +23,7 @@ function normalizeProductLabel(value: string) {
 }
 
 function parseConfigurationParam(value?: string) {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   try {
     const parsed = JSON.parse(value);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
@@ -64,7 +62,8 @@ export default async function ContactPage({
     : SERVICE_TYPES.includes(derivedServiceType as InquirySchema["service_type"])
       ? derivedServiceType
       : undefined;
-  const productLabel = product?.title ?? (productSlug ? normalizeProductLabel(productSlug) : undefined);
+  const productLabel =
+    product?.title ?? (productSlug ? normalizeProductLabel(productSlug) : undefined);
   const parsedConfiguration = parseConfigurationParam(configurationParam);
   const configuration =
     productSlug || parsedConfiguration || configurationId
@@ -88,43 +87,79 @@ export default async function ContactPage({
       : fallbackAddress;
   const mapSrc = `https://www.google.com/maps?output=embed&q=${encodeURIComponent(mapAddress)}`;
 
+  const CONTACT_BLOCKS = [
+    {
+      icon: Phone,
+      label: "Телефон",
+      content: contacts.phone,
+      href: contacts.phone ? `tel:${contacts.phone.replace(/\s/g, "")}` : undefined,
+    },
+    {
+      icon: Mail,
+      label: "Email",
+      content: contacts.email,
+      href: contacts.email ? `mailto:${contacts.email}` : undefined,
+    },
+    {
+      icon: MapPin,
+      label: "Адреса майстерні",
+      content: contacts.address,
+    },
+    {
+      icon: Clock,
+      label: "Графік роботи",
+      content: contacts.hours,
+    },
+  ];
+
   return (
     <>
-      <section className="py-14 md:py-20">
+      <PageHero
+        title="Контакти"
+        subtitle="Готові відповісти на ваші запитання в робочий час"
+        breadcrumbs={[
+          { label: "Головна", href: "/" },
+          { label: "Контакти" },
+        ]}
+        height="h-[220px]"
+      />
+
+      <section className="py-10 md:py-14">
         <Container>
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-8">
-              <SectionHeading
-                eyebrow="Контакти"
-                title="Розкажіть про задачу і ми підготуємо рішення"
-                description="Відповідаємо у робочий час. Якщо потрібно, погодимо виїзд на замір або консультацію на об’єкті."
-              />
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Left — Contacts + Map */}
+            <div className="space-y-6">
+              <div className="space-y-3">
+                {CONTACT_BLOCKS.map((block) => {
+                  const Wrapper = block.href ? "a" : "div";
+                  return (
+                    <Wrapper
+                      key={block.label}
+                      {...(block.href ? { href: block.href } : {})}
+                      className="flex gap-4 rounded-xl p-4 transition-colors hover:bg-[var(--color-bg-warm)]"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-100)] text-[var(--color-primary)]">
+                        <block.icon size={18} />
+                      </span>
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
+                          {block.label}
+                        </p>
+                        <p className="mt-0.5 font-medium text-[var(--color-text-primary)]">
+                          {block.content}
+                        </p>
+                      </div>
+                    </Wrapper>
+                  );
+                })}
+              </div>
 
-              <dl className="grid gap-4 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-secondary)]">
-                <div>
-                  <dt className="font-semibold text-[var(--color-text-primary)]">Телефон</dt>
-                  <dd>{contacts.phone}</dd>
-                </div>
-                <div>
-                  <dt className="font-semibold text-[var(--color-text-primary)]">Email</dt>
-                  <dd>{contacts.email}</dd>
-                </div>
-                <div>
-                  <dt className="font-semibold text-[var(--color-text-primary)]">Адреса майстерні</dt>
-                  <dd>{contacts.address}</dd>
-                </div>
-                <div>
-                  <dt className="font-semibold text-[var(--color-text-primary)]">Графік</dt>
-                  <dd>{contacts.hours}</dd>
-                </div>
-              </dl>
-
-              <div className="overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white">
+              <div className="overflow-hidden rounded-2xl border border-[var(--color-border)]">
                 <iframe
                   title="Карта майстерні"
                   src={mapSrc}
                   width="100%"
-                  height="280"
+                  height="300"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   style={{ border: 0 }}
@@ -132,21 +167,22 @@ export default async function ContactPage({
               </div>
             </div>
 
-            <div className="rounded-3xl border border-[var(--color-border)] bg-white p-6">
-              <h2 className="font-display text-2xl text-[var(--color-text-primary)]">
-                Форма заявки
+            {/* Right — Form */}
+            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-sm">
+              <h2 className="font-display text-2xl font-semibold text-[var(--color-text-primary)]">
+                Надішліть заявку
               </h2>
               <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                Заповніть коротку форму, і ми зв’яжемось найближчим часом.
+                Відповімо протягом 2 годин у робочий час
               </p>
-              {productLabel ? (
-                <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+              {productLabel && (
+                <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                   Контекст заявки:{" "}
                   <span className="font-medium text-[var(--color-text-primary)]">
                     {productLabel}
                   </span>
                 </div>
-              ) : null}
+              )}
               <InquiryForm
                 className="mt-6"
                 compact

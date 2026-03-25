@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Check } from "lucide-react";
 import { Product3DViewer } from "@/components/products/product-3d-viewer";
 import { ProductConfiguratorWrapper } from "@/components/products/product-configurator-wrapper";
+import { ProductDetailTabs } from "@/components/products/product-detail-tabs";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductPriceCalculator } from "@/components/products/product-price-calculator";
 import { ProductTestimonials } from "@/components/products/product-testimonials";
 import { RelatedProducts } from "@/components/products/related-products";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { FinalCtaSection } from "@/components/sections/final-cta";
 import { Container } from "@/components/ui/container";
+import { PageHero } from "@/components/ui/page-hero";
 import { isAdminUser } from "@/lib/auth/is-admin";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import { getFormulaComponentsForProduct } from "@/lib/data/formula-queries";
@@ -32,10 +35,7 @@ type PageParams = {
 };
 
 function isSupportedImageSrc(value: string | null | undefined) {
-  if (!value) {
-    return false;
-  }
-
+  if (!value) return false;
   const src = value.trim();
   return (
     src.startsWith("/") ||
@@ -48,16 +48,19 @@ function isSupportedImageSrc(value: string | null | undefined) {
 
 async function canPreviewInactiveProduct() {
   const supabase = await createSupabaseServerClient();
-  if (!supabase) {
-    return false;
-  }
-
+  if (!supabase) return false;
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   return isAdminUser(user);
 }
+
+const GUARANTEES = [
+  "Безкоштовна консультація",
+  "Виробництво 14–21 день",
+  "Гарантія 3 роки",
+  "Доставка по Україні",
+];
 
 export async function generateMetadata({
   params,
@@ -120,25 +123,21 @@ export default async function ProductPage({
   }).toString()}`;
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
 
-  const [
-    formula,
-    presets,
-    components,
-    relatedProducts,
-    relatedServices,
-    testimonials,
-  ] = await Promise.all([
-    product.formula_id ? getPriceFormulaById(product.formula_id, supabase) : Promise.resolve(null),
-    product.formula_id
-      ? getPricePresetsForFormula(product.formula_id, supabase)
-      : Promise.resolve([]),
-    product.formula_id
-      ? getFormulaComponentsForProduct(product.formula_id, supabase)
-      : Promise.resolve([]),
-    getRelatedProducts(product.id, product.category, product.style),
-    getRelatedServices(product.category),
-    getTestimonialsForProduct(product.id),
-  ]);
+  const [formula, presets, components, relatedProducts, relatedServices, testimonials] =
+    await Promise.all([
+      product.formula_id
+        ? getPriceFormulaById(product.formula_id, supabase)
+        : Promise.resolve(null),
+      product.formula_id
+        ? getPricePresetsForFormula(product.formula_id, supabase)
+        : Promise.resolve([]),
+      product.formula_id
+        ? getFormulaComponentsForProduct(product.formula_id, supabase)
+        : Promise.resolve([]),
+      getRelatedProducts(product.id, product.category, product.style),
+      getRelatedServices(product.category),
+      getTestimonialsForProduct(product.id),
+    ]);
 
   const linkedTestimonialsCount = testimonials.filter(
     (testimonial) => testimonial.project_id === product.id,
@@ -148,106 +147,178 @@ export default async function ProductPage({
 
   return (
     <>
-      <section className="py-14 md:py-20">
-        <Container>
-          <Breadcrumbs
-            className="mb-6"
-            items={[
-              { label: "Головна", href: "/" },
-              { label: "Продукти", href: "/products" },
-              {
-                label: categoryLabel,
-                href: `/products?category=${encodeURIComponent(product.category)}`,
-              },
-              { label: product.title },
-            ]}
-          />
+      <PageHero
+        title={product.title}
+        breadcrumbs={[
+          { label: "Головна", href: "/" },
+          { label: "Продукти", href: "/products" },
+          {
+            label: categoryLabel,
+            href: `/products?category=${encodeURIComponent(product.category)}`,
+          },
+          { label: product.title },
+        ]}
+        height="h-[220px]"
+      />
 
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      {/* Main split layout */}
+      <section className="py-10 md:py-14">
+        <Container>
+          <div className="grid gap-8 lg:grid-cols-[1fr_480px]">
+            {/* Left — Gallery */}
             <div className="space-y-6">
               <ProductGallery images={galleryImages} title={product.title} />
 
-              {model3dUrl ? (
+              {model3dUrl && (
                 <Product3DViewer
                   modelUrl={model3dUrl}
                   productTitle={product.title}
                   arPlacement={arPlacement}
                 />
-              ) : null}
+              )}
             </div>
 
-            <div className="space-y-5 rounded-3xl border border-[var(--color-border)] bg-white p-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text-secondary)]">
-                  {categoryLabel}
-                </span>
-                {product.status !== "active" ? (
-                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                    {PRODUCT_STATUS_LABELS[product.status]} • лише для адміна
+            {/* Right — Info panel (sticky) */}
+            <div className="lg:sticky lg:top-24 lg:h-fit">
+              <div className="space-y-5 rounded-2xl border border-[var(--color-border)] bg-white p-6">
+                {/* Badges */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[var(--color-bg-warm)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
+                    {categoryLabel}
                   </span>
-                ) : null}
-              </div>
-
-              <div>
-                <h1 className="font-display text-3xl text-[var(--color-text-primary)] md:text-4xl">
-                  {product.title}
-                </h1>
-                {product.short_description ? (
-                  <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                    {product.short_description}
-                  </p>
-                ) : null}
-                <p className="mt-3 text-[var(--color-text-secondary)]">{product.description}</p>
-              </div>
-
-              {product.materials.length > 0 || product.style.length > 0 ? (
-                <div className="grid gap-4 text-sm text-[var(--color-text-secondary)] sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-primary)]">
-                      Матеріали
-                    </p>
-                    <p className="mt-2">
-                      {product.materials.length > 0 ? product.materials.join(", ") : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-primary)]">
-                      Стилі
-                    </p>
-                    <p className="mt-2">
-                      {product.style.length > 0 ? product.style.join(", ") : "-"}
-                    </p>
-                  </div>
+                  {product.is_featured && (
+                    <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-semibold text-white">
+                      Популярне
+                    </span>
+                  )}
+                  {product.status !== "active" && (
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                      {PRODUCT_STATUS_LABELS[product.status]} · лише для адміна
+                    </span>
+                  )}
                 </div>
-              ) : null}
 
-              <ProductPriceCalculator
-                formula={formula}
-                presets={presets}
-                priceFrom={product.price_from}
-                components={components}
-                contactHref={contactHref}
-              />
+                {/* Title + description */}
+                <div>
+                  <h2 className="font-display text-3xl font-semibold text-[var(--color-text-primary)] md:text-4xl">
+                    {product.title}
+                  </h2>
+                  {product.short_description && (
+                    <p className="mt-2 text-[15px] text-[var(--color-text-secondary)]">
+                      {product.short_description}
+                    </p>
+                  )}
+                </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href={contactHref}
-                  className="rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white"
-                >
-                  Замовити індивідуально
-                </Link>
-                <Link
-                  href="/products"
-                  className="rounded-full border border-[var(--color-border)] px-6 py-3 text-sm text-[var(--color-text-secondary)]"
-                >
-                  Повернутися до каталогу
-                </Link>
+                <div className="border-t border-[var(--color-border)]" />
+
+                {/* Materials & Styles as pills */}
+                {(product.materials.length > 0 || product.style.length > 0) && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {product.materials.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                          Матеріали
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {product.materials.map((m) => (
+                            <span
+                              key={m}
+                              className="rounded-full bg-[var(--color-bg-warm)] px-2.5 py-0.5 text-xs text-[var(--color-text-secondary)]"
+                            >
+                              {m}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {product.style.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                          Стилі
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {product.style.map((s) => (
+                            <span
+                              key={s}
+                              className="rounded-full bg-[var(--color-bg-warm)] px-2.5 py-0.5 text-xs text-[var(--color-text-secondary)]"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="border-t border-[var(--color-border)]" />
+
+                {/* Price */}
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                    Вартість
+                  </p>
+                  <p className="mt-1 font-display text-3xl font-bold text-[var(--color-primary)]">
+                    {product.price_from
+                      ? `від ${product.price_from.toLocaleString("uk-UA")} грн`
+                      : "За запитом"}
+                  </p>
+                </div>
+
+                {/* Calculator */}
+                <ProductPriceCalculator
+                  formula={formula}
+                  presets={presets}
+                  priceFrom={product.price_from}
+                  components={components}
+                  contactHref={contactHref}
+                />
+
+                <div className="border-t border-[var(--color-border)]" />
+
+                {/* CTA buttons */}
+                <div className="space-y-3">
+                  <Link
+                    href={contactHref}
+                    className="flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
+                  >
+                    Замовити індивідуально
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className="flex w-full items-center justify-center rounded-full border border-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+                  >
+                    Отримати консультацію
+                  </Link>
+                </div>
+
+                <div className="border-t border-[var(--color-border)]" />
+
+                {/* Micro-guarantees */}
+                <div className="space-y-2">
+                  {GUARANTEES.map((item) => (
+                    <div key={item} className="flex items-center gap-2">
+                      <Check size={16} className="shrink-0 text-[var(--color-accent)]" />
+                      <span className="text-sm text-[var(--color-text-secondary)]">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <ProductConfiguratorWrapper product={product} />
               </div>
-
-              <ProductConfiguratorWrapper product={product} />
             </div>
           </div>
 
+          {/* Tabs section */}
+          <div className="mt-12">
+            <ProductDetailTabs
+              description={product.description}
+              materials={product.materials}
+            />
+          </div>
+
+          {/* Testimonials */}
           <ProductTestimonials
             testimonials={testimonials}
             linkedCount={linkedTestimonialsCount}
@@ -260,6 +331,8 @@ export default async function ProductPage({
         services={relatedServices}
         currentCategory={product.category}
       />
+
+      <FinalCtaSection />
     </>
   );
 }

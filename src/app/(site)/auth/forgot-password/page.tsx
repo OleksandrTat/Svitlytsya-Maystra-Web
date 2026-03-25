@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { Mail } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -36,42 +37,74 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <section className="py-16">
+    <section className="flex min-h-[calc(100vh-72px)] items-center justify-center px-4 py-16">
       <Container>
-        <div className="mx-auto max-w-md rounded-3xl border border-[var(--color-border)] bg-white p-8">
-          <h1 className="font-display text-3xl text-[var(--color-text-primary)]">Відновлення пароля</h1>
+        <div className="mx-auto max-w-[440px] rounded-2xl border border-[var(--color-border)] bg-white p-10 shadow-sm">
+          <div className="flex justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-100)]">
+              <Mail size={24} className="text-[var(--color-primary)]" />
+            </span>
+          </div>
+
+          <h1 className="mt-5 text-center font-display text-[28px] font-semibold text-[var(--color-text-primary)]">
+            Відновлення пароля
+          </h1>
+          <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">
+            Вкажіть email, і ми надішлемо посилання для скидання пароля
+          </p>
 
           {sent ? (
-            <div className="mt-4 space-y-3">
-              <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                Лист для скидання пароля надіслано.
-              </p>
-              <Link href="/auth/login" className="text-sm text-[var(--color-primary)] underline">
-                Повернутись до входу
-              </Link>
+            <div className="mt-6 space-y-4">
+              <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-800">
+                Лист для скидання пароля надіслано на <strong>{email}</strong>
+              </div>
+              <div className="text-center">
+                <Link
+                  href="/auth/login"
+                  className="text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
+                >
+                  &larr; Повернутись до входу
+                </Link>
+              </div>
             </div>
           ) : (
-            <form onSubmit={onSubmit} className="mt-6 space-y-4">
-              <label className="block space-y-2">
-                <span className="text-sm text-[var(--color-text-secondary)]">Email</span>
+            <form onSubmit={onSubmit} className="mt-6 space-y-5">
+              <label className="block">
+                <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+                  Email
+                </span>
                 <input
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
+                  placeholder="your@email.com"
+                  className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
                 />
               </label>
 
-              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+              {error && (
+                <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)] disabled:opacity-60"
               >
                 {loading ? "Надсилання..." : "Надіслати посилання"}
               </button>
+
+              <div className="text-center">
+                <Link
+                  href="/auth/login"
+                  className="text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
+                >
+                  &larr; Повернутись до входу
+                </Link>
+              </div>
             </form>
           )}
         </div>
