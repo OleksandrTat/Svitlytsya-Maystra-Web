@@ -6,7 +6,11 @@
       "Bash(ls \"d:/sm/src/app/\\(site\\)/\")",
       "Bash(ls \"d:/sm/src/app/\\(site\\)/layout.tsx\")",
       "Bash(npm run:*)",
-      "Bash(find /d/sm/src/components/shared -name *.tsx)"
+      "Bash(find /d/sm/src/components/shared -name *.tsx)",
+      "Bash(ls -la \"/d/sm/src/app/\\(site\\)/\")",
+      "Bash(ls -la /d/sm/src/lib/types*)",
+      "Bash(ls -la \"/d/sm/src/app/\\(site\\)/page.tsx\")",
+      "Bash(npx next:*)"
     ]
   }
 }

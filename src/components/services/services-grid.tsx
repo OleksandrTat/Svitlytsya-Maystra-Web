@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, ChevronDown } from "lucide-react";
 import type { Service } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -11,134 +13,202 @@ type Props = {
   className?: string;
 };
 
-const CATEGORY_META: Record<string, { accent: string; badge: string }> = {
-  production: {
-    accent: "from-amber-600 to-orange-700",
-    badge: "border-amber-200 bg-amber-50 text-amber-700",
-  },
-  consultation: {
-    accent: "from-sky-600 to-blue-700",
-    badge: "border-sky-200 bg-sky-50 text-sky-700",
-  },
-  installation: {
-    accent: "from-violet-600 to-fuchsia-700",
-    badge: "border-violet-200 bg-violet-50 text-violet-700",
-  },
-  restoration: {
-    accent: "from-emerald-600 to-teal-700",
-    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  },
+const FALLBACK_IMAGES: Record<string, string> = {
+  doors:
+    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80",
+  furniture:
+    "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80",
+  windows:
+    "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80",
+  restoration:
+    "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?auto=format&fit=crop&w=800&q=80",
 };
 
-export function ServicesGrid({ services, className }: Props) {
-  if (services.length === 0) {
-    return null;
-  }
+const SERVICE_ICONS: Record<string, string> = {
+  doors: "🚪",
+  furniture: "🪑",
+  windows: "🪟",
+  restoration: "🔧",
+};
+
+export function ServicesAccordion({ services, className }: Props) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const toggle = (id: string) => {
+    setOpenId((prev) => (prev === id ? null : id));
+  };
+
+  useEffect(() => {
+    if (openId) {
+      const el = itemRefs.current.get(openId);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    }
+  }, [openId]);
+
+  if (services.length === 0) return null;
 
   return (
-    <div className={cn("space-y-8", className)}>
-      <div className="mx-auto max-w-2xl text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-primary)]">
-          Що ми робимо
-        </p>
-        <h2 className="mt-3 font-display text-3xl text-[var(--color-text-primary)] md:text-4xl">
-          Послуги майстерні
-        </h2>
-        <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-          Від консультації та проєктування до виробництва, монтажу і відновлення дерев&rsquo;яних виробів.
-        </p>
-      </div>
+    <div className={cn("divide-y divide-[var(--color-border)]", className)}>
+      {services.map((service, index) => {
+        const isOpen = openId === service.id;
+        const num = String(index + 1).padStart(2, "0");
+        const icon = service.icon ?? SERVICE_ICONS[service.category] ?? "🔨";
+        const image =
+          service.cover_image ?? FALLBACK_IMAGES[service.category] ?? FALLBACK_IMAGES.doors;
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {services.map((service, index) => {
-          const meta = CATEGORY_META[service.category] ?? CATEGORY_META.production;
-
-          return (
-            <motion.article
-              key={service.id}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ delay: index * 0.06, duration: 0.35 }}
+        return (
+          <div
+            key={service.id}
+            ref={(el) => {
+              if (el) itemRefs.current.set(service.id, el);
+            }}
+            className="scroll-mt-24"
+          >
+            {/* Header row */}
+            <button
+              type="button"
+              onClick={() => toggle(service.id)}
               className={cn(
-                "overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-white shadow-sm",
-                service.is_featured && "ring-2 ring-[var(--color-primary)] ring-offset-2",
+                "flex w-full items-center gap-4 px-2 py-5 text-left transition-colors md:gap-6 md:px-4",
+                isOpen
+                  ? "bg-[var(--color-bg-warm)]"
+                  : "hover:bg-[var(--color-bg-warm)]",
               )}
             >
-              <div className={cn("relative h-52 bg-gradient-to-br", meta.accent)}>
-                {service.cover_image ? (
-                  <Image
-                    src={service.cover_image}
-                    alt={service.title}
-                    fill
-                    className="object-cover opacity-35"
-                    sizes="(max-width: 1280px) 50vw, 33vw"
-                  />
-                ) : null}
-                <div className="relative z-10 flex h-full flex-col justify-between p-5 text-white">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-4xl">{service.icon ?? "🚪"}</span>
-                    <span className="rounded-full bg-black/25 px-3 py-1 text-xs font-medium backdrop-blur">
-                      {service.category}
-                    </span>
+              <span className="hidden font-display text-4xl text-[var(--color-primary)] opacity-30 md:block">
+                {num}
+              </span>
+              <span className="text-2xl">{icon}</span>
+              <span className="flex-1 font-display text-xl font-semibold text-[var(--color-text-primary)] md:text-2xl">
+                {service.title}
+              </span>
+              {service.price_from && (
+                <span className="hidden text-sm text-[var(--color-text-muted)] md:block">
+                  від {service.price_from.toLocaleString("uk-UA")}{" "}
+                  {service.price_unit ?? "грн"}
+                </span>
+              )}
+              <ChevronDown
+                size={20}
+                className={cn(
+                  "shrink-0 text-[var(--color-text-muted)] transition-transform duration-300",
+                  isOpen && "rotate-180",
+                )}
+              />
+            </button>
+
+            {/* Content */}
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <div className="grid gap-6 px-2 pb-8 pt-2 md:grid-cols-[40%_1fr] md:px-4">
+                    {/* Photo */}
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl">
+                      <Image
+                        src={image}
+                        alt={service.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 40vw"
+                      />
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex flex-col gap-5">
+                      <p className="text-[var(--color-text-secondary)] leading-relaxed">
+                        {service.description || service.short_description}
+                      </p>
+
+                      {/* Features */}
+                      {service.features.length > 0 && (
+                        <div className="space-y-3">
+                          {service.features.map((feature) => (
+                            <div key={feature.title} className="flex gap-3">
+                              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-white">
+                                <Check size={12} />
+                              </span>
+                              <div>
+                                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                                  {feature.title}
+                                </p>
+                                {feature.description && (
+                                  <p className="text-sm text-[var(--color-text-muted)]">
+                                    {feature.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Process steps */}
+                      {service.process_steps.length > 0 && (
+                        <>
+                          <div className="border-t border-[var(--color-border)]" />
+                          <div>
+                            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                              Процес роботи
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {service.process_steps.map((step, i) => (
+                                <div key={step.step} className="flex items-center gap-2">
+                                  {i > 0 && (
+                                    <span className="text-[var(--color-border)]">→</span>
+                                  )}
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-primary)] text-xs font-semibold text-[var(--color-primary)]">
+                                      {step.step}
+                                    </span>
+                                    <span className="text-sm text-[var(--color-text-primary)]">
+                                      {step.title}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* CTA */}
+                      <div className="border-t border-[var(--color-border)]" />
+                      <div className="flex flex-wrap gap-3">
+                        <Link
+                          href="/contact"
+                          className="rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
+                        >
+                          Замовити консультацію →
+                        </Link>
+                        <Link
+                          href={`/services/${service.slug}`}
+                          className="rounded-full border border-[var(--color-primary)] px-6 py-2.5 text-sm font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+                        >
+                          Детальніше про послугу
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-semibold">{service.title}</h3>
-                    {service.tagline ? <p className="mt-1 text-sm text-white/85">{service.tagline}</p> : null}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 p-5">
-                <div className="flex flex-wrap gap-2">
-                  <span className={cn("rounded-full border px-2 py-1 text-[11px] font-medium", meta.badge)}>
-                    {service.category}
-                  </span>
-                  {service.price_from ? (
-                    <span className="rounded-full border border-[var(--color-border)] px-2 py-1 text-[11px] text-[var(--color-text-secondary)]">
-                      від {service.price_from.toLocaleString("uk-UA")} {service.price_unit ?? "грн"}
-                    </span>
-                  ) : null}
-                  {service.duration_days_from ? (
-                    <span className="rounded-full border border-[var(--color-border)] px-2 py-1 text-[11px] text-[var(--color-text-secondary)]">
-                      {service.duration_days_from}-{service.duration_days_to ?? service.duration_days_from} днів
-                    </span>
-                  ) : null}
-                </div>
-
-                <p className="text-sm leading-7 text-[var(--color-text-secondary)]">
-                  {service.short_description}
-                </p>
-
-                {service.features.length > 0 ? (
-                  <ul className="space-y-2">
-                    {service.features.slice(0, 3).map((feature) => (
-                      <li key={feature.title} className="text-sm text-[var(--color-text-secondary)]">
-                        • {feature.title}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                <div className="flex gap-3">
-                  <Link
-                    href={`/services/${service.slug}`}
-                    className="inline-flex flex-1 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white"
-                  >
-                    Детальніше
-                  </Link>
-                  <Link
-                    href="/contact"
-                    className="inline-flex items-center justify-center rounded-2xl border border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text-secondary)]"
-                  >
-                    Зв&rsquo;язатися
-                  </Link>
-                </div>
-              </div>
-            </motion.article>
-          );
-        })}
-      </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
     </div>
   );
 }
+
+// Keep backward-compatible export
+export { ServicesAccordion as ServicesGrid };

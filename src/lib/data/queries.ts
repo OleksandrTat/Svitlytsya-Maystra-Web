@@ -52,6 +52,10 @@ export type ProductFilters = {
   styles: string[];
   status?: ProductStatus;
   featured?: boolean;
+  search?: string;
+  priceMin?: number;
+  priceMax?: number;
+  view: "grid" | "list";
   sort: "default" | "price_asc" | "price_desc" | "newest";
   page: number;
   pageSize: number;
@@ -74,6 +78,13 @@ export function parseProductFilters(
   const featured =
     featuredValue === "true" || featuredValue === "1" || featuredValue === "yes";
   const page = Number(typeof searchParams.page === "string" ? searchParams.page : "1") || 1;
+  const search = typeof searchParams.search === "string" ? searchParams.search.trim() : undefined;
+  const priceMinRaw = typeof searchParams.price_min === "string" ? Number(searchParams.price_min) : undefined;
+  const priceMaxRaw = typeof searchParams.price_max === "string" ? Number(searchParams.price_max) : undefined;
+  const priceMin = priceMinRaw && priceMinRaw > 0 ? priceMinRaw : undefined;
+  const priceMax = priceMaxRaw && priceMaxRaw > 0 ? priceMaxRaw : undefined;
+  const viewParam = typeof searchParams.view === "string" ? searchParams.view : "grid";
+  const view = viewParam === "list" ? "list" : "grid";
 
   return {
     category,
@@ -81,16 +92,22 @@ export function parseProductFilters(
     styles,
     materials,
     featured: featured || undefined,
+    search: search || undefined,
+    priceMin,
+    priceMax,
+    view,
     sort,
     page: page > 0 ? page : 1,
-    pageSize: 9,
+    pageSize: 12,
   };
 }
+
+export type CategoryOption = { value: string; count: number };
 
 export async function getProductFilterOptions(): Promise<{
   styles: string[];
   materials: string[];
-  categories: string[];
+  categories: CategoryOption[];
 }> {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
@@ -115,6 +132,14 @@ export async function getProductFilterOptions(): Promise<{
       .order("sort_order", { ascending: true }),
   ]);
 
+  const categoryCounts = new Map<string, number>();
+  for (const product of productsResult.data ?? []) {
+    const cat = typeof product.category === "string" ? product.category.trim() : "";
+    if (cat) {
+      categoryCounts.set(cat, (categoryCounts.get(cat) ?? 0) + 1);
+    }
+  }
+
   return {
     styles: Array.from(
       new Set(
@@ -130,13 +155,7 @@ export async function getProductFilterOptions(): Promise<{
           .filter(Boolean),
       ),
     ),
-    categories: Array.from(
-      new Set(
-        (productsResult.data ?? [])
-          .map((product) => (typeof product.category === "string" ? product.category.trim() : ""))
-          .filter(Boolean),
-      ),
-    ),
+    categories: Array.from(categoryCounts.entries()).map(([value, count]) => ({ value, count })),
   };
 }
 
@@ -364,6 +383,18 @@ export async function getProducts(
 
   if (filters.featured) {
     query = query.eq("is_featured", true);
+  }
+
+  if (filters.search) {
+    query = query.ilike("title", `%${filters.search}%`);
+  }
+
+  if (filters.priceMin) {
+    query = query.gte("price_from", filters.priceMin);
+  }
+
+  if (filters.priceMax) {
+    query = query.lte("price_from", filters.priceMax);
   }
 
   const start = (filters.page - 1) * filters.pageSize;

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { GitCompare } from "lucide-react";
 import { useComparison } from "@/hooks/use-comparison";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
@@ -17,69 +18,119 @@ export function ProductCard({ product, showStatus = false }: Props) {
   const { toggle, isInComparison, isFull } = useComparison();
   const inComparison = isInComparison(product.id);
 
+  const categoryLabel =
+    PRODUCT_CATEGORY_LABELS[product.category as keyof typeof PRODUCT_CATEGORY_LABELS] ??
+    product.category;
+
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white transition hover:-translate-y-1 hover:shadow-lg">
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--color-bg-section)]">
+    <motion.article
+      layout
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm transition-shadow duration-300 hover:shadow-xl"
+    >
+      {/* Image area */}
+      <Link
+        href={`/products/${product.slug}`}
+        className="relative block aspect-[4/3] w-full overflow-hidden bg-[var(--color-bg-section)]"
+      >
         {product.cover_image ? (
           <Image
             src={product.cover_image}
             alt={product.title}
             fill
-            className="object-cover transition duration-500 group-hover:scale-[1.03]"
+            className="object-cover transition-transform duration-[400ms] ease-out group-hover:scale-[1.04]"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-[var(--color-text-secondary)]">
             Немає зображення
           </div>
         )}
-        {product.is_featured ? (
-          <span className="absolute left-3 top-3 rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-[10px] font-semibold text-white">
-            Featured
+
+        {/* Featured badge */}
+        {product.is_featured && (
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-[var(--color-primary)] px-2.5 py-0.5 text-[10px] font-semibold text-white">
+            Популярне
           </span>
-        ) : null}
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            toggle(product.id);
-          }}
-          disabled={isFull && !inComparison}
-          className={cn(
-            "absolute right-3 top-3 rounded-full p-1.5 text-xs transition",
-            inComparison
-              ? "bg-[var(--color-primary)] text-white"
-              : "bg-white/90 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]",
-            isFull && !inComparison && "cursor-not-allowed opacity-50",
-          )}
-          title={inComparison ? "Прибрати з порівняння" : "Додати до порівняння"}
-        >
-          <GitCompare size={14} />
-        </button>
-      </div>
+        )}
 
+        {/* Category badge */}
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-text-primary)] backdrop-blur-sm">
+          {categoryLabel}
+        </span>
+
+        {/* Hover overlay */}
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileHover={{ opacity: 1 }}
+            className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          >
+            <span className="rounded-full border border-white px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-white hover:text-[var(--color-text-primary)]">
+              Детальніше →
+            </span>
+          </motion.div>
+        </AnimatePresence>
+      </Link>
+
+      {/* Comparison button */}
+      <button
+        type="button"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          toggle(product.id);
+        }}
+        disabled={isFull && !inComparison}
+        className={cn(
+          "absolute right-3 top-3 z-20 rounded-full p-1.5 text-xs transition",
+          inComparison
+            ? "bg-[var(--color-primary)] text-white"
+            : "bg-white/90 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]",
+          isFull && !inComparison && "cursor-not-allowed opacity-50",
+        )}
+        title={inComparison ? "Прибрати з порівняння" : "Додати до порівняння"}
+      >
+        <GitCompare size={14} />
+      </button>
+
+      {/* Body */}
       <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
-            {PRODUCT_CATEGORY_LABELS[product.category as keyof typeof PRODUCT_CATEGORY_LABELS] ??
-              product.category}
-          </p>
-          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
-            <Link href={`/products/${product.slug}`} className="hover:underline">
-              {product.title}
-            </Link>
-          </h3>
-        </div>
+        <h3 className="font-display text-xl font-semibold leading-tight text-[var(--color-text-primary)]">
+          <Link href={`/products/${product.slug}`} className="hover:text-[var(--color-primary)]">
+            {product.title}
+          </Link>
+        </h3>
 
-        {product.short_description ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">{product.short_description}</p>
-        ) : null}
+        {/* Material tags */}
+        {product.materials.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {product.materials.slice(0, 3).map((material) => (
+              <span
+                key={material}
+                className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]"
+              >
+                {material}
+              </span>
+            ))}
+            {product.materials.length > 3 && (
+              <span className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
+                +{product.materials.length - 3}
+              </span>
+            )}
+          </div>
+        )}
 
-        <div className="mt-auto flex items-center justify-between text-sm">
+        {/* Divider */}
+        <div className="mt-auto border-t border-[var(--color-border)]" />
+
+        {/* Price + Order */}
+        <div className="flex items-center justify-between">
           <span className="font-semibold text-[var(--color-primary)]">
             {product.price_from
               ? `від ${product.price_from.toLocaleString("uk-UA")} грн`
               : "Ціна за запитом"}
           </span>
+
           {showStatus ? (
             <span
               className={cn(
@@ -93,9 +144,16 @@ export function ProductCard({ product, showStatus = false }: Props) {
             >
               {PRODUCT_STATUS_LABELS[product.status]}
             </span>
-          ) : null}
+          ) : (
+            <Link
+              href="/contact"
+              className="rounded-full border border-[var(--color-primary)] px-3 py-1 text-sm text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+            >
+              Замовити
+            </Link>
+          )}
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
