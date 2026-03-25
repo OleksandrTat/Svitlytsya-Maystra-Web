@@ -5,7 +5,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main>{children}</main>
+      <main className="pt-[72px]">{children}</main>
       <SiteFooter />
     </div>
   );

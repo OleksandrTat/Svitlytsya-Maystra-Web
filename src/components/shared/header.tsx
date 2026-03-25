@@ -22,12 +22,6 @@ const links = [
   { href: "/contact", label: "Контакти" },
 ];
 
-const primaryLinkClass =
-  "inline-flex h-10 items-center justify-center rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 text-xs font-semibold text-[var(--color-on-primary)] transition hover:bg-[var(--color-primary-700)]";
-
-const secondaryLinkClass =
-  "inline-flex h-10 items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface)]";
-
 export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
@@ -36,6 +30,9 @@ export function SiteHeader() {
   const [currentUser, setCurrentUser] = useState<HeaderUser | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  const isHomepage = pathname === "/";
+  const isTransparent = isHomepage && !scrolled;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -148,11 +145,27 @@ export function SiteHeader() {
     router.refresh();
   };
 
+  const primaryLinkClass = cn(
+    "inline-flex h-10 items-center justify-center rounded-lg px-5 text-xs font-semibold transition",
+    isTransparent
+      ? "border border-white/40 bg-white/10 text-white hover:bg-white/20"
+      : "border border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-700)]",
+  );
+
+  const secondaryLinkClass = cn(
+    "inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm transition",
+    isTransparent
+      ? "border-white/30 text-white hover:bg-white/10"
+      : "border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]",
+  );
+
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur transition-shadow duration-200",
-        scrolled && "shadow-sm",
+        "fixed top-0 left-0 right-0 z-40 transition-all duration-300",
+        isTransparent
+          ? "border-b border-transparent bg-transparent"
+          : "border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 shadow-sm backdrop-blur",
       )}
     >
       <div className="mx-auto flex h-18 max-w-[1280px] items-center justify-between px-4 md:px-6">
@@ -164,7 +177,12 @@ export function SiteHeader() {
             height={36}
             className="rounded-lg object-contain"
           />
-          <span className="font-display text-xl text-[var(--color-primary)]">
+          <span
+            className={cn(
+              "font-display text-xl",
+              isTransparent ? "text-white" : "text-[var(--color-primary)]",
+            )}
+          >
             Svitlytsya Maystra
           </span>
         </Link>
@@ -179,9 +197,13 @@ export function SiteHeader() {
                 href={link.href}
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm transition",
-                  isActive
-                    ? "bg-[var(--color-surface)] text-[var(--color-primary)]"
-                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)]",
+                  isTransparent
+                    ? isActive
+                      ? "text-white"
+                      : "text-white/70 hover:text-white"
+                    : isActive
+                      ? "bg-[var(--color-surface)] text-[var(--color-primary)]"
+                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)]",
                 )}
               >
                 {link.label}
@@ -196,7 +218,12 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((value) => !value)}
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]"
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
+                  isTransparent
+                    ? "border-white/30 text-white hover:bg-white/10"
+                    : "border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]",
+                )}
               >
                 <UserCircle2 className="h-4 w-4" />
                 <span>{currentUser.displayName}</span>
@@ -237,7 +264,12 @@ export function SiteHeader() {
           ) : (
             <Link
               href="/auth/login"
-              className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+              className={cn(
+                "text-sm transition",
+                isTransparent
+                  ? "text-white/70 hover:text-white"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]",
+              )}
             >
               Увійти
             </Link>
@@ -251,20 +283,34 @@ export function SiteHeader() {
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-primary)] md:hidden"
+          className={cn(
+            "inline-flex h-10 w-10 items-center justify-center rounded-full border md:hidden",
+            isTransparent
+              ? "border-white/40 text-white"
+              : "border-[var(--color-border)] text-[var(--color-primary)]",
+          )}
           aria-label="Відкрити меню"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
+      {/* Mobile overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 top-[72px] z-30 bg-black/40 md:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Mobile menu */}
       <div
         className={cn(
-          "border-t border-[var(--color-border)] bg-[var(--color-background)] px-4 py-4 md:hidden",
-          open ? "block" : "hidden",
+          "fixed top-[72px] right-0 bottom-0 z-40 w-80 max-w-[85vw] bg-[var(--color-bg)] shadow-xl transition-transform duration-300 md:hidden",
+          open ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 p-4">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -277,7 +323,7 @@ export function SiteHeader() {
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-2 border-t border-[var(--color-border)] pt-4">
+        <div className="grid grid-cols-1 gap-2 border-t border-[var(--color-border)] p-4">
           {currentUser ? (
             <>
               {profileLinks.map((item) => (
@@ -285,7 +331,9 @@ export function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   onClick={closeMenus}
-                  className={cn("w-full", secondaryLinkClass)}
+                  className={cn(
+                    "inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface)]",
+                  )}
                 >
                   {item.label}
                 </Link>
@@ -298,16 +346,20 @@ export function SiteHeader() {
             <Link
               href="/auth/login"
               onClick={() => setOpen(false)}
-              className={cn("w-full", secondaryLinkClass)}
+              className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
             >
               Увійти
             </Link>
           )}
-        </div>
 
-        <Link href="/contact" onClick={() => setOpen(false)} className={cn("mt-2 w-full", primaryLinkClass)}>
-          Отримати розрахунок
-        </Link>
+          <Link
+            href="/contact"
+            onClick={() => setOpen(false)}
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 text-xs font-semibold text-[var(--color-on-primary)] transition hover:bg-[var(--color-primary-700)]"
+          >
+            Отримати розрахунок
+          </Link>
+        </div>
       </div>
     </header>
   );
