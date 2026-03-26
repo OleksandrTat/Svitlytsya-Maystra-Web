@@ -19,6 +19,7 @@ type HeaderUser = {
 const links = [
   { href: "/products", label: "Продукти" },
   { href: "/services", label: "Послуги" },
+  { href: "/blog", label: "Блог" },
   { href: "/contact", label: "Контакти" },
 ];
 

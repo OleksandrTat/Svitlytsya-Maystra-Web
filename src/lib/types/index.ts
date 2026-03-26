@@ -305,3 +305,40 @@ export interface ActivityLog {
   created_at: string;
 }
 
+// ── BLOG ──────────────────────────────────────────────────
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  cover_image: string | null;
+  category: string;
+  tags: string[];
+  reading_time_min: number;
+  is_published: boolean;
+  published_at: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  created_at: string;
+  updated_at: string;
+  author_name: string;
+  author_avatar: string | null;
+  is_featured: boolean;
+  views_count: number;
+  likes_count: number;
+  related_service_id: string | null;
+  related_product_id: string | null;
+}
+
+export type BlogPostStatus = "published" | "draft";
+
+export interface BlogFilters {
+  category?: string;
+  tag?: string;
+  search?: string;
+  page: number;
+  pageSize: number;
+}
+

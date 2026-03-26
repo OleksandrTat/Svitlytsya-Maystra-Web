@@ -65,6 +65,9 @@ export function SiteFooter() {
             <li>
               <Link href="/contact" className="transition hover:text-white">Контакти</Link>
             </li>
+            <li>
+              <Link href="/blog" className="transition hover:text-white">Блог</Link>
+            </li>
           </ul>
         </div>
 

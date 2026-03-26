@@ -70,3 +70,21 @@ export const ORDER_PRIORITY_LABELS: Record<OrderPriority, string> = {
   normal: "Звичайний",
   urgent: "Терміновий",
 };
+
+// ── BLOG ──────────────────────────────────────────────────
+
+export const BLOG_CATEGORIES = [
+  { value: "tips", label: "Поради" },
+  { value: "projects", label: "Проєкти" },
+  { value: "materials", label: "Матеріали" },
+  { value: "news", label: "Новини" },
+  { value: "guides", label: "Інструкції" },
+] as const;
+
+export const BLOG_CATEGORY_LABELS: Record<string, string> = {
+  tips: "Поради",
+  projects: "Проєкти",
+  materials: "Матеріали",
+  news: "Новини",
+  guides: "Інструкції",
+};

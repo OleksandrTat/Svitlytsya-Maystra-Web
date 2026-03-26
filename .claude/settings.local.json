@@ -10,7 +10,27 @@
       "Bash(ls -la \"/d/sm/src/app/\\(site\\)/\")",
       "Bash(ls -la /d/sm/src/lib/types*)",
       "Bash(ls -la \"/d/sm/src/app/\\(site\\)/page.tsx\")",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(find \"d:/sm/src/app/\\(site\\)\" -type f -name \"*.tsx\" -o -name \"*.ts\")",
+      "Bash(cat \"/d/sm/src/app/admin/\\(protected\\)/layout.tsx\")",
+      "Bash(ls -la \"d:/sm/src/app/\\(site\\)/\")",
+      "Bash(ls -la \"d:/sm/src/app/admin/\\(protected\\)/\")",
+      "Bash(find \"d:/sm/src/app/admin/\\(protected\\)/blog\" -type f)",
+      "Bash(find /d/sm/src/actions/admin -type f -name \"*.ts\" -exec wc -l {} +)",
+      "Bash(find d:/sm/src -name *blog* -type f)",
+      "Bash(find d:/sm/src/types -type f -name *.ts)",
+      "Bash(ls -la /d/sm/src/app/\\\\\\(site\\\\\\)/)",
+      "Bash(ls \"d:/sm/src/app/admin/\\(protected\\)/\")",
+      "Bash(ls -la \"d:/sm/src/app/admin/\\(protected\\)/products/\")",
+      "Bash(ls d:/sm/src/app/'\\(site\\)'/)",
+      "Bash(ls d:/sm/src/app/admin/'\\(protected\\)'/)",
+      "Bash(ls d:/sm/src/app/admin/'\\(protected\\)'/products/)",
+      "Bash(ls d:/sm/src/app/'\\(site\\)'/products/)",
+      "Bash(npm install:*)"
+    ],
+    "additionalDirectories": [
+      "d:\\sm\\src\\app\\(site)\\blog",
+      "d:\\sm\\src\\app\\admin\\(protected)\\blog\\[id]"
     ]
   }
 }
