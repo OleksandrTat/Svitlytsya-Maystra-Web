@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import ImageExtension from "@tiptap/extension-image";
-import LinkExtension from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import {
@@ -46,6 +45,7 @@ function ToolbarButton({ onClick, active, disabled, title, children }: ToolbarBu
   return (
     <button
       type="button"
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       disabled={disabled}
       title={title}
@@ -74,13 +74,13 @@ export function BlogEditor({ initialContent = "", onChange, placeholder }: Props
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        link: {
+          openOnClick: false,
+          HTMLAttributes: { class: "text-[var(--color-primary)] underline" },
+        },
       }),
       ImageExtension.configure({
         HTMLAttributes: { class: "rounded-xl max-w-full" },
-      }),
-      LinkExtension.configure({
-        openOnClick: false,
-        HTMLAttributes: { class: "text-[var(--color-primary)] underline" },
       }),
       Placeholder.configure({
         placeholder: placeholder ?? "Почніть писати статтю...",

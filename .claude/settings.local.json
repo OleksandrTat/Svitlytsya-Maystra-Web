@@ -26,7 +26,10 @@
       "Bash(ls d:/sm/src/app/admin/'\\(protected\\)'/)",
       "Bash(ls d:/sm/src/app/admin/'\\(protected\\)'/products/)",
       "Bash(ls d:/sm/src/app/'\\(site\\)'/products/)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm ls:*)",
+      "Bash(node -e \":*)",
+      "WebSearch"
     ],
     "additionalDirectories": [
       "d:\\sm\\src\\app\\(site)\\blog",

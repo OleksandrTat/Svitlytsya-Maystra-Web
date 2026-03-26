@@ -83,7 +83,7 @@ export async function upsertBlogPostAction(
     category: formData.get("category"),
     tags,
     reading_time_min:
-      formData.get("reading_time_min") ||
+      Number(formData.get("reading_time_min")) ||
       calculateReadingTime(String(formData.get("content") ?? "")),
     is_published: formData.get("is_published") === "true",
     is_featured: formData.get("is_featured") === "true",
