@@ -29,7 +29,15 @@
       "Bash(npm install:*)",
       "Bash(npm ls:*)",
       "Bash(node -e \":*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(find /d/sm/src/actions -type f -name *.ts -o -name *.tsx)",
+      "Bash(find /d/sm -type f -name *.sql)",
+      "Bash(ls d:/sm/src/app/admin/\\\\\\(protected\\\\\\)/subscribers/)",
+      "Bash(cat /d/sm/src/app/\\\\\\(site\\\\\\)/page.tsx)",
+      "Bash(cat /d/sm/src/app/\\\\\\(site\\\\\\)/blog/page.tsx)",
+      "Bash(find /d/sm/src -name \"*ConfirmDeleteButton*\" -o -name \"*confirm-delete*\")",
+      "Bash(cat \"/d/sm/src/app/admin/\\(protected\\)/blog/page.tsx\")",
+      "Bash(npx tsc:*)"
     ],
     "additionalDirectories": [
       "d:\\sm\\src\\app\\(site)\\blog",

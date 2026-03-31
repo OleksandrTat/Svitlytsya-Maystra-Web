@@ -5,6 +5,7 @@ import { type ComponentType } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  Award,
   Building2,
   Calculator,
   ChevronLeft,
@@ -12,12 +13,15 @@ import {
   ExternalLink,
   FileText,
   HeadphonesIcon,
+  Heart,
+  HelpCircle,
   LayoutDashboard,
   Mail,
   MessageSquare,
   Package,
   Package2,
   Search,
+  Send,
   Settings,
   Shield,
   UserCircle2,
@@ -67,6 +71,10 @@ const secondaryItems: NavItem[] = [
   { href: "/admin/company", label: "Компанія", icon: Building2 },
   { href: "/admin/pricing", label: "Ціни", icon: Calculator },
   { href: "/admin/support", label: "Підтримка", icon: HeadphonesIcon, badgeKey: "unreadSupport" },
+  { href: "/admin/faq", label: "FAQ", icon: HelpCircle },
+  { href: "/admin/certificates", label: "Сертифікати", icon: Award },
+  { href: "/admin/wishlist", label: "Бажане", icon: Heart },
+  { href: "/admin/newsletter", label: "Розсилка", icon: Send },
   { href: "/admin/security", label: "Безпека", icon: Shield },
   { href: "/admin/settings", label: "Налаштування", icon: Settings },
 ];

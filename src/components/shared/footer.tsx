@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NewsletterForm } from "@/components/shared/newsletter-form";
 
 export function SiteFooter() {
   return (
@@ -68,7 +69,13 @@ export function SiteFooter() {
             <li>
               <Link href="/blog" className="transition hover:text-white">Блог</Link>
             </li>
+            <li>
+              <Link href="/faq" className="transition hover:text-white">FAQ</Link>
+            </li>
           </ul>
+          <div className="mt-4">
+            <NewsletterForm variant="footer" />
+          </div>
         </div>
 
         {/* Контакти */}

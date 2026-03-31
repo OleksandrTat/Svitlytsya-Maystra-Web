@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { GitCompare } from "lucide-react";
 import { useComparison } from "@/hooks/use-comparison";
+import { WishlistButton } from "@/components/products/wishlist-button";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -46,9 +47,15 @@ export function ProductCard({ product, showStatus = false }: Props) {
           </div>
         )}
 
+        {/* Wishlist button */}
+        <WishlistButton
+          productId={product.id}
+          className="absolute left-3 top-3 z-20"
+        />
+
         {/* Featured badge */}
         {product.is_featured && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-[var(--color-primary)] px-2.5 py-0.5 text-[10px] font-semibold text-white">
+          <span className="absolute left-3 top-12 z-10 rounded-full bg-[var(--color-primary)] px-2.5 py-0.5 text-[10px] font-semibold text-white">
             Популярне
           </span>
         )}

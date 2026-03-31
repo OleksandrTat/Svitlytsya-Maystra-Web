@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Menu, UserCircle2, X } from "lucide-react";
+import { ChevronDown, Heart, LogOut, Menu, UserCircle2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useWishlist } from "@/hooks/use-wishlist";
 import { isAdminUser } from "@/lib/auth/is-admin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -20,8 +21,32 @@ const links = [
   { href: "/products", label: "Продукти" },
   { href: "/services", label: "Послуги" },
   { href: "/blog", label: "Блог" },
+  { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Контакти" },
 ];
+
+function WishlistHeaderIcon({ isTransparent }: { isTransparent: boolean }) {
+  const { count } = useWishlist();
+  if (count === 0) return null;
+
+  return (
+    <Link
+      href="/profile/wishlist"
+      className={cn(
+        "relative inline-flex h-10 w-10 items-center justify-center rounded-lg border transition",
+        isTransparent
+          ? "border-white/30 text-white hover:bg-white/10"
+          : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)]",
+      )}
+      title="Бажане"
+    >
+      <Heart className="h-4 w-4" />
+      <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+        {count > 99 ? "99+" : count}
+      </span>
+    </Link>
+  );
+}
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -214,6 +239,8 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <WishlistHeaderIcon isTransparent={isTransparent} />
+
           {currentUser ? (
             <div ref={profileMenuRef} className="relative">
               <button

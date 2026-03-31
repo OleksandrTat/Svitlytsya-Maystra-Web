@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FileText, LogOut, MessageSquare, Package, User } from "lucide-react";
+import { FileText, Heart, LogOut, MessageSquare, Package, User } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/profile", label: "Мій профіль", icon: User },
   { href: "/profile/orders", label: "Замовлення", icon: Package },
   { href: "/profile/support", label: "Підтримка", icon: MessageSquare },
+  { href: "/profile/wishlist", label: "Бажане", icon: Heart },
   { href: "/profile/data", label: "Мої дані", icon: FileText },
 ];
 

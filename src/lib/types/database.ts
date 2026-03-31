@@ -787,6 +787,96 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["activity_logs"]["Insert"]>;
         Relationships: [];
       };
+      faq_items: {
+        Row: {
+          id: string;
+          question: string;
+          answer: string;
+          category: string;
+          sort_order: number;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          question: string;
+          answer: string;
+          category?: string;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["faq_items"]["Insert"]>;
+        Relationships: [];
+      };
+      certificates: {
+        Row: {
+          id: string;
+          title: string;
+          issuer: string;
+          issued_year: number | null;
+          description: string | null;
+          image_url: string | null;
+          sort_order: number;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          issuer: string;
+          issued_year?: number | null;
+          description?: string | null;
+          image_url?: string | null;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["certificates"]["Insert"]>;
+        Relationships: [];
+      };
+      wishlist_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          product_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          product_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["wishlist_items"]["Insert"]>;
+        Relationships: [];
+      };
+      newsletter_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          name: string | null;
+          status: "active" | "unsubscribed" | "bounced";
+          source: string | null;
+          subscribed_at: string;
+          unsubscribed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          name?: string | null;
+          status?: "active" | "unsubscribed" | "bounced";
+          source?: string | null;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["newsletter_subscribers"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       orders_with_clients: {

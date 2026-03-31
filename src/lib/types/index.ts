@@ -342,3 +342,43 @@ export interface BlogFilters {
   pageSize: number;
 }
 
+// ── FAQ ──────────────────────────────────────────────────
+
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  sort_order: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── CERTIFICATES ─────────────────────────────────────────
+
+export interface Certificate {
+  id: string;
+  title: string;
+  issuer: string;
+  issued_year: number | null;
+  description: string | null;
+  image_url: string | null;
+  sort_order: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── NEWSLETTER ───────────────────────────────────────────
+
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  name: string | null;
+  status: "active" | "unsubscribed" | "bounced";
+  source: string | null;
+  subscribed_at: string;
+  unsubscribed_at: string | null;
+}
+

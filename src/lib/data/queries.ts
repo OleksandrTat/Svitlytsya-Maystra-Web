@@ -4,10 +4,12 @@ import { mockInquiries, mockServices, mockSiteSettings, mockTestimonials } from 
 import type {
   ActivityLog,
   AuditLogRecord,
+  Certificate,
   CompanyInfo,
   CompanyTeamMember,
   FormulaComponent,
   Inquiry,
+  NewsletterSubscriber,
   Order,
   OrderMessage,
   OrderStatusHistory,
@@ -1457,4 +1459,76 @@ export async function getOrderTemplatesForAdmin(): Promise<OrderTemplate[]> {
   return parseOrderTemplates(data?.value ?? null);
 }
 
+// ── CERTIFICATES ─────────────────────────────────────────
 
+export const getPublishedCertificates = cache(async (): Promise<Certificate[]> => {
+  const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("certificates")
+    .select("*")
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as Certificate[];
+});
+
+export async function getAllCertificatesForAdmin(): Promise<Certificate[]> {
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("certificates")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as Certificate[];
+}
+
+// ── NEWSLETTER ───────────────────────────────────────────
+
+export async function getNewsletterSubscribersForAdmin(
+  limit = 500,
+): Promise<NewsletterSubscriber[]> {
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("newsletter_subscribers")
+    .select("*")
+    .order("subscribed_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as NewsletterSubscriber[];
+}
+
+// ── WISHLIST (admin stats) ───────────────────────────────
+
+export async function getWishlistStatsForAdmin(): Promise<
+  { id: string; title: string; slug: string; cover_image: string | null; price_from: number | null; wishlist_count: number }[]
+> {
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return [];
+
+  const { data: wishlistRows } = await supabase
+    .from("wishlist_items")
+    .select("product_id");
+
+  if (!wishlistRows || wishlistRows.length === 0) return [];
+
+  const countMap = new Map<string, number>();
+  for (const row of wishlistRows) {
+    countMap.set(row.product_id, (countMap.get(row.product_id) ?? 0) + 1);
+  }
+
+  const productIds = [...countMap.keys()];
+  const { data: products } = await supabase
+    .from("products")
+    .select("id, title, slug, cover_image, price_from")
+    .in("id", productIds);
+
+  if (!products) return [];
+
+  return products
+    .map((p) => ({
+      ...p,
+      wishlist_count: countMap.get(p.id) ?? 0,
+    }))
+    .sort((a, b) => b.wishlist_count - a.wishlist_count)
+    .slice(0, 20);
+}

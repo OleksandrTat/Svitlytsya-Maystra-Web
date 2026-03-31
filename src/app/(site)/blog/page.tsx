@@ -4,6 +4,7 @@ import { BlogCard } from "@/components/blog/blog-card";
 import { BlogFeaturedHero } from "@/components/blog/blog-featured-hero";
 import { BlogFiltersBar } from "@/components/blog/blog-filters-bar";
 import { BlogPagination } from "@/components/blog/blog-pagination";
+import { NewsletterForm } from "@/components/shared/newsletter-form";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import {
@@ -79,6 +80,10 @@ export default async function BlogPage({
               </p>
             </div>
           )}
+
+          <div className="my-12">
+            <NewsletterForm variant="card" />
+          </div>
 
           {totalPages > 1 && (
             <BlogPagination
