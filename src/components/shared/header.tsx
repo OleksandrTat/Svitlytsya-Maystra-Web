@@ -1,15 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { ChevronDown, Heart, LogOut, Menu, UserCircle2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { isAdminUser } from "@/lib/auth/is-admin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 type HeaderUser = {
   id: string;
@@ -17,12 +19,12 @@ type HeaderUser = {
   isAdmin: boolean;
 };
 
-const links = [
-  { href: "/products", label: "Продукти" },
-  { href: "/services", label: "Послуги" },
-  { href: "/blog", label: "Блог" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Контакти" },
+const NAV_HREFS = [
+  { href: "/products" as const, key: "products" as const },
+  { href: "/services" as const, key: "services" as const },
+  { href: "/blog" as const, key: "blog" as const },
+  { href: "/faq" as const, key: "faq" as const },
+  { href: "/contact" as const, key: "contact" as const },
 ];
 
 function WishlistHeaderIcon({ isTransparent }: { isTransparent: boolean }) {
@@ -49,6 +51,7 @@ function WishlistHeaderIcon({ isTransparent }: { isTransparent: boolean }) {
 }
 
 export function SiteHeader() {
+  const t = useTranslations("nav");
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -59,6 +62,8 @@ export function SiteHeader() {
 
   const isHomepage = pathname === "/";
   const isTransparent = isHomepage && !scrolled;
+
+  const links = NAV_HREFS.map((item) => ({ href: item.href, label: t(item.key) }));
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -72,15 +77,15 @@ export function SiteHeader() {
     }
 
     if (currentUser.isAdmin) {
-      return [{ href: "/admin", label: "Адмін панель" }];
+      return [{ href: "/admin", label: t("adminPanel") }];
     }
 
     return [
-      { href: "/profile", label: "Профіль" },
-      { href: "/profile/orders", label: "Мої замовлення" },
-      { href: "/profile/support", label: "Підтримка" },
+      { href: "/profile", label: t("profile") },
+      { href: "/profile/orders", label: t("orders") },
+      { href: "/profile/support", label: t("support") },
     ];
-  }, [currentUser]);
+  }, [currentUser, t]);
 
   useEffect(() => {
     let isMounted = true;
@@ -239,6 +244,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <LanguageSwitcher isTransparent={isTransparent} />
           <WishlistHeaderIcon isTransparent={isTransparent} />
 
           {currentUser ? (
@@ -284,7 +290,7 @@ export function SiteHeader() {
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
                   >
                     <LogOut className="h-4 w-4" />
-                    Вийти
+                    {t("signOut")}
                   </button>
                 </div>
               </div>
@@ -299,12 +305,12 @@ export function SiteHeader() {
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]",
               )}
             >
-              Увійти
+              {t("login")}
             </Link>
           )}
 
           <Link href="/contact" className={primaryLinkClass}>
-            Отримати розрахунок
+            {t("cta")}
           </Link>
         </div>
 
@@ -352,6 +358,7 @@ export function SiteHeader() {
         </div>
 
         <div className="grid grid-cols-1 gap-2 border-t border-[var(--color-border)] p-4">
+          <LanguageSwitcher className="mb-1 self-start" />
           {currentUser ? (
             <>
               {profileLinks.map((item) => (
@@ -367,7 +374,7 @@ export function SiteHeader() {
                 </Link>
               ))}
               <Button variant="danger" className="w-full" onClick={() => void handleSignOut()}>
-                Вийти
+                {t("signOut")}
               </Button>
             </>
           ) : (
@@ -376,7 +383,7 @@ export function SiteHeader() {
               onClick={() => setOpen(false)}
               className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
             >
-              Увійти
+              {t("login")}
             </Link>
           )}
 
@@ -385,7 +392,7 @@ export function SiteHeader() {
             onClick={() => setOpen(false)}
             className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 text-xs font-semibold text-[var(--color-on-primary)] transition hover:bg-[var(--color-primary-700)]"
           >
-            Отримати розрахунок
+            {t("cta")}
           </Link>
         </div>
       </div>

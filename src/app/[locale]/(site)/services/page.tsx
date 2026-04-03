@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Factory, Phone, Shield, Star } from "lucide-react";
 import { FinalCtaSection } from "@/components/sections/final-cta";
 import { ServicesAccordion } from "@/components/services/services-grid";
@@ -10,40 +11,51 @@ import { Container } from "@/components/ui/container";
 import { CountUp } from "@/components/ui/count-up";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getServices } from "@/lib/data/queries";
+import { localizeService } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Послуги майстерні",
-  description:
-    "Двері на замовлення, меблі, вікна та реставрація. Від першого ескізу до монтажу — беремо на себе весь процес.",
-};
-
-const WHY_US = [
-  {
-    icon: Shield,
-    title: "Гарантія 3 роки",
-    description: "На всі види робіт та матеріали",
-  },
-  {
-    icon: Factory,
-    title: "Власне виробництво",
-    description: "Повний цикл — від проєкту до монтажу",
-  },
-  {
-    icon: Star,
-    title: "26+ років досвіду",
-    description: "Працюємо з 1998 року",
-  },
-  {
-    icon: Phone,
-    title: "Безкоштовна консультація",
-    description: "Допоможемо обрати рішення під ваш бюджет",
-  },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const tSp = await getTranslations("servicesPage");
+  return {
+    title: tSp("metaTitle"),
+    description: tSp("metaDescription"),
+  };
+}
 
 export default async function ServicesPage() {
-  const services = await getServices();
+  const [rawServices, locale, t, tSp, tCommon, tNav] = await Promise.all([
+    getServices(),
+    getLocale(),
+    getTranslations("services"),
+    getTranslations("servicesPage"),
+    getTranslations("common"),
+    getTranslations("nav"),
+  ]);
+
+  const WHY_US = [
+    {
+      icon: Shield,
+      title: tSp("whyUs.guarantee.title"),
+      description: tSp("whyUs.guarantee.description"),
+    },
+    {
+      icon: Factory,
+      title: tSp("whyUs.production.title"),
+      description: tSp("whyUs.production.description"),
+    },
+    {
+      icon: Star,
+      title: tSp("whyUs.experience.title"),
+      description: tSp("whyUs.experience.description"),
+    },
+    {
+      icon: Phone,
+      title: tSp("whyUs.consultation.title"),
+      description: tSp("whyUs.consultation.description"),
+    },
+  ];
+  const services = rawServices.map((s) => localizeService(s, locale as "uk" | "en"));
 
   return (
     <>
@@ -66,16 +78,16 @@ export default async function ServicesPage() {
         <Container className="relative z-10 pb-10">
           <Breadcrumbs
             items={[
-              { label: "Головна", href: "/" },
-              { label: "Послуги" },
+              { label: tCommon("home"), href: "/" },
+              { label: tNav("services") },
             ]}
             className="text-white/60 [&_a]:text-white/60 [&_a:hover]:text-white [&_span]:text-white/80"
           />
           <h1 className="mt-3 font-display text-4xl font-bold text-white md:text-5xl">
-            Послуги майстерні
+            {tSp("heroTitle")}
           </h1>
           <p className="mt-2 max-w-xl text-base text-white/75">
-            Від першого ескізу до монтажу — беремо на себе весь процес
+            {tSp("heroSubtitle")}
           </p>
         </Container>
       </section>
@@ -87,15 +99,13 @@ export default async function ServicesPage() {
             <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                  Як ми працюємо
+                  {tSp("introEyebrow")}
                 </p>
                 <h2 className="mt-3 font-display text-3xl font-semibold text-[var(--color-text-primary)] md:text-4xl">
-                  Кожен проєкт — індивідуальне рішення
+                  {tSp("introTitle")}
                 </h2>
                 <p className="mt-4 max-w-2xl text-[var(--color-text-secondary)] leading-relaxed">
-                  Ми не продаємо шаблонних рішень. Спочатку розбираємось у вашій задачі, потім
-                  пропонуємо матеріали, конструкцію і строки. Працюємо під конкретну задачу: без
-                  шаблонних кошторисів, з прозорим процесом та персональними рекомендаціями.
+                  {tSp("introDescription")}
                 </p>
               </div>
 
@@ -104,14 +114,14 @@ export default async function ServicesPage() {
                   <p className="font-display text-4xl font-bold text-[var(--color-primary)]">
                     <CountUp end={26} suffix="+" />
                   </p>
-                  <p className="mt-1 text-sm text-[var(--color-text-muted)]">Років досвіду</p>
+                  <p className="mt-1 text-sm text-[var(--color-text-muted)]">{tSp("statsYears")}</p>
                 </div>
                 <div className="py-4 lg:pr-4">
                   <p className="font-display text-4xl font-bold text-[var(--color-primary)]">
                     <CountUp end={20000} suffix="+" />
                   </p>
                   <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                    Реалізованих проєктів
+                    {tSp("statsProjects")}
                   </p>
                 </div>
                 <div className="py-4 lg:pr-4">
@@ -119,7 +129,7 @@ export default async function ServicesPage() {
                     <CountUp end={3} />
                   </p>
                   <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                    Роки гарантії на всі роботи
+                    {tSp("statsWarranty")}
                   </p>
                 </div>
               </div>
@@ -132,8 +142,8 @@ export default async function ServicesPage() {
       <section className="py-14 md:py-20">
         <Container>
           <SectionHeading
-            eyebrow="Наші послуги"
-            title="Від консультації до монтажу"
+            eyebrow={tSp("accordionEyebrow")}
+            title={tSp("accordionTitle")}
           />
           <ServicesAccordion services={services} className="mt-10" />
         </Container>
@@ -161,8 +171,8 @@ export default async function ServicesPage() {
         <section className="bg-[var(--color-bg-warm)] py-14 md:py-20">
           <Container>
             <SectionHeading
-              eyebrow="Портфоліо"
-              title="Приклади наших робіт"
+              eyebrow={tSp("portfolioEyebrow")}
+              title={tSp("portfolioTitle")}
             />
             <div className="mt-10">
               <ServicesPortfolioTabs services={services} />

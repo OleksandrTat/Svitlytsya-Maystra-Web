@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Award } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
 import type { Certificate } from "@/lib/types";
 
@@ -11,6 +12,8 @@ export function CertificatesSection({
 }: {
   certificates: Certificate[];
 }) {
+  const t = useTranslations("common");
+
   if (certificates.length === 0) return null;
 
   return (
@@ -18,10 +21,10 @@ export function CertificatesSection({
       <Container>
         <div className="mb-12 text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-light)]">
-            Сертифікати та нагороди
+            {t("certificates")}
           </p>
           <h2 className="mt-3 font-display text-3xl font-bold text-white md:text-4xl">
-            Якість підтверджена
+            {t("certificatesSubtitle")}
           </h2>
         </div>
 
@@ -76,7 +79,7 @@ export function CertificatesSection({
         </div>
 
         <p className="mt-10 text-center text-sm italic text-white/40">
-          Всі документи доступні для перегляду на запит
+          {t("certificatesNote")}
         </p>
       </Container>
     </section>

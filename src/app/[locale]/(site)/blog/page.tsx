@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { getLocale, getTranslations } from "next-intl/server";
 import { BlogCard } from "@/components/blog/blog-card";
 import { BlogFeaturedHero } from "@/components/blog/blog-featured-hero";
 import { BlogFiltersBar } from "@/components/blog/blog-filters-bar";
@@ -16,10 +17,13 @@ import {
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Блог",
-  description: "Поради по догляду за деревом, огляди матеріалів, натхнення для вашого інтер'єру.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("blogPage");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 export default async function BlogPage({
   searchParams,
@@ -32,12 +36,17 @@ export default async function BlogPage({
   const tag = params.tag;
   const pageSize = 9;
 
-  const [{ items, total }, featured, categories, tags] = await Promise.all([
+  const [{ items: rawItems, total }, rawFeatured, categories, tags, locale, t] = await Promise.all([
     getPublishedBlogPosts({ page, pageSize, category, tag }),
     !category && !tag && page === 1 ? getFeaturedBlogPosts(1) : Promise.resolve([]),
     getBlogCategories(),
     getAllBlogTags(),
+    getLocale(),
+    getTranslations("blogPage"),
   ]);
+  const { localizeBlogPost } = await import("@/lib/i18n/content");
+  const items = rawItems.map((p) => localizeBlogPost(p, locale as "uk" | "en"));
+  const featured = rawFeatured.map((p) => localizeBlogPost(p, locale as "uk" | "en"));
 
   const totalPages = Math.ceil(total / pageSize);
   const featuredPost = featured[0] ?? null;
@@ -46,8 +55,8 @@ export default async function BlogPage({
   return (
     <>
       <PageHero
-        title="Блог майстерні"
-        subtitle="Поради, натхнення та знання про деревообробку та дизайн інтер'єру"
+        title={t("heroTitle")}
+        subtitle={t("heroSubtitle")}
         imageUrl="https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1920&q=80"
       />
 
@@ -73,10 +82,10 @@ export default async function BlogPage({
           ) : (
             <div className="mt-16 flex flex-col items-center gap-4 text-center">
               <p className="font-display text-2xl text-[var(--color-text-primary)]">
-                Статей не знайдено
+                {t("noArticles")}
               </p>
               <p className="text-[var(--color-text-muted)]">
-                Спробуйте обрати іншу категорію або тег
+                {t("noArticlesHint")}
               </p>
             </div>
           )}

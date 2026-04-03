@@ -7,7 +7,9 @@ import { FinalCtaSection } from "@/components/sections/final-cta";
 import { AnimatedSection } from "@/components/ui/animated-section";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getServiceBySlug, getServices } from "@/lib/data/queries";
+import { localizeService } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
 
@@ -26,13 +28,18 @@ export async function generateMetadata({
   const { slug } = await params;
   const service = await getServiceBySlug(slug);
 
+  const t = await getTranslations("servicePage");
+
   if (!service) {
-    return { title: "Послугу не знайдено" };
+    return { title: t("notFound") };
   }
 
+  const locale = await getLocale();
+  const localizedService = localizeService(service, locale as "uk" | "en");
+
   return {
-    title: service.seo_title || service.title,
-    description: service.seo_description || service.short_description,
+    title: localizedService.seo_title || localizedService.title,
+    description: localizedService.seo_description || localizedService.short_description,
   };
 }
 
@@ -48,6 +55,10 @@ export default async function ServicePage({
     notFound();
   }
 
+  const locale = await getLocale();
+  const t = await getTranslations("servicePage");
+  const localizedService = localizeService(service, locale as "uk" | "en");
+
   const galleryImages = service.gallery.filter(
     (src) => src.startsWith("http") || src.startsWith("/"),
   );
@@ -59,7 +70,7 @@ export default async function ServicePage({
         {service.cover_image ? (
           <Image
             src={service.cover_image}
-            alt={service.title}
+            alt={localizedService.title}
             fill
             priority
             className="object-cover"
@@ -75,10 +86,10 @@ export default async function ServicePage({
             </span>
           )}
           <h1 className="mt-4 font-display text-4xl font-bold text-white md:text-5xl lg:text-6xl">
-            {service.title}
+            {localizedService.title}
           </h1>
-          {service.tagline && (
-            <p className="mt-3 max-w-xl text-lg italic text-white/70">{service.tagline}</p>
+          {localizedService.tagline && (
+            <p className="mt-3 max-w-xl text-lg italic text-white/70">{localizedService.tagline}</p>
           )}
           <div className="mt-5 flex flex-wrap gap-3">
             {service.price_from && (
@@ -88,7 +99,7 @@ export default async function ServicePage({
             )}
             {service.duration_days_from && (
               <span className="rounded-full border border-white/30 px-4 py-1.5 text-sm text-white">
-                {service.duration_days_from}–{service.duration_days_to ?? service.duration_days_from} днів
+                {service.duration_days_from}–{service.duration_days_to ?? service.duration_days_from} {t("days")}
               </span>
             )}
           </div>
@@ -97,13 +108,13 @@ export default async function ServicePage({
               href="/contact"
               className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-colors hover:bg-white/90"
             >
-              Замовити →
+              {t("orderButton")}
             </Link>
             <a
               href="#process"
               className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
             >
-              Дізнатись про процес ↓
+              {t("processButton")}
             </a>
           </div>
         </Container>
@@ -115,11 +126,11 @@ export default async function ServicePage({
           <div className="grid gap-10 lg:grid-cols-[55%_45%]">
             <div>
               <SectionHeading
-                eyebrow="Про послугу"
-                title={service.title}
+                eyebrow={t("aboutEyebrow")}
+                title={localizedService.title}
               />
               <p className="mt-6 text-lg leading-relaxed text-[var(--color-text-secondary)]">
-                {service.description}
+                {localizedService.description}
               </p>
               {service.features.length > 0 && (
                 <div className="mt-8 space-y-3">
@@ -154,7 +165,7 @@ export default async function ServicePage({
                   >
                     <Image
                       src={src}
-                      alt={`${service.title} — фото ${i + 1}`}
+                      alt={`${localizedService.title} — фото ${i + 1}`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 1024px) 50vw, 25vw"
@@ -172,8 +183,8 @@ export default async function ServicePage({
         <section id="process" className="scroll-mt-20 bg-[var(--color-bg-dark)] py-14 md:py-20">
           <Container>
             <SectionHeading
-              eyebrow="Процес"
-              title="Як відбувається робота"
+              eyebrow={t("processEyebrow")}
+              title={t("processTitle")}
             />
             <AnimatedSection stagger className="mt-10">
               <div className="space-y-0">
@@ -205,7 +216,7 @@ export default async function ServicePage({
       {galleryImages.length > 4 && (
         <section className="bg-[var(--color-bg-warm)] py-14 md:py-20">
           <Container>
-            <SectionHeading eyebrow="Портфоліо" title="Наші роботи" />
+            <SectionHeading eyebrow={t("portfolioEyebrow")} title={t("portfolioTitle")} />
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {galleryImages.map((src, i) => (
                 <div
@@ -214,7 +225,7 @@ export default async function ServicePage({
                 >
                   <Image
                     src={src}
-                    alt={`${service.title} — робота ${i + 1}`}
+                    alt={`${localizedService.title} — робота ${i + 1}`}
                     fill
                     className="object-cover"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -232,19 +243,19 @@ export default async function ServicePage({
           <Container>
             <div className="mx-auto max-w-2xl rounded-2xl border-l-4 border-[var(--color-primary)] bg-[var(--color-bg-warm)] p-8">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                Вартість послуги
+                {t("priceLabel")}
               </p>
               <p className="mt-2 font-display text-4xl font-bold text-[var(--color-primary)]">
                 від {service.price_from.toLocaleString("uk-UA")} {service.price_unit ?? "грн"}
               </p>
               <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-                * Точна вартість визначається після консультації та виміру
+                {t("priceNote")}
               </p>
               <Link
                 href="/contact"
                 className="mt-5 inline-flex rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
               >
-                Отримати розрахунок
+                {t("getQuote")}
               </Link>
             </div>
           </Container>

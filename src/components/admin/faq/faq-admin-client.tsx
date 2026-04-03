@@ -15,6 +15,7 @@ import {
   updateFaqSortOrderAction,
 } from "@/actions/admin/faq";
 import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
+import { TranslateButton } from "@/components/admin/shared/translate-button";
 import type { FaqItem } from "@/lib/types";
 
 const CATEGORY_OPTIONS = [
@@ -263,6 +264,11 @@ export function FaqAdminClient({ items: initial }: { items: FaqItem[] }) {
                 >
                   <Edit2 size={14} />
                 </button>
+                <TranslateButton
+                  table="faq_items"
+                  id={item.id}
+                  fields={{ question: item.question, answer: item.answer }}
+                />
                 <form action={handleDelete}>
                   <input type="hidden" name="id" value={item.id} />
                   <ConfirmDeleteButton

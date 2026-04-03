@@ -32,6 +32,11 @@ export interface Database {
           seo_description: string | null;
           created_at: string;
           updated_at: string;
+          title_en: string | null;
+          description_en: string | null;
+          short_description_en: string | null;
+          seo_title_en: string | null;
+          seo_description_en: string | null;
         };
         Insert: {
           id?: string;
@@ -55,6 +60,11 @@ export interface Database {
           seo_description?: string | null;
           created_at?: string;
           updated_at?: string;
+          title_en?: string | null;
+          description_en?: string | null;
+          short_description_en?: string | null;
+          seo_title_en?: string | null;
+          seo_description_en?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
         Relationships: [];
@@ -194,6 +204,12 @@ export interface Database {
           sort_order: number;
           created_at: string;
           updated_at: string;
+          title_en: string | null;
+          tagline_en: string | null;
+          short_description_en: string | null;
+          description_en: string | null;
+          seo_title_en: string | null;
+          seo_description_en: string | null;
         };
         Insert: {
           id?: string;
@@ -219,6 +235,12 @@ export interface Database {
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
+          title_en?: string | null;
+          tagline_en?: string | null;
+          short_description_en?: string | null;
+          description_en?: string | null;
+          seo_title_en?: string | null;
+          seo_description_en?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;
         Relationships: [];
@@ -233,6 +255,7 @@ export interface Database {
           project_id: string | null;
           is_visible: boolean;
           created_at: string;
+          content_en: string | null;
         };
         Insert: {
           id?: string;
@@ -243,6 +266,7 @@ export interface Database {
           project_id?: string | null;
           is_visible?: boolean;
           created_at?: string;
+          content_en?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["testimonials"]["Insert"]>;
         Relationships: [];
@@ -797,6 +821,8 @@ export interface Database {
           is_published: boolean;
           created_at: string;
           updated_at: string;
+          question_en: string | null;
+          answer_en: string | null;
         };
         Insert: {
           id?: string;
@@ -807,6 +833,8 @@ export interface Database {
           is_published?: boolean;
           created_at?: string;
           updated_at?: string;
+          question_en?: string | null;
+          answer_en?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["faq_items"]["Insert"]>;
         Relationships: [];
@@ -823,6 +851,9 @@ export interface Database {
           is_published: boolean;
           created_at: string;
           updated_at: string;
+          title_en: string | null;
+          description_en: string | null;
+          issuer_en: string | null;
         };
         Insert: {
           id?: string;
@@ -835,6 +866,9 @@ export interface Database {
           is_published?: boolean;
           created_at?: string;
           updated_at?: string;
+          title_en?: string | null;
+          description_en?: string | null;
+          issuer_en?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["certificates"]["Insert"]>;
         Relationships: [];

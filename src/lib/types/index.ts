@@ -68,6 +68,12 @@ export interface Product {
   seo_description: string | null;
   created_at: string;
   updated_at: string;
+  // i18n EN fields
+  title_en?: string | null;
+  description_en?: string | null;
+  short_description_en?: string | null;
+  seo_title_en?: string | null;
+  seo_description_en?: string | null;
 }
 
 export interface Service {
@@ -94,6 +100,13 @@ export interface Service {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  // i18n EN fields
+  title_en?: string | null;
+  tagline_en?: string | null;
+  short_description_en?: string | null;
+  description_en?: string | null;
+  seo_title_en?: string | null;
+  seo_description_en?: string | null;
 }
 
 export interface SavedConfiguration {
@@ -115,6 +128,8 @@ export interface Testimonial {
   project_id: string | null;
   is_visible: boolean;
   created_at: string;
+  // i18n EN fields
+  content_en?: string | null;
 }
 
 export interface Inquiry {
@@ -330,6 +345,12 @@ export interface BlogPost {
   likes_count: number;
   related_service_id: string | null;
   related_product_id: string | null;
+  // i18n EN fields
+  title_en?: string | null;
+  excerpt_en?: string | null;
+  content_en?: string | null;
+  seo_title_en?: string | null;
+  seo_description_en?: string | null;
 }
 
 export type BlogPostStatus = "published" | "draft";
@@ -353,6 +374,9 @@ export interface FaqItem {
   is_published: boolean;
   created_at: string;
   updated_at: string;
+  // i18n EN fields
+  question_en?: string | null;
+  answer_en?: string | null;
 }
 
 // ── CERTIFICATES ─────────────────────────────────────────
@@ -368,6 +392,10 @@ export interface Certificate {
   is_published: boolean;
   created_at: string;
   updated_at: string;
+  // i18n EN fields
+  title_en?: string | null;
+  description_en?: string | null;
+  issuer_en?: string | null;
 }
 
 // ── NEWSLETTER ───────────────────────────────────────────

@@ -34,6 +34,11 @@ const productSchema = z.object({
   is_featured: z.boolean().default(false),
   seo_title: z.string().optional(),
   seo_description: z.string().optional(),
+  title_en: z.string().optional(),
+  description_en: z.string().optional(),
+  short_description_en: z.string().optional(),
+  seo_title_en: z.string().optional(),
+  seo_description_en: z.string().optional(),
 });
 
 function splitList(value: string) {
@@ -78,6 +83,11 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
     is_featured: formData.get("is_featured") === "true" || formData.get("is_featured") === "on",
     seo_title: formData.get("seo_title") || undefined,
     seo_description: formData.get("seo_description") || undefined,
+    title_en: formData.get("title_en") || undefined,
+    description_en: formData.get("description_en") || undefined,
+    short_description_en: formData.get("short_description_en") || undefined,
+    seo_title_en: formData.get("seo_title_en") || undefined,
+    seo_description_en: formData.get("seo_description_en") || undefined,
   });
 
   if (!parsed.success) {
@@ -104,6 +114,11 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
     is_featured: parsed.data.is_featured,
     seo_title: parsed.data.seo_title || null,
     seo_description: parsed.data.seo_description || null,
+    title_en: parsed.data.title_en || null,
+    description_en: parsed.data.description_en || null,
+    short_description_en: parsed.data.short_description_en || null,
+    seo_title_en: parsed.data.seo_title_en || null,
+    seo_description_en: parsed.data.seo_description_en || null,
   };
 
   const { error } = await supabase.from("products").upsert(payload);

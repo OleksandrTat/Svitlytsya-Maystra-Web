@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Container } from "@/components/ui/container";
@@ -9,14 +10,14 @@ import { CountUp } from "@/components/ui/count-up";
 import { craftFadeUp, craftStagger } from "@/lib/animation/variants";
 
 const counters = [
-  { value: 26, suffix: "+", label: "років досвіду" },
-  { value: 20000, suffix: "+", label: "реалізованих робіт" },
-  { value: 3, suffix: "", label: "роки гарантії" },
+  { value: 26, suffix: "+", labelKey: "yearsLabel" as const },
+  { value: 20000, suffix: "+", labelKey: "projectsLabel" as const },
+  { value: 3, suffix: "", labelKey: "warrantyLabel" as const },
 ];
 
-const headingLines = ["Ручна робота,", "якій довіряють", "роками"];
-
 export function HeroSection() {
+  const t = useTranslations("home.hero");
+
   return (
     <section className="relative isolate -mt-[72px] flex min-h-screen flex-col overflow-hidden">
       <Image
@@ -43,13 +44,11 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
           >
-            {headingLines.map((line, i) => (
-              <motion.div key={i} variants={craftFadeUp} custom={i}>
-                <span className="block font-display text-5xl font-bold leading-[1.08] text-[var(--color-on-primary)] md:text-7xl lg:text-8xl">
-                  {line}
-                </span>
-              </motion.div>
-            ))}
+            <motion.div variants={craftFadeUp}>
+              <span className="block font-display text-5xl font-bold leading-[1.08] text-[var(--color-on-primary)] md:text-7xl lg:text-8xl">
+                {t("title")}
+              </span>
+            </motion.div>
           </motion.div>
 
           <motion.div
@@ -69,8 +68,7 @@ export function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7, duration: 0.6 }}
           >
-            Авторські двері, меблі та вікна з натуральних матеріалів. Майстерня
-            Svitlytsya — 26 років традицій і точності.
+            {t("subtitle")}
           </motion.p>
 
           <motion.div
@@ -83,14 +81,14 @@ export function HeroSection() {
               href="/products"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-7 text-sm font-semibold text-[var(--color-on-primary)] transition hover:bg-[var(--color-primary-700)]"
             >
-              Переглянути продукти
+              {t("cta")}
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/contact"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-white/60 px-7 text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              Отримати розрахунок
+              {t("secondary")}
             </Link>
           </motion.div>
         </div>
@@ -107,7 +105,7 @@ export function HeroSection() {
           >
             {counters.map((counter) => (
               <motion.div
-                key={counter.label}
+                key={counter.labelKey}
                 variants={craftFadeUp}
                 className="text-center"
               >
@@ -115,7 +113,7 @@ export function HeroSection() {
                   <CountUp end={counter.value} suffix={counter.suffix} />
                 </p>
                 <p className="mt-1 text-xs text-[var(--color-on-primary-faint)] md:text-sm">
-                  {counter.label}
+                  {t(counter.labelKey)}
                 </p>
               </motion.div>
             ))}

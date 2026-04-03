@@ -1,25 +1,22 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { getPublishedFaqByCategory } from "@/lib/data/faq-queries";
 import { FaqAccordion } from "@/components/faq/faq-accordion";
+import { localizeFaqItem } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Поширені запитання",
-  description:
-    "Відповіді на найпоширеніші запитання про наші послуги, доставку, гарантію та оплату.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("faq");
+  return {
+    title: t("title"),
+    description: t("subtitle"),
+  };
+}
 
-const CATEGORY_LABELS: Record<string, string> = {
-  general: "Загальні питання",
-  production: "Виробництво",
-  delivery: "Доставка та монтаж",
-  warranty: "Гарантія та обслуговування",
-  payment: "Оплата",
-};
 
 const CATEGORY_ORDER = [
   "general",
@@ -30,9 +27,22 @@ const CATEGORY_ORDER = [
 ];
 
 export default async function FaqPage() {
-  const faqByCategory = await getPublishedFaqByCategory();
+  const [t, tFaq, tCommon, locale, faqByCategory] = await Promise.all([
+    getTranslations("faq"),
+    getTranslations("faqPage"),
+    getTranslations("common"),
+    getLocale(),
+    getPublishedFaqByCategory(),
+  ]);
 
-  const sortedCategories = Object.keys(faqByCategory).sort(
+  const localizedByCategory = Object.fromEntries(
+    Object.entries(faqByCategory).map(([cat, items]) => [
+      cat,
+      items.map((item) => localizeFaqItem(item, locale as "uk" | "en")),
+    ]),
+  );
+
+  const sortedCategories = Object.keys(localizedByCategory).sort(
     (a, b) =>
       (CATEGORY_ORDER.indexOf(a) === -1 ? 99 : CATEGORY_ORDER.indexOf(a)) -
       (CATEGORY_ORDER.indexOf(b) === -1 ? 99 : CATEGORY_ORDER.indexOf(b)),
@@ -42,9 +52,9 @@ export default async function FaqPage() {
     <>
       <PageHero
         title="FAQ"
-        subtitle="Поширені запитання"
+        subtitle={t("subtitle")}
         breadcrumbs={[
-          { label: "Головна", href: "/" },
+          { label: tCommon("home"), href: "/" },
           { label: "FAQ" },
         ]}
       />
@@ -56,19 +66,17 @@ export default async function FaqPage() {
               {sortedCategories.map((category) => (
                 <div key={category}>
                   <h2 className="mb-6 font-display text-2xl font-semibold text-[var(--color-text-primary)]">
-                    {CATEGORY_LABELS[category] ?? category}
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {tFaq(`categories.${category}` as any)}
                   </h2>
-                  <FaqAccordion items={faqByCategory[category]} />
+                  <FaqAccordion items={localizedByCategory[category]!} />
                 </div>
               ))}
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4 py-16 text-center">
               <p className="font-display text-2xl text-[var(--color-text-primary)]">
-                Поки що немає запитань
-              </p>
-              <p className="text-[var(--color-text-muted)]">
-                Зверніться до нас напряму
+                {t("noItems")}
               </p>
             </div>
           )}
@@ -76,16 +84,16 @@ export default async function FaqPage() {
           {/* CTA */}
           <div className="mt-16 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-warm)] p-8 text-center md:p-12">
             <h3 className="font-display text-2xl font-semibold text-[var(--color-text-primary)]">
-              Не знайшли відповідь?
+              {t("cta")}
             </h3>
             <p className="mt-3 text-[var(--color-text-secondary)]">
-              Зв&apos;яжіться з нами і ми з радістю допоможемо
+              {t("ctaDesc")}
             </p>
             <Link
               href="/contact"
               className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-[var(--color-primary)] px-8 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]"
             >
-              Зв&apos;язатись
+              {t("ctaButton")}
             </Link>
           </div>
         </Container>

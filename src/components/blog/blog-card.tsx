@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Clock, Eye } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { BLOG_CATEGORY_LABELS } from "@/lib/constants";
 import type { BlogPost } from "@/lib/types";
 import { formatInquiryDate } from "@/lib/utils";
 
 export function BlogCard({ post, index = 0 }: { post: BlogPost; index?: number }) {
+  const t = useTranslations("blog");
   const categoryLabel = BLOG_CATEGORY_LABELS[post.category] ?? post.category;
 
   return (
@@ -42,10 +44,10 @@ export function BlogCard({ post, index = 0 }: { post: BlogPost; index?: number }
 
       <div className="flex flex-1 flex-col p-5">
         <div className="mb-3 flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
-          <span>{post.published_at ? formatInquiryDate(post.published_at) : "Чернетка"}</span>
+          <span>{post.published_at ? formatInquiryDate(post.published_at) : t("draft")}</span>
           <span className="flex items-center gap-1">
             <Clock size={11} />
-            {post.reading_time_min} хв
+            {t("readingTime", { minutes: post.reading_time_min })}
           </span>
           <span className="flex items-center gap-1">
             <Eye size={11} />

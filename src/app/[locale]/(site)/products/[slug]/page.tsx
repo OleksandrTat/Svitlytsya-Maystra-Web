@@ -23,10 +23,12 @@ import {
   getRelatedServices,
   getTestimonialsForProduct,
 } from "@/lib/data/queries";
+import { getLocale, getTranslations } from "next-intl/server";
 import {
   createSupabaseServerClient,
   createSupabaseServiceClient,
 } from "@/lib/supabase/server";
+import { localizeProduct } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
 
@@ -55,13 +57,6 @@ async function canPreviewInactiveProduct() {
   return isAdminUser(user);
 }
 
-const GUARANTEES = [
-  "Безкоштовна консультація",
-  "Виробництво 14–21 день",
-  "Гарантія 3 роки",
-  "Доставка по Україні",
-];
-
 export async function generateMetadata({
   params,
 }: {
@@ -71,15 +66,20 @@ export async function generateMetadata({
   const product = await getProductBySlug(slug);
   const canPreview = await canPreviewInactiveProduct();
 
+  const t = await getTranslations("productPage");
+
   if (!product || (product.status !== "active" && !canPreview)) {
-    return { title: "Продукт не знайдено" };
+    return { title: t("notFound") };
   }
 
-  const title = product.seo_title?.trim() || product.title;
+  const locale = await getLocale();
+  const localizedProduct = localizeProduct(product, locale as "uk" | "en");
+
+  const title = localizedProduct.seo_title?.trim() || localizedProduct.title;
   const description =
-    product.seo_description?.trim() ||
-    product.short_description ||
-    product.description.slice(0, 160);
+    localizedProduct.seo_description?.trim() ||
+    localizedProduct.short_description ||
+    localizedProduct.description.slice(0, 160);
 
   return {
     title,
@@ -105,6 +105,21 @@ export default async function ProductPage({
   if (!product || (product.status !== "active" && !canPreview)) {
     notFound();
   }
+
+  const locale = await getLocale();
+  const [t, tCommon, tNav] = await Promise.all([
+    getTranslations("productPage"),
+    getTranslations("common"),
+    getTranslations("nav"),
+  ]);
+  const localizedProduct = localizeProduct(product, locale as "uk" | "en");
+
+  const GUARANTEES = [
+    t("guaranteeConsultation"),
+    t("guaranteeProduction"),
+    t("guaranteeWarranty"),
+    t("guaranteeDelivery"),
+  ];
 
   const baseImages = (product.images.length ? product.images : [product.cover_image]).filter(
     (item): item is string => typeof item === "string" && item.length > 0,
@@ -148,15 +163,15 @@ export default async function ProductPage({
   return (
     <>
       <PageHero
-        title={product.title}
+        title={localizedProduct.title}
         breadcrumbs={[
-          { label: "Головна", href: "/" },
-          { label: "Продукти", href: "/products" },
+          { label: tCommon("home"), href: "/" },
+          { label: tNav("products"), href: "/products" },
           {
             label: categoryLabel,
             href: `/products?category=${encodeURIComponent(product.category)}`,
           },
-          { label: product.title },
+          { label: localizedProduct.title },
         ]}
         height="h-[220px]"
       />
@@ -167,12 +182,12 @@ export default async function ProductPage({
           <div className="grid gap-8 lg:grid-cols-[1fr_480px]">
             {/* Left — Gallery */}
             <div className="space-y-6">
-              <ProductGallery images={galleryImages} title={product.title} />
+              <ProductGallery images={galleryImages} title={localizedProduct.title} />
 
               {model3dUrl && (
                 <Product3DViewer
                   modelUrl={model3dUrl}
-                  productTitle={product.title}
+                  productTitle={localizedProduct.title}
                   arPlacement={arPlacement}
                 />
               )}
@@ -188,12 +203,12 @@ export default async function ProductPage({
                   </span>
                   {product.is_featured && (
                     <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-semibold text-white">
-                      Популярне
+                      {t("featured")}
                     </span>
                   )}
                   {product.status !== "active" && (
                     <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                      {PRODUCT_STATUS_LABELS[product.status]} · лише для адміна
+                      {PRODUCT_STATUS_LABELS[product.status]} · {t("adminOnly")}
                     </span>
                   )}
                 </div>
@@ -201,11 +216,11 @@ export default async function ProductPage({
                 {/* Title + description */}
                 <div>
                   <h2 className="font-display text-3xl font-semibold text-[var(--color-text-primary)] md:text-4xl">
-                    {product.title}
+                    {localizedProduct.title}
                   </h2>
-                  {product.short_description && (
+                  {localizedProduct.short_description && (
                     <p className="mt-2 text-[15px] text-[var(--color-text-secondary)]">
-                      {product.short_description}
+                      {localizedProduct.short_description}
                     </p>
                   )}
                 </div>
@@ -218,7 +233,7 @@ export default async function ProductPage({
                     {product.materials.length > 0 && (
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                          Матеріали
+                          {t("materialsLabel")}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {product.materials.map((m) => (
@@ -235,7 +250,7 @@ export default async function ProductPage({
                     {product.style.length > 0 && (
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                          Стилі
+                          {t("stylesLabel")}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {product.style.map((s) => (
@@ -257,12 +272,12 @@ export default async function ProductPage({
                 {/* Price */}
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                    Вартість
+                    {t("priceLabel")}
                   </p>
                   <p className="mt-1 font-display text-3xl font-bold text-[var(--color-primary)]">
                     {product.price_from
-                      ? `від ${product.price_from.toLocaleString("uk-UA")} грн`
-                      : "За запитом"}
+                      ? t("priceFromValue", { amount: product.price_from.toLocaleString(locale === "en" ? "en-US" : "uk-UA") })
+                      : t("priceOnRequest")}
                   </p>
                 </div>
 
@@ -283,13 +298,13 @@ export default async function ProductPage({
                     href={contactHref}
                     className="flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
                   >
-                    Замовити індивідуально
+                    {t("orderButton")}
                   </Link>
                   <Link
                     href="/contact"
                     className="flex w-full items-center justify-center rounded-full border border-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
                   >
-                    Отримати консультацію
+                    {t("consultButton")}
                   </Link>
                 </div>
 
@@ -305,7 +320,7 @@ export default async function ProductPage({
                   ))}
                 </div>
 
-                <ProductConfiguratorWrapper product={product} />
+                <ProductConfiguratorWrapper product={localizedProduct} />
               </div>
             </div>
           </div>
@@ -313,7 +328,7 @@ export default async function ProductPage({
           {/* Tabs section */}
           <div className="mt-12">
             <ProductDetailTabs
-              description={product.description}
+              description={localizedProduct.description}
               materials={product.materials}
             />
           </div>

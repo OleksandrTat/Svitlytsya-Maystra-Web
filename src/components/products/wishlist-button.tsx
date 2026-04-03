@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ export function WishlistButton({
   productId: string;
   className?: string;
 }) {
+  const t = useTranslations("products");
   const { toggle, isInWishlist } = useWishlist();
   const active = isInWishlist(productId);
 
@@ -29,7 +31,7 @@ export function WishlistButton({
           : "bg-white/90 text-zinc-400 hover:text-red-400",
         className,
       )}
-      title={active ? "Видалити з бажаного" : "Додати до бажаного"}
+      title={active ? t("removeFromWishlist") : t("addToWishlist")}
     >
       <Heart size={14} className={cn(active && "fill-current")} />
     </button>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { FinalCtaSection } from "@/components/sections/final-cta";
 import { InquiryForm } from "@/components/shared/inquiry-form";
 import { Container } from "@/components/ui/container";
@@ -8,11 +9,13 @@ import { PRODUCT_CATEGORY_LABELS, SERVICE_TYPES } from "@/lib/constants";
 import { getContactSettings, getProductBySlug } from "@/lib/data/queries";
 import type { InquirySchema } from "@/lib/validation/inquiry";
 
-export const metadata: Metadata = {
-  title: "Контакти",
-  description:
-    "Зв'яжіться з майстернею Svitlytsya Maystra: консультація, прорахунок і старт проєкту.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("contactPage");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 function normalizeProductLabel(value: string) {
   try {
@@ -47,9 +50,11 @@ export default async function ContactPage({
   const configurationId =
     typeof params.configurationId === "string" ? params.configurationId : undefined;
 
-  const [contacts, product] = await Promise.all([
+  const [contacts, product, t, tCommon] = await Promise.all([
     getContactSettings(),
     productSlug ? getProductBySlug(productSlug) : Promise.resolve(null),
+    getTranslations("contactPage"),
+    getTranslations("common"),
   ]);
 
   const derivedServiceType = product
@@ -90,24 +95,24 @@ export default async function ContactPage({
   const CONTACT_BLOCKS = [
     {
       icon: Phone,
-      label: "Телефон",
+      label: t("phone"),
       content: contacts.phone,
       href: contacts.phone ? `tel:${contacts.phone.replace(/\s/g, "")}` : undefined,
     },
     {
       icon: Mail,
-      label: "Email",
+      label: t("email"),
       content: contacts.email,
       href: contacts.email ? `mailto:${contacts.email}` : undefined,
     },
     {
       icon: MapPin,
-      label: "Адреса майстерні",
+      label: t("address"),
       content: contacts.address,
     },
     {
       icon: Clock,
-      label: "Графік роботи",
+      label: t("hours"),
       content: contacts.hours,
     },
   ];
@@ -115,11 +120,11 @@ export default async function ContactPage({
   return (
     <>
       <PageHero
-        title="Контакти"
-        subtitle="Готові відповісти на ваші запитання в робочий час"
+        title={t("heroTitle")}
+        subtitle={t("heroSubtitle")}
         breadcrumbs={[
-          { label: "Головна", href: "/" },
-          { label: "Контакти" },
+          { label: tCommon("home"), href: "/" },
+          { label: t("heroTitle") },
         ]}
         height="h-[220px]"
       />
@@ -170,14 +175,14 @@ export default async function ContactPage({
             {/* Right — Form */}
             <div className="rounded-2xl border border-[var(--color-border)] bg-white p-8 shadow-sm">
               <h2 className="font-display text-2xl font-semibold text-[var(--color-text-primary)]">
-                Надішліть заявку
+                {t("formTitle")}
               </h2>
               <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                Відповімо протягом 2 годин у робочий час
+                {t("formSubtitle")}
               </p>
               {productLabel && (
                 <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                  Контекст заявки:{" "}
+                  {t("formContext")}{" "}
                   <span className="font-medium text-[var(--color-text-primary)]">
                     {productLabel}
                   </span>

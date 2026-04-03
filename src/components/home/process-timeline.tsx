@@ -3,52 +3,39 @@
 import { Fragment } from "react";
 import { MessageCircle, Ruler, PenTool, Hammer, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
 import { craftFadeUp, craftStagger } from "@/lib/animation/variants";
 
-const steps = [
-  {
-    number: "01",
-    title: "Консультація",
-    description: "Обговорюємо ваші побажання, стиль та бюджет",
-    icon: MessageCircle,
-  },
-  {
-    number: "02",
-    title: "Замір",
-    description: "Виїзд майстра для точних вимірів приміщення",
-    icon: Ruler,
-  },
-  {
-    number: "03",
-    title: "Проєктування",
-    description: "Розробляємо ескіз та погоджуємо матеріали",
-    icon: PenTool,
-  },
-  {
-    number: "04",
-    title: "Виробництво",
-    description: "Виготовляємо виріб на власному виробництві",
-    icon: Hammer,
-  },
-  {
-    number: "05",
-    title: "Монтаж",
-    description: "Доставка та професійне встановлення",
-    icon: Wrench,
-  },
+const STEP_ICONS = [MessageCircle, Ruler, PenTool, Hammer, Wrench];
+const STEP_NUMBERS = ["01", "02", "03", "04", "05"];
+const STEP_KEYS = [
+  { titleKey: "step1Title" as const, descKey: "step1Desc" as const },
+  { titleKey: "step2Title" as const, descKey: "step2Desc" as const },
+  { titleKey: "step3Title" as const, descKey: "step3Desc" as const },
+  { titleKey: "step4Title" as const, descKey: "step4Desc" as const },
+  { titleKey: "step5Title" as const, descKey: "step5Desc" as const },
 ];
 
 export function ProcessTimeline() {
+  const t = useTranslations("home.process");
+
+  const steps = STEP_NUMBERS.map((number, i) => ({
+    number,
+    icon: STEP_ICONS[i]!,
+    title: t(STEP_KEYS[i]!.titleKey),
+    description: t(STEP_KEYS[i]!.descKey),
+  }));
+
   return (
     <section className="section-padding bg-[var(--color-bg-warm)]">
       <Container>
         <div className="text-center">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
-            Як ми працюємо
+            {t("badge")}
           </p>
           <h2 className="heading-h1 text-[var(--color-text-primary)]">
-            Процес роботи
+            {t("title")}
           </h2>
         </div>
 

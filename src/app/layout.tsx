@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Inter, Cormorant_Garamond } from "next/font/google";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,30 +17,18 @@ const cormorant = Cormorant_Garamond({
   style: ["normal", "italic"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://svitlytsya.ua"),
-  title: {
-    default: "Svitlytsya Maystra",
-    template: "%s | Svitlytsya Maystra",
-  },
-  description:
-    "Сімейна майстерня дверей, меблів і вікон на замовлення. 26+ років досвіду, індивідуальні проєкти та 3 роки гарантії.",
-  openGraph: {
-    title: "Svitlytsya Maystra",
-    description:
-      "Двері, меблі та вікна на замовлення. Індивідуальний підхід і спокійний сервіс від майстерні з 26+ роками досвіду.",
-    type: "website",
-    locale: "uk_UA",
-  },
-};
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // getLocale reads the x-next-intl-locale header set by the proxy.
+  // Falls back to "uk" for admin / non-locale routes.
+  let locale = "uk";
+  try {
+    locale = await getLocale();
+  } catch {
+    // admin or routes outside intl scope — default to "uk"
+  }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
-    <html lang="uk" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body
         suppressHydrationWarning
         className={`${inter.variable} ${cormorant.variable} antialiased`}
@@ -49,4 +38,3 @@ export default function RootLayout({
     </html>
   );
 }
-

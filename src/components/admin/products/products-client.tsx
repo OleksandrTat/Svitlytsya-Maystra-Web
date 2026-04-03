@@ -265,6 +265,11 @@ export default function AdminProductsClient({
                         Featured
                       </span>
                     ) : null}
+                    {(product as { title_en?: string | null }).title_en ? (
+                      <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                        EN
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 

@@ -14,8 +14,10 @@ import {
   getRelatedBlogPosts,
   incrementBlogPostViews,
 } from "@/lib/data/blog-queries";
+import { getLocale, getTranslations } from "next-intl/server";
 import { BLOG_CATEGORY_LABELS } from "@/lib/constants";
 import { formatInquiryDate } from "@/lib/utils";
+import { localizeBlogPost } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
 
@@ -26,14 +28,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getBlogPostBySlug(slug);
-  if (!post) return { title: "Статтю не знайдено" };
+  const t = await getTranslations("blogPost");
+  if (!post) return { title: t("notFound") };
+
+  const locale = await getLocale();
+  const localizedPost = localizeBlogPost(post, locale as "uk" | "en");
 
   return {
-    title: post.seo_title || post.title,
-    description: post.seo_description || post.excerpt,
+    title: localizedPost.seo_title || localizedPost.title,
+    description: localizedPost.seo_description || localizedPost.excerpt,
     openGraph: {
-      title: post.seo_title || post.title,
-      description: post.seo_description || post.excerpt,
+      title: localizedPost.seo_title || localizedPost.title,
+      description: localizedPost.seo_description || localizedPost.excerpt,
       images: post.cover_image ? [{ url: post.cover_image }] : [],
       type: "article",
       publishedTime: post.published_at ?? undefined,
@@ -50,12 +56,21 @@ export default async function BlogPostPage({
   const post = await getBlogPostBySlug(slug);
   if (!post) notFound();
 
+  const locale = await getLocale();
+  const localizedPost = localizeBlogPost(post, locale as "uk" | "en");
+  const [t, tCommon, tNav] = await Promise.all([
+    getTranslations("blogPost"),
+    getTranslations("common"),
+    getTranslations("nav"),
+  ]);
+
   const related = await getRelatedBlogPosts(post.slug, post.category, post.tags);
 
   // Fire and forget
   void incrementBlogPostViews(slug);
 
   const categoryLabel = BLOG_CATEGORY_LABELS[post.category] ?? post.category;
+  const { title, excerpt, content } = localizedPost;
 
   return (
     <article>
@@ -65,7 +80,7 @@ export default async function BlogPostPage({
           <>
             <Image
               src={post.cover_image}
-              alt={post.title}
+              alt={title}
               fill
               priority
               className="object-cover"
@@ -82,10 +97,10 @@ export default async function BlogPostPage({
             <Breadcrumbs
               className="mb-6 [&_a]:text-white/60 [&_span]:text-white/40"
               items={[
-                { label: "Головна", href: "/" },
-                { label: "Блог", href: "/blog" },
+                { label: tCommon("home"), href: "/" },
+                { label: tNav("blog"), href: "/blog" },
                 { label: categoryLabel, href: `/blog?category=${post.category}` },
-                { label: post.title },
+                { label: title },
               ]}
             />
 
@@ -105,7 +120,7 @@ export default async function BlogPostPage({
             </div>
 
             <h1 className="max-w-4xl font-display text-4xl font-bold leading-tight text-white md:text-6xl">
-              {post.title}
+              {title}
             </h1>
 
             <div className="mt-6 flex flex-wrap items-center gap-6 text-sm text-white/70">
@@ -128,7 +143,7 @@ export default async function BlogPostPage({
               <span>·</span>
               <span>{post.published_at ? formatInquiryDate(post.published_at) : ""}</span>
               <span>·</span>
-              <span>{post.reading_time_min} хв читання</span>
+              <span>{t("readingTime", { minutes: post.reading_time_min })}</span>
               <BlogPostViews initialCount={post.views_count} />
             </div>
           </Container>
@@ -142,19 +157,19 @@ export default async function BlogPostPage({
             <div>
               {/* Lead paragraph */}
               <p className="mb-8 border-l-4 border-[var(--color-primary)] pl-6 font-display text-xl italic leading-relaxed text-[var(--color-text-secondary)]">
-                {post.excerpt}
+                {excerpt}
               </p>
 
               {/* HTML content */}
               <div
                 className="prose prose-stone prose-lg max-w-none prose-headings:font-display prose-headings:text-[var(--color-text-primary)] prose-h2:mt-12 prose-h2:mb-4 prose-h2:text-3xl prose-h3:mt-8 prose-h3:text-2xl prose-p:leading-relaxed prose-p:text-[var(--color-text-secondary)] prose-a:text-[var(--color-primary)] prose-a:no-underline hover:prose-a:underline prose-strong:text-[var(--color-text-primary)] prose-blockquote:rounded-r-xl prose-blockquote:border-l-[var(--color-primary)] prose-blockquote:bg-[var(--color-bg-warm)] prose-blockquote:px-4 prose-blockquote:py-1 prose-blockquote:font-display prose-blockquote:text-xl prose-blockquote:italic prose-img:rounded-2xl prose-img:shadow-md"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: content }}
               />
 
               {/* Tags */}
               {post.tags.length > 0 && (
                 <div className="mt-12 flex flex-wrap gap-2 border-t border-[var(--color-border)] pt-8">
-                  <span className="text-sm text-[var(--color-text-muted)]">Теги:</span>
+                  <span className="text-sm text-[var(--color-text-muted)]">{t("tagsLabel")}</span>
                   {post.tags.map((tag) => (
                     <Link
                       key={tag}
@@ -170,7 +185,7 @@ export default async function BlogPostPage({
               {/* Like + Share */}
               <div className="mt-8 flex items-center gap-4 border-t border-[var(--color-border)] pt-8">
                 <BlogPostLike slug={post.slug} initialCount={post.likes_count} />
-                <BlogShareButtons title={post.title} />
+                <BlogShareButtons title={title} />
               </div>
 
               {/* Author card */}
@@ -193,7 +208,7 @@ export default async function BlogPostPage({
                     {post.author_name}
                   </p>
                   <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                    Команда майстерні Svitlytsya — ділимось досвідом, порадами та натхненням.
+                    {t("authorBio")}
                   </p>
                 </div>
               </div>
@@ -202,8 +217,8 @@ export default async function BlogPostPage({
             {/* Sidebar */}
             <aside className="hidden lg:block">
               <div className="sticky top-24 space-y-8">
-                <BlogTableOfContents content={post.content} />
-                <BlogShareButtons title={post.title} vertical />
+                <BlogTableOfContents content={content} />
+                <BlogShareButtons title={title} vertical />
               </div>
             </aside>
           </div>
@@ -215,7 +230,7 @@ export default async function BlogPostPage({
         <section className="border-t border-[var(--color-border)] bg-[var(--color-bg-warm)] py-14">
           <Container>
             <h2 className="mb-8 font-display text-3xl text-[var(--color-text-primary)]">
-              Читайте також
+              {t("relatedTitle")}
             </h2>
             <div className="grid gap-6 md:grid-cols-3">
               {related.map((p, i) => (

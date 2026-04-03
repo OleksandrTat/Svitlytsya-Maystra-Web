@@ -2,19 +2,21 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { ArrowRight } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Container } from "@/components/ui/container";
 import { craftFadeUp } from "@/lib/animation/variants";
 
 const stats = [
-  { value: "26", label: "років" },
-  { value: "20 000+", label: "проєктів" },
-  { value: "100%", label: "індивідуально" },
+  { value: "26", labelKey: "yearsLabel" as const },
+  { value: "20 000+", labelKey: "projectsLabel" as const },
+  { value: "100%", labelKey: "individualLabel" as const },
 ];
 
 export function AboutWorkshop() {
+  const t = useTranslations("home.about");
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -40,7 +42,7 @@ export function AboutWorkshop() {
               <div className="flex items-center gap-3">
                 <span className="h-px w-6 bg-[var(--color-accent-light)]" />
                 <span className="text-sm font-medium text-white">
-                  1998 — рік заснування
+                  1998 — {t("foundedLabel")}
                 </span>
               </div>
             </div>
@@ -53,27 +55,23 @@ export function AboutWorkshop() {
             variants={craftFadeUp}
           >
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
-              Наша історія
+              {t("historyLabel")}
             </p>
             <h2 className="mt-3 font-display text-3xl font-bold text-[var(--color-text-primary)] md:text-4xl">
-              Сімейна майстерня
-              <br />з 26-річною традицією
+              {t("title")}
             </h2>
             <p className="mt-5 text-base leading-7 text-[var(--color-text-secondary)]">
-              Svitlytsya Maystra — це сімейна справа, засновна у 1998 році. Ми
-              спеціалізуємось на виробництві дверей, меблів та вікон з натурального
-              дерева. Кожен виріб — це індивідуальний проєкт з увагою до кожної
-              деталі.
+              {t("description")}
             </p>
 
             <div className="mt-8 grid grid-cols-3 gap-4">
               {stats.map((stat) => (
-                <div key={stat.label}>
+                <div key={stat.labelKey}>
                   <p className="font-display text-2xl font-bold text-[var(--color-accent)] md:text-3xl">
                     {stat.value}
                   </p>
                   <p className="mt-1 text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
-                    {stat.label}
+                    {t(stat.labelKey)}
                   </p>
                 </div>
               ))}
@@ -83,7 +81,7 @@ export function AboutWorkshop() {
               href="/contact"
               className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-primary)] transition hover:gap-3"
             >
-              Дізнатися більше про нас
+              {t("cta")}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </motion.div>

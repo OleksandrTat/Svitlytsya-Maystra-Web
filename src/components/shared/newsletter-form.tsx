@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Mail, CheckCircle2, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { subscribeToNewsletterAction } from "@/actions/newsletter";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function NewsletterForm({ variant = "inline", className }: Props) {
+  const t = useTranslations("common");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
       setSuccess(true);
       setMessage(result.message ?? "");
     } else {
-      setError(result.message ?? "Сталась помилка.");
+      setError(result.message ?? t("error"));
     }
   };
 
@@ -43,7 +45,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
       return (
         <div className={cn("flex items-center gap-2 text-sm text-emerald-400", className)}>
           <CheckCircle2 size={16} />
-          <span>{message || "Підписку оформлено!"}</span>
+          <span>{message || t("newsletterSuccess")}</span>
         </div>
       );
     }
@@ -60,7 +62,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
       >
         <CheckCircle2 size={32} className="text-emerald-500" />
         <p className="font-display text-lg font-semibold text-emerald-800">
-          {message || "Підписку оформлено!"}
+          {message || t("newsletterSuccess")}
         </p>
       </div>
     );
@@ -69,7 +71,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
   if (variant === "footer") {
     return (
       <form onSubmit={(e) => void handleSubmit(e)} className={cn("space-y-2", className)}>
-        <p className="text-xs text-white/60">Підписатись на новини</p>
+        <p className="text-xs text-white/60">{t("newsletter")}</p>
         <div className="flex gap-2">
           <input
             type="email"
@@ -105,11 +107,10 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
             <Mail size={20} className="text-[var(--color-primary)]" />
           </div>
           <h3 className="font-display text-xl font-semibold text-[var(--color-text-primary)]">
-            Будьте в курсі новинок
+            {t("newsletter")}
           </h3>
           <p className="mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">
-            Корисні поради, огляди матеріалів та ексклюзивні пропозиції — раз на
-            місяць.
+            {t("newsletterDesc")}
           </p>
         </div>
 
@@ -119,7 +120,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
         >
           <input
             type="text"
-            placeholder="Ваше ім'я (необов'язково)"
+            placeholder={t("newsletterPlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="h-11 rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none sm:w-40"
@@ -127,7 +128,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
           <input
             type="email"
             required
-            placeholder="Ваш email"
+            placeholder={t("newsletterPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="h-11 flex-1 rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
@@ -140,7 +141,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
-              "Підписатись"
+              t("newsletterSubmit")
             )}
           </button>
         </form>
@@ -160,7 +161,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
       <input
         type="email"
         required
-        placeholder="Ваш email"
+        placeholder={t("newsletterPlaceholder")}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className="h-11 flex-1 rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
@@ -173,7 +174,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
         {loading ? (
           <Loader2 size={16} className="animate-spin" />
         ) : (
-          "Підписатись"
+          t("newsletterSubmit")
         )}
       </button>
       {error && <p className="text-xs text-red-600">{error}</p>}

@@ -10,6 +10,7 @@ import { FormulaPicker } from "@/components/admin/shared/formula-picker";
 import { PhotoUploadPopup } from "@/components/admin/shared/photo-upload-popup";
 import { PriorityBar } from "@/components/admin/shared/priority-bar";
 import { TagInput } from "@/components/admin/shared/tag-input";
+import { TranslateButton } from "@/components/admin/shared/translate-button";
 import { useAiSeoAssist } from "@/hooks/use-ai-seo-assist";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import {
@@ -89,6 +90,11 @@ export function ProductFormPopup({
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? false);
   const [seoTitle, setSeoTitle] = useState(initialData?.seo_title ?? "");
   const [seoDescription, setSeoDescription] = useState(initialData?.seo_description ?? "");
+  const [titleEn, setTitleEn] = useState((initialData as { title_en?: string | null } | undefined)?.title_en ?? "");
+  const [descriptionEn, setDescriptionEn] = useState((initialData as { description_en?: string | null } | undefined)?.description_en ?? "");
+  const [shortDescriptionEn, setShortDescriptionEn] = useState((initialData as { short_description_en?: string | null } | undefined)?.short_description_en ?? "");
+  const [seoTitleEn, setSeoTitleEn] = useState((initialData as { seo_title_en?: string | null } | undefined)?.seo_title_en ?? "");
+  const [seoDescriptionEn, setSeoDescriptionEn] = useState((initialData as { seo_description_en?: string | null } | undefined)?.seo_description_en ?? "");
   const [images, setImages] = useState<string[]>(initialData?.images ?? []);
   const [coverImage, setCoverImage] = useState(initialData?.cover_image ?? "");
   const [model3dUrl, setModel3dUrl] = useState(initialData?.model_3d_url ?? "");
@@ -205,6 +211,11 @@ export function ProductFormPopup({
     if (seoDescription.trim()) {
       formData.set("seo_description", seoDescription.trim());
     }
+    formData.set("title_en", titleEn.trim());
+    formData.set("description_en", descriptionEn.trim());
+    formData.set("short_description_en", shortDescriptionEn.trim());
+    formData.set("seo_title_en", seoTitleEn.trim());
+    formData.set("seo_description_en", seoDescriptionEn.trim());
 
     const result = await upsertProductAction(formData);
     if (!result.ok) {
@@ -385,6 +396,96 @@ export function ProductFormPopup({
                         <textarea
                           value={seoDescription}
                           onChange={(event) => setSeoDescription(event.target.value)}
+                          rows={2}
+                          className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* EN Translation block */}
+                    <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                          🇬🇧 EN переклад
+                        </p>
+                        {isEdit && initialData?.id && (
+                          <TranslateButton
+                            table="products"
+                            id={initialData.id}
+                            fields={{
+                              title,
+                              description,
+                              short_description: shortDescription,
+                              seo_title: seoTitle,
+                              seo_description: seoDescription,
+                            }}
+                            onSuccess={(t) => {
+                              if (t.title_en) setTitleEn(t.title_en);
+                              if (t.description_en) setDescriptionEn(t.description_en);
+                              if (t.short_description_en) setShortDescriptionEn(t.short_description_en);
+                              if (t.seo_title_en) setSeoTitleEn(t.seo_title_en);
+                              if (t.seo_description_en) setSeoDescriptionEn(t.seo_description_en);
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-[var(--color-text-secondary)]">Title EN</label>
+                        <input
+                          value={titleEn}
+                          onChange={(e) => setTitleEn(e.target.value)}
+                          className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+                          placeholder="Product name in English"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-[var(--color-text-secondary)]">Description EN</label>
+                        <textarea
+                          value={descriptionEn}
+                          onChange={(e) => setDescriptionEn(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+                          placeholder="Full description in English"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-[var(--color-text-secondary)]">Short description EN</label>
+                        <textarea
+                          value={shortDescriptionEn}
+                          onChange={(e) => setShortDescriptionEn(e.target.value)}
+                          rows={2}
+                          className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+                          placeholder="Short description in English"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-[var(--color-text-secondary)]">
+                          SEO Title EN{" "}
+                          <span className={seoTitleEn.length > 60 ? "text-amber-600" : ""}>
+                            {seoTitleEn.length}/60
+                          </span>
+                        </label>
+                        <input
+                          value={seoTitleEn}
+                          onChange={(e) => setSeoTitleEn(e.target.value)}
+                          className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs text-[var(--color-text-secondary)]">
+                          SEO Description EN{" "}
+                          <span className={seoDescriptionEn.length > 160 ? "text-amber-600" : ""}>
+                            {seoDescriptionEn.length}/160
+                          </span>
+                        </label>
+                        <textarea
+                          value={seoDescriptionEn}
+                          onChange={(e) => setSeoDescriptionEn(e.target.value)}
                           rows={2}
                           className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
                         />

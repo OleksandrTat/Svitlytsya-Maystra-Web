@@ -1,33 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
 import { craftFadeUp, craftFadeLeft, craftStagger } from "@/lib/animation/variants";
 
-const advantages = [
-  {
-    number: "01",
-    title: "Власне виробництво",
-    description: "Контролюємо кожен етап без посередників",
-  },
-  {
-    number: "02",
-    title: "Натуральні матеріали",
-    description: "Тільки перевірена деревина та фурнітура",
-  },
-  {
-    number: "03",
-    title: "Гарантія 3 роки",
-    description: "Офіційна гарантія на всі роботи",
-  },
-  {
-    number: "04",
-    title: "Безкоштовна консультація",
-    description: "Допоможемо обрати рішення під ваш простір",
-  },
+const ADVANTAGE_KEYS = [
+  { number: "01", titleKey: "ownProdTitle" as const, descKey: "ownProdDesc" as const },
+  { number: "02", titleKey: "naturalTitle" as const, descKey: "naturalDesc" as const },
+  { number: "03", titleKey: "warrantyTitle" as const, descKey: "warrantyDesc" as const },
+  { number: "04", titleKey: "consultTitle" as const, descKey: "consultDesc" as const },
 ];
 
 export function WhyUsSection() {
+  const t = useTranslations("home.whyUs");
+
   return (
     <section className="section-padding bg-[var(--color-bg-dark)]">
       <Container>
@@ -39,15 +26,13 @@ export function WhyUsSection() {
             variants={craftFadeUp}
           >
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-light)]">
-              Чому ми
+              {t("badge")}
             </p>
             <h2 className="font-display text-4xl font-bold leading-tight text-white md:text-5xl">
-              Якість, яку видно
-              <br />і відчуваєш
+              {t("title")}
             </h2>
             <p className="mt-6 max-w-md text-base leading-7 text-[var(--color-on-primary-muted)]">
-              Ми не продаємо шаблонні рішення. Кожен виріб проєктується під
-              конкретний простір, а матеріали підбираються індивідуально.
+              {t("subtitle")}
             </p>
           </motion.div>
 
@@ -57,12 +42,12 @@ export function WhyUsSection() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
           >
-            {advantages.map((item, i) => (
+            {ADVANTAGE_KEYS.map((item, i) => (
               <motion.div
                 key={item.number}
                 variants={craftFadeLeft}
                 className={
-                  i < advantages.length - 1
+                  i < ADVANTAGE_KEYS.length - 1
                     ? "border-b border-white/10 py-6"
                     : "py-6"
                 }
@@ -73,10 +58,10 @@ export function WhyUsSection() {
                   </span>
                   <div>
                     <h3 className="font-display text-lg font-semibold text-white">
-                      {item.title}
+                      {t(item.titleKey)}
                     </h3>
                     <p className="mt-1 text-sm text-white/60">
-                      {item.description}
+                      {t(item.descKey)}
                     </p>
                   </div>
                 </div>

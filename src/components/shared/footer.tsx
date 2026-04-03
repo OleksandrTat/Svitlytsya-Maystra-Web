@@ -1,7 +1,12 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 export function SiteFooter() {
+  const t = useTranslations("footer");
+  const tn = useTranslations("nav");
+
   return (
     <footer className="bg-[var(--color-bg-dark)]">
       <div className="mx-auto grid max-w-[1280px] gap-10 px-4 py-14 md:grid-cols-2 md:px-6 lg:grid-cols-[2fr_1fr_1fr_1fr] lg:gap-8">
@@ -9,8 +14,7 @@ export function SiteFooter() {
         <div>
           <p className="font-display text-xl text-white">Svitlytsya Maystra</p>
           <p className="mt-3 max-w-xs text-sm leading-6 text-white/60">
-            Сімейна майстерня дерев&rsquo;яних виробів. 26+ років традицій та
-            індивідуальних рішень під ваш простір.
+            {t("tagline")}
           </p>
           <div className="mt-5 flex gap-3">
             <a
@@ -30,44 +34,44 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Каталог */}
+        {/* Catalog */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-light)]">
-            Каталог
+            {t("catalog")}
           </p>
           <ul className="mt-4 space-y-2.5 text-sm text-white/60">
             <li>
-              <Link href="/products?category=doors" className="transition hover:text-white">Двері</Link>
+              <Link href="/products?category=doors" className="transition hover:text-white">{t("doors")}</Link>
             </li>
             <li>
-              <Link href="/products?category=furniture" className="transition hover:text-white">Меблі</Link>
+              <Link href="/products?category=furniture" className="transition hover:text-white">{t("furniture")}</Link>
             </li>
             <li>
-              <Link href="/products?category=windows" className="transition hover:text-white">Вікна</Link>
+              <Link href="/products?category=windows" className="transition hover:text-white">{t("windows")}</Link>
             </li>
             <li>
-              <Link href="/products?category=restoration" className="transition hover:text-white">Реставрація</Link>
+              <Link href="/products?category=restoration" className="transition hover:text-white">{t("restoration")}</Link>
             </li>
           </ul>
         </div>
 
-        {/* Компанія */}
+        {/* Company */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-light)]">
-            Компанія
+            {t("company")}
           </p>
           <ul className="mt-4 space-y-2.5 text-sm text-white/60">
             <li>
-              <Link href="/services" className="transition hover:text-white">Послуги</Link>
+              <Link href="/services" className="transition hover:text-white">{tn("services")}</Link>
             </li>
             <li>
-              <Link href="/products" className="transition hover:text-white">Продукти</Link>
+              <Link href="/products" className="transition hover:text-white">{tn("products")}</Link>
             </li>
             <li>
-              <Link href="/contact" className="transition hover:text-white">Контакти</Link>
+              <Link href="/contact" className="transition hover:text-white">{t("contacts")}</Link>
             </li>
             <li>
-              <Link href="/blog" className="transition hover:text-white">Блог</Link>
+              <Link href="/blog" className="transition hover:text-white">{tn("blog")}</Link>
             </li>
             <li>
               <Link href="/faq" className="transition hover:text-white">FAQ</Link>
@@ -78,10 +82,10 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Контакти */}
+        {/* Contact */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-light)]">
-            Контакти
+            {t("contactsTitle")}
           </p>
           <ul className="mt-4 space-y-2.5 text-sm text-white/60">
             <li>
@@ -94,8 +98,8 @@ export function SiteFooter() {
                 info@svitlytsya.ua
               </a>
             </li>
-            <li>Пн–Пт: 09:00–18:00</li>
-            <li>Сб: 10:00–15:00</li>
+            <li>{t("schedule")}</li>
+            <li>{t("scheduleSat")}</li>
           </ul>
         </div>
       </div>
@@ -103,15 +107,18 @@ export function SiteFooter() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-white/40 md:flex-row md:px-6">
           <div className="flex flex-wrap items-center gap-3">
-            <span>&copy; 2026 Svitlytsya Maystra</span>
+            <span>{t("copyright")}</span>
             <span className="hidden md:inline">·</span>
-            <Link href="/privacy" className="transition hover:text-white/60">Privacy Policy</Link>
+            <Link href="/privacy" className="transition hover:text-white/60">{t("privacy")}</Link>
             <span>·</span>
-            <Link href="/terms" className="transition hover:text-white/60">Terms of Use</Link>
+            <Link href="/terms" className="transition hover:text-white/60">{t("terms")}</Link>
             <span>·</span>
-            <Link href="/cookies" className="transition hover:text-white/60">Cookies</Link>
+            <Link href="/cookies" className="transition hover:text-white/60">{t("cookies")}</Link>
           </div>
-          <span>Зроблено з ♥ в Україні</span>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <span>{t("madeWith")}</span>
+          </div>
         </div>
       </div>
     </footer>

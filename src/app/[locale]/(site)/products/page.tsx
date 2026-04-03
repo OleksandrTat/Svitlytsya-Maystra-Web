@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { Suspense } from "react";
+import { getLocale, getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { PackageSearch } from "lucide-react";
 import { ComparisonBar } from "@/components/products/comparison-bar";
 import { ProductCard } from "@/components/products/product-card";
@@ -21,14 +22,17 @@ import {
   parseProductFilters,
 } from "@/lib/data/queries";
 import { hasOpenAi } from "@/lib/env";
+import { localizeProduct } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Каталог виробів",
-  description:
-    "Каталог продуктів майстерні: двері, меблі та вікна на замовлення. Кожен виріб виготовляється індивідуально.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("productsPage");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 function ProductFiltersFallback() {
   return (
@@ -63,11 +67,17 @@ export default async function ProductsPage({
 }) {
   const params = await searchParams;
   const filters = parseProductFilters(params);
-  const [{ items, total }, filterOptions, comparisonProducts] = await Promise.all([
+  const [{ items: rawItems, total }, filterOptions, rawComparisonProducts, locale, t, tCommon, tNav] = await Promise.all([
     getProducts(filters),
     getProductFilterOptions(),
     getAllActiveProducts(),
+    getLocale(),
+    getTranslations("productsPage"),
+    getTranslations("common"),
+    getTranslations("nav"),
   ]);
+  const items = rawItems.map((p) => localizeProduct(p, locale as "uk" | "en"));
+  const comparisonProducts = rawComparisonProducts.map((p) => localizeProduct(p, locale as "uk" | "en"));
   const totalPages = Math.ceil(total / filters.pageSize);
 
   return (
@@ -91,19 +101,19 @@ export default async function ProductsPage({
         <Container className="relative z-10 pb-10">
           <Breadcrumbs
             items={[
-              { label: "Головна", href: "/" },
-              { label: "Продукти" },
+              { label: tCommon("home"), href: "/" },
+              { label: tNav("products") },
             ]}
             className="text-white/60 [&_a]:text-white/60 [&_a:hover]:text-white [&_span]:text-white/80"
           />
           <h1 className="mt-3 font-display text-4xl font-bold text-white md:text-5xl">
-            Каталог виробів
+            {t("heroTitle")}
           </h1>
           <p className="mt-2 max-w-xl text-base text-white/75">
-            Авторські двері, меблі та вікна — кожен виріб виготовляється індивідуально
+            {t("heroSubtitle")}
           </p>
           <p className="mt-2 text-sm text-white/50">
-            {total} {total === 1 ? "виріб" : total < 5 ? "вироби" : "виробів"} знайдено
+            {t("itemsFound", { count: total })}
           </p>
         </Container>
       </section>
@@ -133,8 +143,7 @@ export default async function ProductsPage({
               {/* Top bar */}
               <div className="mb-5 flex items-center justify-between">
                 <p className="text-sm text-[var(--color-text-muted)]">
-                  Знайдено: {total}{" "}
-                  {total === 1 ? "виріб" : total < 5 ? "вироби" : "виробів"}
+                  {t("itemsFound", { count: total })}
                 </p>
                 <div className="flex items-center gap-3">
                   <ProductsSortSelect current={filters.sort} />
@@ -156,16 +165,16 @@ export default async function ProductsPage({
                     className="text-[var(--color-border)]"
                   />
                   <h3 className="mt-4 font-display text-xl font-semibold text-[var(--color-text-primary)]">
-                    Нічого не знайдено
+                    {t("noResults")}
                   </h3>
                   <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                    Спробуйте змінити фільтри або переглянути всі вироби
+                    {t("noResultsHint")}
                   </p>
                   <Link
                     href="/products"
                     className="mt-4 rounded-full border border-[var(--color-primary)] px-5 py-2 text-sm font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
                   >
-                    Скинути фільтри
+                    {t("resetFilters")}
                   </Link>
                 </div>
               )}
