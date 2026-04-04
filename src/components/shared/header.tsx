@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { ChevronDown, Heart, LogOut, Menu, UserCircle2, X } from "lucide-react";
@@ -180,7 +179,7 @@ export function SiteHeader() {
     "inline-flex h-10 items-center justify-center rounded-lg px-5 text-xs font-semibold transition",
     isTransparent
       ? "border border-white/40 bg-white/10 text-white hover:bg-white/20"
-      : "border border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-700)]",
+      : "border border-[var(--color-primary)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-700)]",
   );
 
   const secondaryLinkClass = cn(
@@ -201,12 +200,16 @@ export function SiteHeader() {
     >
       <div className="mx-auto flex h-18 max-w-[1280px] items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/logo.png"
             alt="Svitlytsya Maystra"
             width={36}
             height={36}
-            className="rounded-lg object-contain"
+            className={cn(
+              "rounded-lg object-contain transition",
+              isTransparent && "brightness-0 invert",
+            )}
           />
           <span
             className={cn(

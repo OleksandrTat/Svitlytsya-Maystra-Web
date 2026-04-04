@@ -1,10 +1,14 @@
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getWishlistStatsForAdmin } from "@/lib/data/queries";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 export default async function AdminWishlistPage() {
-  const topProducts = await getWishlistStatsForAdmin();
+  const [t, topProducts] = await Promise.all([
+    getTranslations("admin.pages.wishlist"),
+    getWishlistStatsForAdmin(),
+  ]);
 
   const supabase = createSupabaseServiceClient();
   let totalEntries = 0;
@@ -16,16 +20,13 @@ export default async function AdminWishlistPage() {
   }
 
   return (
-    <AdminShell
-      title="Бажане"
-      description="Статистика списків бажаного користувачів."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-[var(--color-border)] bg-white p-5">
             <p className="text-xs font-medium text-[var(--color-text-muted)]">
-              Всього записів у бажаному
+              {t("totalEntries")}
             </p>
             <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">
               {totalEntries}
@@ -33,7 +34,7 @@ export default async function AdminWishlistPage() {
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-white p-5">
             <p className="text-xs font-medium text-[var(--color-text-muted)]">
-              Унікальних продуктів
+              {t("uniqueProducts")}
             </p>
             <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">
               {topProducts.length}
@@ -45,7 +46,7 @@ export default async function AdminWishlistPage() {
         <div className="rounded-xl border border-[var(--color-border)] bg-white">
           <div className="border-b border-[var(--color-border)] px-5 py-3">
             <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Топ продуктів у бажаному
+              {t("topProducts")}
             </h3>
           </div>
 
@@ -77,7 +78,7 @@ export default async function AdminWishlistPage() {
                     </p>
                     {product.price_from && (
                       <p className="text-xs text-[var(--color-text-muted)]">
-                        від {product.price_from.toLocaleString("uk-UA")} грн
+                        {t("priceFrom", { amount: product.price_from.toLocaleString("uk-UA") })}
                       </p>
                     )}
                   </div>
@@ -89,7 +90,7 @@ export default async function AdminWishlistPage() {
             </div>
           ) : (
             <div className="px-5 py-10 text-center text-sm text-[var(--color-text-muted)]">
-              Немає даних
+              {t("noData")}
             </div>
           )}
         </div>

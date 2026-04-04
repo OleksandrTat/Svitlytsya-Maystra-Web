@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useTranslations } from "next-intl";
 import { Mail, MessageSquare, Workflow } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn, formatInquiryDate } from "@/lib/utils";
@@ -57,6 +58,7 @@ function FeedItem({ event }: { event: FeedEvent }) {
 
 export function LiveFeed({ initial }: { initial: FeedEvent[] }) {
   const [events, setEvents] = useState<FeedEvent[]>(initial);
+  const t = useTranslations("admin.pages.dashboard");
 
   const supabase = useMemo(() => {
     try {
@@ -82,11 +84,11 @@ export function LiveFeed({ initial }: { initial: FeedEvent[] }) {
           const newEvent: FeedEvent = {
             id: `inq-${inquiryId}`,
             type: "inquiry",
-          title: `Нова заявка від ${String(row.name ?? "клієнта")}`,
-          meta: String(row.service_type ?? ""),
-          href: "/admin/inquiries",
-          time: new Date().toISOString(),
-        };
+            title: t("liveFeedInquiry", { name: String(row.name ?? "") }),
+            meta: String(row.service_type ?? ""),
+            href: "/admin/inquiries",
+            time: new Date().toISOString(),
+          };
           setEvents((prev) => [newEvent, ...prev].slice(0, 25));
         },
       )
@@ -100,8 +102,8 @@ export function LiveFeed({ initial }: { initial: FeedEvent[] }) {
           const newEvent: FeedEvent = {
             id: `status-${String(row.id ?? orderId)}`,
             type: "order_status",
-            title: "Зміна статусу замовлення",
-            meta: `Новий статус: ${status}`,
+            title: t("liveFeedOrderStatus"),
+            meta: t("liveFeedOrderStatusMeta", { status }),
             href: `/admin/orders/${orderId}`,
             time: new Date().toISOString(),
           };
@@ -117,7 +119,7 @@ export function LiveFeed({ initial }: { initial: FeedEvent[] }) {
         const newEvent: FeedEvent = {
           id: `msg-${String(row.id ?? orderId)}`,
           type: "message",
-          title: "Нове повідомлення від клієнта",
+          title: t("liveFeedMessage"),
           meta: String(row.content ?? "").slice(0, 80),
           href: `/admin/orders/${orderId}`,
           time: new Date().toISOString(),
@@ -129,12 +131,12 @@ export function LiveFeed({ initial }: { initial: FeedEvent[] }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, t]);
 
   return (
     <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
       <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg-section)] px-4 py-3">
-        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Активність</h3>
+        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t("liveFeedTitle")}</h3>
         <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600">
           <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
           Live
@@ -142,7 +144,7 @@ export function LiveFeed({ initial }: { initial: FeedEvent[] }) {
       </div>
       <div className="max-h-[520px] divide-y divide-[var(--color-border)] overflow-y-auto">
         {events.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-[var(--color-text-secondary)]">Поки немає подій.</p>
+          <p className="px-4 py-6 text-sm text-[var(--color-text-secondary)]">{t("liveFeedEmpty")}</p>
         ) : (
           events.map((event) => <FeedItem key={event.id} event={event} />)
         )}

@@ -38,9 +38,16 @@
       "subtitle": "Авторські двері, меблі та вікна з натуральних матеріалів. Майстерня Svitlytsya — 26 років традицій і точності.",
       "cta": "Переглянути продукти",
       "secondary": "Отримати розрахунок",
+      "eyebrow": "Майстерня Svitlytsya · 26 років",
       "yearsLabel": "років досвіду",
       "projectsLabel": "реалізованих робіт",
       "warrantyLabel": "роки гарантії"
+    },
+    "portfolio": {
+      "eyebrow": "Портфоліо",
+      "title": "Роботи, що залишаються на десятиліття",
+      "all": "Всі",
+      "viewAll": "Переглянути всі роботи"
     },
     "about": {
       "badge": "26+ років досвіду",
@@ -240,7 +247,12 @@
   "finalCta": {
     "eyebrow": "Консультація",
     "title": "Опишіть задачу і ми підготуємо індивідуальний розрахунок",
-    "description": "Вартість визначається після консультації та уточнення матеріалів, термінів і деталей монтажу."
+    "description": "Вартість визначається після консультації та уточнення матеріалів, термінів і деталей монтажу.",
+    "formTitle": "Залишити заявку",
+    "formSubtitle": "Відповімо протягом робочого дня",
+    "trust1": "15+ років досвіду",
+    "trust2": "Індивідуальний підхід",
+    "trust3": "Безкоштовна консультація"
   },
   "servicePage": {
     "notFound": "Послугу не знайдено",
@@ -379,6 +391,178 @@
       "delivery": "Доставка та монтаж",
       "warranty": "Гарантія та обслуговування",
       "payment": "Оплата"
+    }
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "Панель",
+      "messages": "Повідомлення",
+      "inquiries": "Заявки",
+      "orders": "Замовлення",
+      "clients": "Клієнти",
+      "products": "Продукти",
+      "services": "Послуги",
+      "blog": "Блог",
+      "company": "Компанія",
+      "pricing": "Ціни",
+      "support": "Підтримка",
+      "faq": "FAQ",
+      "certificates": "Сертифікати",
+      "wishlist": "Бажане",
+      "newsletter": "Розсилка",
+      "security": "Безпека",
+      "settings": "Налаштування",
+      "analytics": "Аналітика",
+      "testimonials": "Відгуки",
+      "auditLog": "Audit Log"
+    },
+    "sidebar": {
+      "backToSite": "На головну сторінку",
+      "search": "Пошук...",
+      "expandSidebar": "Розгорнути сайдбар",
+      "collapseSidebar": "Згорнути сайдбар",
+      "owner": "Власник",
+      "signOut": "Вийти"
+    },
+    "pages": {
+      "dashboard": {
+        "title": "Панель",
+        "description": "Живий огляд операцій: заявки, замовлення, повідомлення та пріоритетні задачі.",
+        "newInquiriesToday": "Нові заявки сьогодні",
+        "activeOrders": "Активні замовлення",
+        "unreadMessages": "Непрочитані повідомлення",
+        "inquiriesThisMonth": "Заявки цього місяця",
+        "priorityTasks": "Пріоритетні задачі",
+        "quickActions": "Швидкі дії",
+        "newInquiryFrom": "Нова заявка від {name}",
+        "orderStatusChange": "Зміна статусу замовлення",
+        "orderStatus": "Статус: {status}",
+        "newClientMessage": "Нове повідомлення клієнта",
+        "openInquiries": "Відкрити заявки",
+        "inboxMessages": "Inbox повідомлень",
+        "ordersList": "Список замовлень",
+        "clientBase": "Клієнтська база",
+        "pricing": "Ціноутворення",
+        "settingsLink": "Налаштування",
+        "liveFeedTitle": "Активність",
+        "liveFeedEmpty": "Поки немає подій.",
+        "liveFeedInquiry": "Нова заявка від {name}",
+        "liveFeedOrderStatus": "Зміна статусу замовлення",
+        "liveFeedOrderStatusMeta": "Новий статус: {status}",
+        "liveFeedMessage": "Нове повідомлення від клієнта"
+      },
+      "company": {
+        "title": "Компанія",
+        "description": "Керуйте профілем компанії, контактами, графіком роботи та соціальними мережами.",
+        "loadError": "Не вдалося завантажити дані компанії."
+      },
+      "support": {
+        "title": "Підтримка клієнтів",
+        "description": "Внутрішні звернення від зареєстрованих клієнтів.",
+        "conversations": "Звернення",
+        "total": "Усього: {total} · Непрочитаних: {unread}",
+        "noConversations": "Звернень поки немає.",
+        "client": "Клієнт",
+        "noSubject": "Без теми",
+        "closeChat": "Закрити чат",
+        "replyPlaceholder": "Відповідь клієнту...",
+        "reply": "Відповісти",
+        "you": "Ви",
+        "selectConversation": "Оберіть звернення зліва.",
+        "statusOpen": "Відкрито",
+        "statusWaiting": "Очікує",
+        "statusResolved": "Вирішено",
+        "statusClosed": "Закрито"
+      },
+      "auditLog": {
+        "title": "Audit Log",
+        "description": "Об'єднаний журнал критичних операцій та дій адміністратора.",
+        "colAction": "Дія",
+        "colTable": "Таблиця / Сутність",
+        "colActor": "Актор",
+        "colRecordId": "Record ID",
+        "colSource": "Джерело",
+        "colDate": "Дата"
+      },
+      "clients": {
+        "title": "Клієнти",
+        "description": "CRM-список з активністю, сегментами та швидким переходом у профіль клієнта."
+      },
+      "inquiries": {
+        "title": "Заявки",
+        "description": "Pipeline заявок: від нових звернень до виграних, виконаних та архівних."
+      },
+      "pricing": {
+        "title": "Ціноутворення",
+        "description": "Формули розрахунку та бібліотека змінних для калькуляторів продуктів."
+      },
+      "inbox": {
+        "title": "Smart Inbox",
+        "description": "Єдиний список повідомлень по замовленнях: пріоритезуйте непрочитані та відповідайте швидше.",
+        "threads": "Потоки повідомлень",
+        "total": "Всього: {total} · Непрочитаних: {unread}",
+        "noMessages": "Повідомлень поки немає.",
+        "selectChat": "Оберіть чат зі списку ліворуч",
+        "selectChatDesc": "Для відповіді клієнту відкрийте потрібне замовлення. Тут буде повноцінний 3-панельний inbox.",
+        "quickNav": "Швидкий перехід: натисніть Ctrl/Cmd\u00a0+\u00a0K, введіть номер замовлення і відкрийте картку."
+      },
+      "security": {
+        "title": "Безпека",
+        "description": "Налаштування безпеки: 2FA, rate limiting, backup readiness.",
+        "mfaTitle": "2FA (TOTP)",
+        "checklistTitle": "Security checklist",
+        "checklistMfa": "2FA required for all admin users",
+        "checklistTurnstile": "Turnstile enabled for inquiry form",
+        "checklistSignedUrls": "Signed URLs for private documents",
+        "checklistBackup": "Monthly backup recovery test"
+      },
+      "services": {
+        "title": "Управління послугами",
+        "description": "Керуйте переліком сервісів, featured картками, SEO та таймлайном роботи."
+      },
+      "settings": {
+        "title": "Налаштування",
+        "description": "Системні параметри та шаблони замовлень."
+      },
+      "testimonials": {
+        "title": "Керування відгуками",
+        "description": "Додавайте, редагуйте та приховуйте відгуки клієнтів на сайті."
+      },
+      "orders": {
+        "title": "Замовлення",
+        "description": "Workspace для роботи із замовленнями: статуси, клієнти, повідомлення та прив'язані продукти.",
+        "inboxLink": "Smart Inbox",
+        "workspaceCount": "Workspace: {count}"
+      },
+      "products": {
+        "title": "Продукти",
+        "description": "Керування продуктами: створення, редагування, видалення та налаштування відображення на сайті."
+      },
+      "blog": {
+        "title": "Блог",
+        "description": "Керування статтями: створення, редагування, публікація."
+      },
+      "faq": {
+        "title": "FAQ",
+        "description": "Керування поширеними запитаннями."
+      },
+      "certificates": {
+        "title": "Сертифікати",
+        "description": "Керування сертифікатами та нагородами."
+      },
+      "wishlist": {
+        "title": "Бажане",
+        "description": "Статистика списків бажаного користувачів.",
+        "totalEntries": "Всього записів у бажаному",
+        "uniqueProducts": "Унікальних продуктів",
+        "topProducts": "Топ продуктів у бажаному",
+        "priceFrom": "від {amount} грн",
+        "noData": "Немає даних"
+      },
+      "newsletter": {
+        "title": "Розсилка",
+        "description": "Керування підписниками на розсилку."
+      }
     }
   }
 }

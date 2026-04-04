@@ -1,16 +1,18 @@
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { getAllFaqItemsForAdmin } from "@/lib/data/faq-queries";
+import { getAllFaqItemsForAdmin, getFaqCategoryLabels } from "@/lib/data/faq-queries";
 import { FaqAdminClient } from "@/components/admin/faq/faq-admin-client";
 
 export default async function AdminFaqPage() {
-  const items = await getAllFaqItemsForAdmin();
+  const [t, items, customLabels] = await Promise.all([
+    getTranslations("admin.pages.faq"),
+    getAllFaqItemsForAdmin(),
+    getFaqCategoryLabels(),
+  ]);
 
   return (
-    <AdminShell
-      title="FAQ"
-      description="Керування поширеними запитаннями."
-    >
-      <FaqAdminClient items={items} />
+    <AdminShell title={t("title")} description={t("description")}>
+      <FaqAdminClient items={items} customLabels={customLabels} />
     </AdminShell>
   );
 }

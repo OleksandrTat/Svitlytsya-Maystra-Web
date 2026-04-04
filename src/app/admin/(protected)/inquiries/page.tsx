@@ -1,15 +1,16 @@
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { InquiriesBoard } from "@/components/admin/inquiries/inquiries-board";
 import { getAllInquiriesForAdmin } from "@/lib/data/queries";
 
 export default async function AdminInquiriesPage() {
-  const inquiries = await getAllInquiriesForAdmin();
+  const [t, inquiries] = await Promise.all([
+    getTranslations("admin.pages.inquiries"),
+    getAllInquiriesForAdmin(),
+  ]);
 
   return (
-    <AdminShell
-      title="Заявки"
-      description="Pipeline заявок: від нових звернень до виграних, виконаних та архівних."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <InquiriesBoard inquiries={inquiries} />
     </AdminShell>
   );

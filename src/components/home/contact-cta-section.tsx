@@ -11,12 +11,15 @@ type Props = {
 };
 
 export async function ContactCtaSection({ contacts }: Props) {
-  const t = await getTranslations("contact");
+  const [t, tFooter] = await Promise.all([
+    getTranslations("contact"),
+    getTranslations("footer"),
+  ]);
 
   const contactRows = [
-    { icon: Phone, label: t("phone"), key: "phone" as const },
-    { icon: Mail, label: "Email", key: "email" as const },
-    { icon: Clock, label: t("schedule"), key: "hours" as const },
+    { icon: Phone, label: t("phone"), value: contacts.phone },
+    { icon: Mail, label: "Email", value: contacts.email },
+    { icon: Clock, label: t("schedule"), value: tFooter("schedule") },
   ];
 
   return (
@@ -27,22 +30,22 @@ export async function ContactCtaSection({ contacts }: Props) {
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-light)]">
               {t("badge")}
             </p>
-            <h2 className="font-display text-4xl font-bold text-[var(--color-on-primary)] md:text-5xl">
+            <h2 className="font-display text-4xl font-bold text-white md:text-5xl">
               {t("ctaTitle")}
             </h2>
-            <p className="body-base mt-5 max-w-md text-[var(--color-on-primary-muted)]">
+            <p className="mt-5 max-w-md text-base leading-relaxed text-white/80">
               {t("ctaDesc")}
             </p>
 
             <div className="mt-8 space-y-4">
               {contactRows.map((row) => (
-                <div key={row.key} className="flex items-center gap-3">
+                <div key={row.label} className="flex items-center gap-3">
                   <row.icon className="h-5 w-5 shrink-0 text-[var(--color-accent-light)]" />
                   <span className="mt-0.5 shrink-0 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-light)]">
                     {row.label}
                   </span>
-                  <span className="text-sm text-[var(--color-on-primary-muted)]">
-                    {contacts[row.key]}
+                  <span className="text-sm text-white/90">
+                    {row.value}
                   </span>
                 </div>
               ))}

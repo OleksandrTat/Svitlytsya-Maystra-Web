@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getSupportChatsForAdmin, getSupportChatMessagesForAdmin } from "@/lib/data/queries";
@@ -12,13 +13,6 @@ const STATUS_COLORS = {
   closed: "bg-zinc-100 text-zinc-500",
 };
 
-const STATUS_LABELS = {
-  open: "Відкрито",
-  waiting: "Очікує",
-  resolved: "Вирішено",
-  closed: "Закрито",
-};
-
 export default async function AdminSupportPage({
   searchParams,
 }: {
@@ -27,7 +21,18 @@ export default async function AdminSupportPage({
   const params = await searchParams;
   const selectedChatId = params.chat;
 
-  const chats = await getSupportChatsForAdmin(100);
+  const [t, chats] = await Promise.all([
+    getTranslations("admin.pages.support"),
+    getSupportChatsForAdmin(100),
+  ]);
+
+  const STATUS_LABELS = {
+    open: t("statusOpen"),
+    waiting: t("statusWaiting"),
+    resolved: t("statusResolved"),
+    closed: t("statusClosed"),
+  };
+
   const activeChat = chats.find((chat) => chat.id === selectedChatId) ?? chats[0] ?? null;
   const messages = activeChat ? await getSupportChatMessagesForAdmin(activeChat.id) : [];
 
@@ -42,21 +47,18 @@ export default async function AdminSupportPage({
   };
 
   return (
-    <AdminShell
-      title="Підтримка клієнтів"
-      description="Внутрішні звернення від зареєстрованих клієнтів."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
         <AdminCard className="max-h-[75vh] overflow-y-auto p-0">
           <div className="border-b border-[var(--color-border)] px-4 py-3">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Звернення</p>
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">{t("conversations")}</p>
             <p className="text-xs text-[var(--color-text-secondary)]">
-              Усього: {chats.length} · Непрочитаних: {chats.reduce((sum, chat) => sum + chat.unread_count, 0)}
+              {t("total", { total: chats.length, unread: chats.reduce((sum, chat) => sum + chat.unread_count, 0) })}
             </p>
           </div>
 
           {chats.length === 0 ? (
-            <p className="p-4 text-sm text-[var(--color-text-secondary)]">Звернень поки немає.</p>
+            <p className="p-4 text-sm text-[var(--color-text-secondary)]">{t("noConversations")}</p>
           ) : (
             <ul className="divide-y divide-[var(--color-border)]">
               {chats.map((chat) => (
@@ -70,7 +72,7 @@ export default async function AdminSupportPage({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
-                        {chat.user_display_name ?? "Клієнт"}
+                        {chat.user_display_name ?? t("client")}
                       </p>
                       <div className="flex items-center gap-2">
                         {chat.unread_count > 0 && (
@@ -88,7 +90,7 @@ export default async function AdminSupportPage({
                       </div>
                     </div>
                     <p className="mt-0.5 truncate text-xs text-[var(--color-text-secondary)]">
-                      {chat.subject ?? "Без теми"}
+                      {chat.subject ?? t("noSubject")}
                     </p>
                     <p className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
                       {formatInquiryDate(chat.last_message_at)}
@@ -102,16 +104,16 @@ export default async function AdminSupportPage({
 
         <AdminCard>
           {!activeChat ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">Оберіть звернення зліва.</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">{t("selectConversation")}</p>
           ) : (
             <div className="flex h-full flex-col gap-4">
               <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
                 <div>
                   <p className="font-semibold text-[var(--color-text-primary)]">
-                    {activeChat.user_display_name ?? "Клієнт"}
+                    {activeChat.user_display_name ?? t("client")}
                   </p>
                   <p className="text-xs text-[var(--color-text-secondary)]">
-                    {activeChat.subject ?? "Без теми"}
+                    {activeChat.subject ?? t("noSubject")}
                   </p>
                 </div>
                 <form action={closeChat}>
@@ -120,7 +122,7 @@ export default async function AdminSupportPage({
                     type="submit"
                     className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-section)]"
                   >
-                    Закрити чат
+                    {t("closeChat")}
                   </button>
                 </form>
               </div>
@@ -137,7 +139,7 @@ export default async function AdminSupportPage({
                     )}
                   >
                     <p className="mb-1 text-[11px] uppercase tracking-wide opacity-70">
-                      {msg.sender_type === "client" ? "Клієнт" : "Ви"}
+                      {msg.sender_type === "client" ? t("client") : t("you")}
                     </p>
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                     <p className="mt-2 text-[11px] opacity-60">{formatInquiryDate(msg.created_at)}</p>
@@ -151,14 +153,14 @@ export default async function AdminSupportPage({
                   name="content"
                   required
                   rows={3}
-                  placeholder="Відповідь клієнту..."
+                  placeholder={t("replyPlaceholder")}
                   className="w-full rounded-2xl border border-[var(--color-border)] px-3 py-2 text-sm"
                 />
                 <button
                   type="submit"
                   className="rounded-full bg-[var(--color-primary)] px-5 py-2 text-sm font-semibold text-white"
                 >
-                  Відповісти
+                  {t("reply")}
                 </button>
               </form>
             </div>

@@ -38,9 +38,16 @@
       "subtitle": "Custom doors, furniture and windows from natural materials. Svitlytsya workshop — 26 years of tradition and precision.",
       "cta": "Browse products",
       "secondary": "Get a quote",
+      "eyebrow": "Svitlytsya Workshop · 26 years",
       "yearsLabel": "years of experience",
       "projectsLabel": "completed projects",
       "warrantyLabel": "years warranty"
+    },
+    "portfolio": {
+      "eyebrow": "Portfolio",
+      "title": "Work that lasts for decades",
+      "all": "All",
+      "viewAll": "View all work"
     },
     "about": {
       "badge": "26+ years of experience",
@@ -240,7 +247,12 @@
   "finalCta": {
     "eyebrow": "Consultation",
     "title": "Describe your project and we'll prepare an individual quote",
-    "description": "The cost is determined after consultation and clarification of materials, timelines and installation details."
+    "description": "The cost is determined after consultation and clarification of materials, timelines and installation details.",
+    "formTitle": "Send a request",
+    "formSubtitle": "We'll get back to you within one business day",
+    "trust1": "15+ years of craft",
+    "trust2": "Individual approach",
+    "trust3": "Free consultation"
   },
   "servicePage": {
     "notFound": "Service not found",
@@ -379,6 +391,178 @@
       "delivery": "Delivery & installation",
       "warranty": "Warranty & maintenance",
       "payment": "Payment"
+    }
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "messages": "Messages",
+      "inquiries": "Inquiries",
+      "orders": "Orders",
+      "clients": "Clients",
+      "products": "Products",
+      "services": "Services",
+      "blog": "Blog",
+      "company": "Company",
+      "pricing": "Pricing",
+      "support": "Support",
+      "faq": "FAQ",
+      "certificates": "Certificates",
+      "wishlist": "Wishlist",
+      "newsletter": "Newsletter",
+      "security": "Security",
+      "settings": "Settings",
+      "analytics": "Analytics",
+      "testimonials": "Testimonials",
+      "auditLog": "Audit Log"
+    },
+    "sidebar": {
+      "backToSite": "Back to main page",
+      "search": "Search...",
+      "expandSidebar": "Expand sidebar",
+      "collapseSidebar": "Collapse sidebar",
+      "owner": "Owner",
+      "signOut": "Sign out"
+    },
+    "pages": {
+      "dashboard": {
+        "title": "Dashboard",
+        "description": "Live overview of operations: inquiries, orders, messages and priority tasks.",
+        "newInquiriesToday": "New inquiries today",
+        "activeOrders": "Active orders",
+        "unreadMessages": "Unread messages",
+        "inquiriesThisMonth": "Inquiries this month",
+        "priorityTasks": "Priority tasks",
+        "quickActions": "Quick actions",
+        "newInquiryFrom": "New inquiry from {name}",
+        "orderStatusChange": "Order status changed",
+        "orderStatus": "Status: {status}",
+        "newClientMessage": "New client message",
+        "openInquiries": "Open inquiries",
+        "inboxMessages": "Message inbox",
+        "ordersList": "Orders list",
+        "clientBase": "Client base",
+        "pricing": "Pricing",
+        "settingsLink": "Settings",
+        "liveFeedTitle": "Activity",
+        "liveFeedEmpty": "No events yet.",
+        "liveFeedInquiry": "New inquiry from {name}",
+        "liveFeedOrderStatus": "Order status changed",
+        "liveFeedOrderStatusMeta": "New status: {status}",
+        "liveFeedMessage": "New message from client"
+      },
+      "company": {
+        "title": "Company",
+        "description": "Manage company profile, contacts, working hours and social media.",
+        "loadError": "Failed to load company data."
+      },
+      "support": {
+        "title": "Customer support",
+        "description": "Internal requests from registered clients.",
+        "conversations": "Conversations",
+        "total": "Total: {total} · Unread: {unread}",
+        "noConversations": "No conversations yet.",
+        "client": "Client",
+        "noSubject": "No subject",
+        "closeChat": "Close chat",
+        "replyPlaceholder": "Reply to client...",
+        "reply": "Reply",
+        "you": "You",
+        "selectConversation": "Select a conversation on the left.",
+        "statusOpen": "Open",
+        "statusWaiting": "Waiting",
+        "statusResolved": "Resolved",
+        "statusClosed": "Closed"
+      },
+      "auditLog": {
+        "title": "Audit Log",
+        "description": "Combined log of critical operations and admin actions.",
+        "colAction": "Action",
+        "colTable": "Table / Entity",
+        "colActor": "Actor",
+        "colRecordId": "Record ID",
+        "colSource": "Source",
+        "colDate": "Date"
+      },
+      "clients": {
+        "title": "Clients",
+        "description": "CRM list with activity, segments and quick access to client profiles."
+      },
+      "inquiries": {
+        "title": "Inquiries",
+        "description": "Inquiry pipeline: from new requests to won, completed and archived."
+      },
+      "pricing": {
+        "title": "Pricing",
+        "description": "Calculation formulas and variable library for product calculators."
+      },
+      "inbox": {
+        "title": "Smart Inbox",
+        "description": "Unified message list for orders: prioritise unread and respond faster.",
+        "threads": "Message threads",
+        "total": "Total: {total} · Unread: {unread}",
+        "noMessages": "No messages yet.",
+        "selectChat": "Select a chat from the list on the left",
+        "selectChatDesc": "To reply to a client, open the relevant order. A full 3-panel inbox will be available here.",
+        "quickNav": "Quick navigation: press Ctrl/Cmd\u00a0+\u00a0K, type an order number and open the card."
+      },
+      "security": {
+        "title": "Security",
+        "description": "Security settings: 2FA, rate limiting, backup readiness.",
+        "mfaTitle": "2FA (TOTP)",
+        "checklistTitle": "Security checklist",
+        "checklistMfa": "2FA required for all admin users",
+        "checklistTurnstile": "Turnstile enabled for inquiry form",
+        "checklistSignedUrls": "Signed URLs for private documents",
+        "checklistBackup": "Monthly backup recovery test"
+      },
+      "services": {
+        "title": "Services management",
+        "description": "Manage the services list, featured cards, SEO and work timeline."
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "System parameters and order templates."
+      },
+      "testimonials": {
+        "title": "Testimonials",
+        "description": "Add, edit and hide client testimonials on the site."
+      },
+      "orders": {
+        "title": "Orders",
+        "description": "Orders workspace: statuses, clients, messages and linked products.",
+        "inboxLink": "Smart Inbox",
+        "workspaceCount": "Workspace: {count}"
+      },
+      "products": {
+        "title": "Products",
+        "description": "Product management: create, edit, delete and configure site display."
+      },
+      "blog": {
+        "title": "Blog",
+        "description": "Article management: create, edit, publish."
+      },
+      "faq": {
+        "title": "FAQ",
+        "description": "Manage frequently asked questions."
+      },
+      "certificates": {
+        "title": "Certificates",
+        "description": "Manage certificates and awards."
+      },
+      "wishlist": {
+        "title": "Wishlist",
+        "description": "User wishlist statistics.",
+        "totalEntries": "Total wishlist entries",
+        "uniqueProducts": "Unique products",
+        "topProducts": "Top wishlisted products",
+        "priceFrom": "from {amount} UAH",
+        "noData": "No data"
+      },
+      "newsletter": {
+        "title": "Newsletter",
+        "description": "Manage newsletter subscribers."
+      }
     }
   }
 }

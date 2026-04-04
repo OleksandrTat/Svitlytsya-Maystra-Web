@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { CreateOrderForm } from "@/components/admin/orders/create-order-form";
 import { OrdersExportButton } from "@/components/admin/orders/orders-export-button";
@@ -12,7 +13,8 @@ import {
 } from "@/lib/data/queries";
 
 export default async function AdminOrdersPage() {
-  const [rawOrders, inquiries, clients, templates] = await Promise.all([
+  const [t, rawOrders, inquiries, clients, templates] = await Promise.all([
+    getTranslations("admin.pages.orders"),
     getOrdersForAdmin(300),
     getAllInquiriesForAdmin(),
     getClientsForAdmin(500),
@@ -47,10 +49,7 @@ export default async function AdminOrdersPage() {
   }));
 
   return (
-    <AdminShell
-      title="Замовлення"
-      description="Workspace для роботи із замовленнями: статуси, клієнти, повідомлення та прив'язані продукти."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -59,11 +58,11 @@ export default async function AdminOrdersPage() {
               href="/admin/inbox"
               className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-secondary)] transition hover:bg-[var(--color-bg-section)]"
             >
-              Smart Inbox
+              {t("inboxLink")}
             </Link>
           </div>
           <span className="text-xs text-[var(--color-text-secondary)]">
-            РЈ workspace: {orders.length}
+            {t("workspaceCount", { count: orders.length })}
           </span>
         </div>
 

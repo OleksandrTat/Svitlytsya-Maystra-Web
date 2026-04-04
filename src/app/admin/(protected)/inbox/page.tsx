@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
@@ -85,25 +86,26 @@ async function getInboxThreads(): Promise<InboxThread[]> {
 }
 
 export default async function AdminInboxPage() {
-  const threads = await getInboxThreads();
+  const [t, threads] = await Promise.all([
+    getTranslations("admin.pages.inbox"),
+    getInboxThreads(),
+  ]);
+
+  const unreadTotal = threads.reduce((sum, thread) => sum + thread.unread, 0);
 
   return (
-    <AdminShell
-      title="Smart Inbox"
-      description="Єдиний список повідомлень по замовленнях: пріоритезуйте непрочитані та відповідайте швидше."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
         <AdminCard className="max-h-[70vh] overflow-y-auto p-0">
           <div className="border-b border-[var(--color-border)] px-4 py-3">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Потоки повідомлень</p>
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">{t("threads")}</p>
             <p className="text-xs text-[var(--color-text-secondary)]">
-              Всього: {threads.length} · Непрочитаних:{" "}
-              {threads.reduce((sum, thread) => sum + thread.unread, 0)}
+              {t("total", { total: threads.length, unread: unreadTotal })}
             </p>
           </div>
           <div className="divide-y divide-[var(--color-border)]">
             {threads.length === 0 ? (
-              <p className="p-4 text-sm text-[var(--color-text-secondary)]">Повідомлень поки немає.</p>
+              <p className="p-4 text-sm text-[var(--color-text-secondary)]">{t("noMessages")}</p>
             ) : (
               threads.map((thread) => (
                 <Link
@@ -136,15 +138,14 @@ export default async function AdminInboxPage() {
         <AdminCard className="p-0">
           <div className="border-b border-[var(--color-border)] px-5 py-4">
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-              Оберіть чат зі списку ліворуч
+              {t("selectChat")}
             </h2>
             <p className="text-sm text-[var(--color-text-secondary)]">
-              Для відповіді клієнту відкрийте потрібне замовлення. Тут буде повноцінний 3-панельний inbox.
+              {t("selectChatDesc")}
             </p>
           </div>
           <div className="p-5 text-sm text-[var(--color-text-secondary)]">
-            Швидкий перехід: натисніть <kbd className="rounded border px-1">Ctrl/Cmd + K</kbd>, введіть номер
-            замовлення і відкрийте картку.
+            {t("quickNav")}
           </div>
         </AdminCard>
       </div>

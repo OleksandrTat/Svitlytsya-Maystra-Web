@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
-import { getContactSettings, getPublishedCertificates, getVisibleTestimonials } from "@/lib/data/queries";
+import { getPublishedCertificates, getVisibleTestimonials } from "@/lib/data/queries";
 import { HeroSection } from "@/components/home/hero-section";
 import { ServicesGrid } from "@/components/home/services-grid";
 import { PortfolioSection } from "@/components/home/portfolio-section";
@@ -9,7 +9,7 @@ import { ProcessTimeline } from "@/components/home/process-timeline";
 import { AboutWorkshop } from "@/components/home/about-workshop";
 import { CertificatesSection } from "@/components/home/certificates-section";
 import { TestimonialsSection } from "@/components/home/testimonials-section";
-import { ContactCtaSection } from "@/components/home/contact-cta-section";
+import { FinalCtaSection } from "@/components/sections/final-cta";
 import { localizeCertificate } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
@@ -23,9 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const [testimonials, contacts, certificates, locale] = await Promise.all([
+  const [testimonials, certificates, locale] = await Promise.all([
     getVisibleTestimonials(3),
-    getContactSettings(),
     getPublishedCertificates(),
     getLocale(),
   ]);
@@ -44,7 +43,7 @@ export default async function HomePage() {
       <AboutWorkshop />
       <CertificatesSection certificates={localizedCertificates} />
       <TestimonialsSection testimonials={testimonials} />
-      <ContactCtaSection contacts={contacts} />
+      <FinalCtaSection />
     </>
   );
 }

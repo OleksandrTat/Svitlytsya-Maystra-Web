@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminProductsClient } from "@/components/admin/products/products-page-wrapper";
 import {
@@ -44,17 +45,15 @@ async function getProductAttributes() {
 }
 
 export default async function AdminProductsPage() {
-  const [products, formulas, attributes] = await Promise.all([
+  const [t, products, formulas, attributes] = await Promise.all([
+    getTranslations("admin.pages.products"),
     getAllProductsForAdmin(),
     getPriceFormulasForAdmin(),
     getProductAttributes(),
   ]);
 
   return (
-    <AdminShell
-      title="Продукти"
-      description="Керування продуктами: створення, редагування, видалення та налаштування відображення на сайті."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <AdminProductsClient
         products={products}
         formulas={formulas}

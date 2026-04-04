@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type ComponentType } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import {
   Award,
@@ -30,6 +31,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { AdminLanguageSwitcher } from "./admin-language-switcher";
 
 type NavCounts = {
   unreadMessages: number;
@@ -46,37 +48,37 @@ type AdminSidebarProps = {
 
 type NavItem = {
   href: string;
-  label: string;
+  labelKey: string;
   icon: ComponentType<{ size?: number; className?: string }>;
   badgeKey?: keyof NavCounts;
 };
 
 const primaryItems: NavItem[] = [
-  { href: "/admin", label: "Панель", icon: LayoutDashboard },
+  { href: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard },
   {
     href: "/admin/inbox",
-    label: "Повідомлення",
+    labelKey: "nav.messages",
     icon: MessageSquare,
     badgeKey: "unreadMessages",
   },
-  { href: "/admin/inquiries", label: "Заявки", icon: Mail, badgeKey: "newInquiries" },
-  { href: "/admin/orders", label: "Замовлення", icon: Package },
-  { href: "/admin/clients", label: "Клієнти", icon: Users },
+  { href: "/admin/inquiries", labelKey: "nav.inquiries", icon: Mail, badgeKey: "newInquiries" },
+  { href: "/admin/orders", labelKey: "nav.orders", icon: Package },
+  { href: "/admin/clients", labelKey: "nav.clients", icon: Users },
 ];
 
 const secondaryItems: NavItem[] = [
-  { href: "/admin/products", label: "Продукти", icon: Package2 },
-  { href: "/admin/services", label: "Послуги", icon: Wrench },
-  { href: "/admin/blog", label: "Блог", icon: FileText },
-  { href: "/admin/company", label: "Компанія", icon: Building2 },
-  { href: "/admin/pricing", label: "Ціни", icon: Calculator },
-  { href: "/admin/support", label: "Підтримка", icon: HeadphonesIcon, badgeKey: "unreadSupport" },
-  { href: "/admin/faq", label: "FAQ", icon: HelpCircle },
-  { href: "/admin/certificates", label: "Сертифікати", icon: Award },
-  { href: "/admin/wishlist", label: "Бажане", icon: Heart },
-  { href: "/admin/newsletter", label: "Розсилка", icon: Send },
-  { href: "/admin/security", label: "Безпека", icon: Shield },
-  { href: "/admin/settings", label: "Налаштування", icon: Settings },
+  { href: "/admin/products", labelKey: "nav.products", icon: Package2 },
+  { href: "/admin/services", labelKey: "nav.services", icon: Wrench },
+  { href: "/admin/blog", labelKey: "nav.blog", icon: FileText },
+  { href: "/admin/company", labelKey: "nav.company", icon: Building2 },
+  { href: "/admin/pricing", labelKey: "nav.pricing", icon: Calculator },
+  { href: "/admin/support", labelKey: "nav.support", icon: HeadphonesIcon, badgeKey: "unreadSupport" },
+  { href: "/admin/faq", labelKey: "nav.faq", icon: HelpCircle },
+  { href: "/admin/certificates", labelKey: "nav.certificates", icon: Award },
+  { href: "/admin/wishlist", labelKey: "nav.wishlist", icon: Heart },
+  { href: "/admin/newsletter", labelKey: "nav.newsletter", icon: Send },
+  { href: "/admin/security", labelKey: "nav.security", icon: Shield },
+  { href: "/admin/settings", labelKey: "nav.settings", icon: Settings },
 ];
 
 function NavLink({
@@ -84,11 +86,13 @@ function NavLink({
   collapsed,
   pathname,
   badgeValue,
+  label,
 }: {
   item: NavItem;
   collapsed: boolean;
   pathname: string;
   badgeValue?: number;
+  label: string;
 }) {
   const isRoot = item.href === "/admin";
   const isActive = isRoot
@@ -98,7 +102,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      title={collapsed ? item.label : undefined}
+      title={collapsed ? label : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150",
         isActive
@@ -107,7 +111,7 @@ function NavLink({
       )}
     >
       <item.icon size={18} className="shrink-0" />
-      {!collapsed ? <span className="flex-1 truncate">{item.label}</span> : null}
+      {!collapsed ? <span className="flex-1 truncate">{label}</span> : null}
       {!collapsed && badgeValue && badgeValue > 0 ? (
         <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
           {badgeValue > 99 ? "99+" : badgeValue}
@@ -123,6 +127,7 @@ function NavLink({
 export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations("admin");
 
   const onSignOut = async () => {
     const supabase = createSupabaseBrowserClient();
@@ -142,7 +147,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           <Link
             href="/"
             className="flex items-center gap-2.5 text-[color:var(--color-on-primary)] transition hover:opacity-80"
-            title="На сайт"
+            title={t("sidebar.backToSite")}
           >
             <div className="rounded-lg bg-white/10 p-2">
               <Wrench size={16} />
@@ -150,7 +155,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
             <span className="truncate text-sm font-semibold">Svitlytsya Admin</span>
           </Link>
         ) : (
-          <Link href="/" className="mx-auto" title="На головний сайт">
+          <Link href="/" className="mx-auto" title={t("sidebar.backToSite")}>
             <div className="rounded-lg bg-white/10 p-2 text-[color:var(--color-on-primary)]">
               <Wrench size={16} />
             </div>
@@ -161,7 +166,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           type="button"
           onClick={onToggle}
           className="rounded-md p-1.5 text-[color:var(--color-on-primary-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-primary)]"
-          aria-label={collapsed ? "Розгорнути сайдбар" : "Згорнути сайдбар"}
+          aria-label={collapsed ? t("sidebar.expandSidebar") : t("sidebar.collapseSidebar")}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -176,7 +181,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-[color:var(--color-on-primary-muted)] transition hover:bg-white/10 hover:text-[color:var(--color-on-primary)]"
           >
             <ExternalLink size={13} />
-            На головну сторінку
+            {t("sidebar.backToSite")}
           </Link>
         </div>
       ) : null}
@@ -189,12 +194,12 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
             "flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[color:var(--color-on-primary-muted)] transition hover:bg-white/10 hover:text-[color:var(--color-on-primary)]",
             collapsed ? "justify-center px-2" : "",
           )}
-          title={collapsed ? "Пошук (Ctrl/Cmd+K)" : undefined}
+          title={collapsed ? `${t("sidebar.search")} (Ctrl/Cmd+K)` : undefined}
         >
           <Search size={14} />
           {!collapsed ? (
             <>
-              <span className="flex-1 text-left">Пошук...</span>
+              <span className="flex-1 text-left">{t("sidebar.search")}</span>
               <kbd className="rounded border border-white/20 px-1 text-[10px] text-[color:var(--color-on-primary-faint)]">
                 Ctrl/Cmd+K
               </kbd>
@@ -212,6 +217,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
               pathname={pathname}
               collapsed={collapsed}
               badgeValue={item.badgeKey ? counts[item.badgeKey] : 0}
+              label={t(item.labelKey as Parameters<typeof t>[0])}
             />
           ))}
         </div>
@@ -226,6 +232,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
               pathname={pathname}
               collapsed={collapsed}
               badgeValue={item.badgeKey ? counts[item.badgeKey] : 0}
+              label={t(item.labelKey as Parameters<typeof t>[0])}
             />
           ))}
         </div>
@@ -239,7 +246,10 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           )}
         >
           <UserCircle2 size={16} className="shrink-0" />
-          {!collapsed ? <span className="text-sm">Власник</span> : null}
+          {!collapsed ? <span className="text-sm">{t("sidebar.owner")}</span> : null}
+        </div>
+        <div className={cn("mb-2", collapsed ? "flex justify-center" : "")}>
+          <AdminLanguageSwitcher collapsed={collapsed} />
         </div>
         <button
           type="button"
@@ -249,7 +259,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
             collapsed ? "px-2 text-xs" : "",
           )}
         >
-          {collapsed ? "↩" : "Вийти"}
+          {collapsed ? "↩" : t("sidebar.signOut")}
         </button>
       </div>
     </motion.aside>

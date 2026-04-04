@@ -37,8 +37,43 @@ export async function upsertFaqItemAction(formData: FormData) {
   }
 
   const payload = { id: parsed.data.id ?? randomUUID(), ...parsed.data };
+
+  // Save EN translations for the item
+  const question_en = formData.get("question_en");
+  const answer_en = formData.get("answer_en");
+  if (typeof question_en === "string" || typeof answer_en === "string") {
+    Object.assign(payload, {
+      ...(question_en ? { question_en } : {}),
+      ...(answer_en ? { answer_en } : {}),
+    });
+  }
+
   const { error } = await supabase.from("faq_items").upsert(payload);
   if (error) return { ok: false, message: error.message };
+
+  // Save category labels to site_settings if provided
+  const labelUk = String(formData.get("category_label_uk") ?? "").trim();
+  const labelEn = String(formData.get("category_label_en") ?? "").trim();
+  const category = parsed.data.category;
+
+  if (labelUk || labelEn) {
+    const { data: existing } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "faq_category_labels")
+      .maybeSingle();
+
+    const current = (existing?.value ?? {}) as Record<string, { uk?: string; en?: string }>;
+    current[category] = {
+      ...current[category],
+      ...(labelUk ? { uk: labelUk } : {}),
+      ...(labelEn ? { en: labelEn } : {}),
+    };
+
+    await supabase
+      .from("site_settings")
+      .upsert({ key: "faq_category_labels", value: current });
+  }
 
   revalidatePath("/faq");
   revalidatePath("/admin/faq");

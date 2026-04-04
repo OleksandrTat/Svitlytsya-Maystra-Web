@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BellDot, Mail, Package, Sparkles } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { StatCard } from "@/components/admin/dashboard/stat-card";
 import { LiveFeed, type FeedEvent } from "@/components/admin/dashboard/live-feed";
@@ -75,7 +76,7 @@ async function getInitialFeed(limit = 20): Promise<FeedEvent[]> {
     ...(inquiriesResult.data ?? []).map((inquiry) => ({
       id: `inq-${inquiry.id}`,
       type: "inquiry" as const,
-      title: `Нова заявка від ${inquiry.name}`,
+      title: `inquiry:${inquiry.name}`,
       meta: inquiry.service_type ?? "",
       href: "/admin/inquiries",
       time: inquiry.created_at,
@@ -83,15 +84,15 @@ async function getInitialFeed(limit = 20): Promise<FeedEvent[]> {
     ...(statusesResult.data ?? []).map((status) => ({
       id: `status-${status.id}`,
       type: "order_status" as const,
-      title: "Зміна статусу замовлення",
-      meta: `Статус: ${status.to_status}`,
+      title: "order_status_change",
+      meta: status.to_status,
       href: `/admin/orders/${status.order_id}`,
       time: status.created_at,
     })),
     ...(messagesResult.data ?? []).map((message) => ({
       id: `msg-${message.id}`,
       type: "message" as const,
-      title: "Нове повідомлення клієнта",
+      title: "new_client_message",
       meta: message.content.slice(0, 90),
       href: `/admin/orders/${message.order_id}`,
       time: message.created_at,
@@ -103,50 +104,62 @@ async function getInitialFeed(limit = 20): Promise<FeedEvent[]> {
     .slice(0, limit);
 }
 
-const quickActions = [
-  { label: "Відкрити заявки", href: "/admin/inquiries" },
-  { label: "Inbox повідомлень", href: "/admin/inbox" },
-  { label: "Список замовлень", href: "/admin/orders" },
-  { label: "Клієнтська база", href: "/admin/clients" },
-  { label: "Ціноутворення", href: "/admin/pricing" },
-  { label: "Налаштування", href: "/admin/settings" },
-];
-
 export default async function AdminDashboardPage() {
-  const [baseStats, dashboardMetrics, feedEvents] = await Promise.all([
+  const [t, baseStats, dashboardMetrics, feedEvents] = await Promise.all([
+    getTranslations("admin.pages.dashboard"),
     getDashboardStats(),
     getDashboardMetrics(),
     getInitialFeed(),
   ]);
 
+  const quickActions = [
+    { label: t("openInquiries"), href: "/admin/inquiries" },
+    { label: t("inboxMessages"), href: "/admin/inbox" },
+    { label: t("ordersList"), href: "/admin/orders" },
+    { label: t("clientBase"), href: "/admin/clients" },
+    { label: t("pricing"), href: "/admin/pricing" },
+    { label: t("settingsLink"), href: "/admin/settings" },
+  ];
+
+  // Resolve feed event titles with translations
+  const resolvedFeedEvents = feedEvents.map((event) => {
+    if (event.title.startsWith("inquiry:")) {
+      return { ...event, title: t("newInquiryFrom", { name: event.title.slice(8) }) };
+    }
+    if (event.title === "order_status_change") {
+      return { ...event, title: t("orderStatusChange"), meta: t("orderStatus", { status: event.meta }) };
+    }
+    if (event.title === "new_client_message") {
+      return { ...event, title: t("newClientMessage") };
+    }
+    return event;
+  });
+
   return (
-    <AdminShell
-      title="Dashboard"
-      description="Живий огляд операцій: заявки, замовлення, повідомлення та пріоритетні задачі."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <section className="grid gap-4 xl:grid-cols-4">
         <StatCard
-          label="Нові заявки сьогодні"
+          label={t("newInquiriesToday")}
           value={baseStats.newInquiriesToday}
           icon={<Mail size={18} className="text-[var(--color-primary)]" />}
           href="/admin/inquiries"
           urgent
         />
         <StatCard
-          label="Активні замовлення"
+          label={t("activeOrders")}
           value={dashboardMetrics.activeOrders}
           icon={<Package size={18} className="text-[var(--color-primary)]" />}
           href="/admin/orders"
         />
         <StatCard
-          label="Непрочитані повідомлення"
+          label={t("unreadMessages")}
           value={dashboardMetrics.unreadMessages}
           icon={<BellDot size={18} className="text-[var(--color-primary)]" />}
           href="/admin/inbox"
           urgent
         />
         <StatCard
-          label="Заявки цього місяця"
+          label={t("inquiriesThisMonth")}
           value={dashboardMetrics.inquiriesThisMonth}
           icon={<Sparkles size={18} className="text-[var(--color-primary)]" />}
           href="/admin/inquiries"
@@ -154,15 +167,15 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
-        <LiveFeed initial={feedEvents} />
+        <LiveFeed initial={resolvedFeedEvents} />
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Пріоритетні задачі</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{t("priorityTasks")}</h2>
           <TodayTasks />
         </div>
       </section>
 
       <section className="rounded-xl border border-[var(--color-border)] bg-white p-4">
-        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Швидкі дії</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{t("quickActions")}</h2>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {quickActions.map((action) => (
             <Link
@@ -178,4 +191,3 @@ export default async function AdminDashboardPage() {
     </AdminShell>
   );
 }
-

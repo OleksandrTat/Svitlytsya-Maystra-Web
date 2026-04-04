@@ -50,11 +50,12 @@ export default async function ContactPage({
   const configurationId =
     typeof params.configurationId === "string" ? params.configurationId : undefined;
 
-  const [contacts, product, t, tCommon] = await Promise.all([
+  const [contacts, product, t, tCommon, tFooter] = await Promise.all([
     getContactSettings(),
     productSlug ? getProductBySlug(productSlug) : Promise.resolve(null),
     getTranslations("contactPage"),
     getTranslations("common"),
+    getTranslations("footer"),
   ]);
 
   const derivedServiceType = product
@@ -113,7 +114,7 @@ export default async function ContactPage({
     {
       icon: Clock,
       label: t("hours"),
-      content: contacts.hours,
+      content: tFooter("schedule"),
     },
   ];
 

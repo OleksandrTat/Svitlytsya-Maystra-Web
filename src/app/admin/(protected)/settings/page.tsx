@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -9,16 +10,14 @@ import {
 } from "@/lib/data/queries";
 
 export default async function AdminSettingsPage() {
-  const [settings, orderTemplates] = await Promise.all([
+  const [t, settings, orderTemplates] = await Promise.all([
+    getTranslations("admin.pages.settings"),
     getSiteSettingsForAdmin(),
     getOrderTemplatesForAdmin(),
   ]);
 
   return (
-    <AdminShell
-      title="Налаштування"
-      description="Системні параметри та шаблони замовлень."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <OrderTemplatesSettings initial={orderTemplates} />
 
       <AdminCard>

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -6,17 +7,15 @@ import { deleteTestimonialAction, upsertTestimonialAction } from "@/actions/admi
 import { getAllProductsForAdmin, getAllTestimonialsForAdmin } from "@/lib/data/queries";
 
 export default async function AdminTestimonialsPage() {
-  const [testimonials, products] = await Promise.all([
+  const [t, testimonials, products] = await Promise.all([
+    getTranslations("admin.pages.testimonials"),
     getAllTestimonialsForAdmin(),
     getAllProductsForAdmin(),
   ]);
   const productMap = new Map(products.map((product) => [product.id, product]));
 
   return (
-    <AdminShell
-      title="Керування відгуками"
-      description="Додавайте, редагуйте та приховуйте відгуки клієнтів на сайті."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <AdminActionForm action={upsertTestimonialAction} submitLabel="Зберегти відгук">
         <p className="text-xs text-[var(--color-text-secondary)]">
           Для редагування вкажіть `id` відгуку.

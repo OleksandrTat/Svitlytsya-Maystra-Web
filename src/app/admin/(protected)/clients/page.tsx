@@ -1,15 +1,16 @@
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ClientsList } from "@/components/admin/clients/clients-list";
 import { getClientsForAdmin } from "@/lib/data/queries";
 
 export default async function AdminClientsPage() {
-  const clients = await getClientsForAdmin(500);
+  const [t, clients] = await Promise.all([
+    getTranslations("admin.pages.clients"),
+    getClientsForAdmin(500),
+  ]);
 
   return (
-    <AdminShell
-      title="Клієнти"
-      description="CRM-список з активністю, сегментами та швидким переходом у профіль клієнта."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <ClientsList clients={clients} />
     </AdminShell>
   );

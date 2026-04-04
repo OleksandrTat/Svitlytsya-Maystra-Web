@@ -1,10 +1,12 @@
-﻿import { AdminCard } from "@/components/admin/admin-card";
+﻿import { getTranslations } from "next-intl/server";
+import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getActivityLogsForAdmin, getAuditLogForAdmin } from "@/lib/data/queries";
 import { formatInquiryDate } from "@/lib/utils";
 
 export default async function AdminAuditLogPage() {
-  const [auditRecords, activityLogs] = await Promise.all([
+  const [t, auditRecords, activityLogs] = await Promise.all([
+    getTranslations("admin.pages.auditLog"),
     getAuditLogForAdmin(300),
     getActivityLogsForAdmin(100),
   ]);
@@ -43,21 +45,18 @@ export default async function AdminAuditLogPage() {
     .slice(0, 500);
 
   return (
-    <AdminShell
-      title="Audit Log"
-      description="Об'єднаний журнал критичних операцій та дій адміністратора."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <AdminCard>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] text-left text-[var(--color-text-secondary)]">
-                <th className="px-2 py-2">Дія</th>
-                <th className="px-2 py-2">Таблиця / Сутність</th>
-                <th className="px-2 py-2">Актор</th>
-                <th className="px-2 py-2">Record ID</th>
-                <th className="px-2 py-2">Джерело</th>
-                <th className="px-2 py-2">Дата</th>
+                <th className="px-2 py-2">{t("colAction")}</th>
+                <th className="px-2 py-2">{t("colTable")}</th>
+                <th className="px-2 py-2">{t("colActor")}</th>
+                <th className="px-2 py-2">{t("colRecordId")}</th>
+                <th className="px-2 py-2">{t("colSource")}</th>
+                <th className="px-2 py-2">{t("colDate")}</th>
               </tr>
             </thead>
             <tbody>

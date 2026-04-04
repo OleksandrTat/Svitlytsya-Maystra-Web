@@ -3,7 +3,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
-import { getPublishedFaqByCategory } from "@/lib/data/faq-queries";
+import { getPublishedFaqByCategory, getFaqCategoryLabels } from "@/lib/data/faq-queries";
 import { FaqAccordion } from "@/components/faq/faq-accordion";
 import { localizeFaqItem } from "@/lib/i18n/content";
 
@@ -27,12 +27,13 @@ const CATEGORY_ORDER = [
 ];
 
 export default async function FaqPage() {
-  const [t, tFaq, tCommon, locale, faqByCategory] = await Promise.all([
+  const [t, tFaq, tCommon, locale, faqByCategory, customLabels] = await Promise.all([
     getTranslations("faq"),
     getTranslations("faqPage"),
     getTranslations("common"),
     getLocale(),
     getPublishedFaqByCategory(),
+    getFaqCategoryLabels(),
   ]);
 
   const localizedByCategory = Object.fromEntries(
@@ -67,7 +68,9 @@ export default async function FaqPage() {
                 <div key={category}>
                   <h2 className="mb-6 font-display text-2xl font-semibold text-[var(--color-text-primary)]">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {tFaq(`categories.${category}` as any)}
+                    {customLabels[category]?.[locale as "uk" | "en"]
+                      ?? (tFaq.has(`categories.${category}` as any) ? tFaq(`categories.${category}` as any) : null)
+                      ?? category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, " ")}
                   </h2>
                   <FaqAccordion items={localizedByCategory[category]!} />
                 </div>

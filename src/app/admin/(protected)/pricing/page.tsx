@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { PricingPageClient } from "@/components/admin/pricing/pricing-page-client";
 import {
@@ -32,11 +33,10 @@ export default async function AdminPricingPage() {
     {},
   );
 
+  const t = await getTranslations("admin.pages.pricing");
+
   return (
-    <AdminShell
-      title="Ціноутворення"
-      description="Формули розрахунку та бібліотека змінних для калькуляторів продуктів."
-    >
+    <AdminShell title={t("title")} description={t("description")}>
       <PricingPageClient
         key={version}
         formulas={formulas}
