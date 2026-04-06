@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   ChevronDown,
@@ -9,8 +9,10 @@ import {
   GripVertical,
   HelpCircle,
   Languages,
+  Loader2,
   Plus,
   Search,
+  Sparkles,
   X,
 } from "lucide-react";
 import {
@@ -32,11 +34,11 @@ import {
   upsertFaqItemAction,
   deleteFaqItemAction,
   updateFaqSortOrderAction,
+  updateFaqCategoryOrderAction,
 } from "@/actions/admin/faq";
 import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
-import { TranslateButton } from "@/components/admin/shared/translate-button";
 import type { FaqItem } from "@/lib/types";
-import type { FaqCategoryLabels } from "@/lib/data/faq-queries";
+import type { FaqCategoryLabels, FaqCategoryOrder } from "@/lib/data/faq-queries";
 import { cn } from "@/lib/utils";
 
 // ─── Categories ───────────────────────────────────────────────────────────────
@@ -65,6 +67,132 @@ function getCatMeta(val: string, allCategories: string[]) {
     label: val.charAt(0).toUpperCase() + val.slice(1),
     color: FALLBACK_COLORS[idx % FALLBACK_COLORS.length] ?? "bg-gray-100 text-gray-600",
   };
+}
+
+// ─── Bulk AI translate ────────────────────────────────────────────────────────
+
+type BulkTranslateState =
+  | { phase: "idle" }
+  | { phase: "confirm"; count: number }
+  | { phase: "running"; done: number; total: number; currentQuestion: string }
+  | { phase: "done"; translated: number; skipped: number };
+
+async function translateOneItem(id: string, question: string, answer: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/admin/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ table: "faq_items", id, fields: { question, answer } }),
+    });
+    const data = (await res.json()) as { ok?: boolean };
+    return res.ok && !!data.ok;
+  } catch {
+    return false;
+  }
+}
+
+function BulkTranslateModal({
+  state,
+  onConfirm,
+  onClose,
+}: {
+  state: BulkTranslateState;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  if (state.phase === "idle") return null;
+
+  const percent =
+    state.phase === "running" && state.total > 0
+      ? Math.round((state.done / state.total) * 100)
+      : state.phase === "done"
+        ? 100
+        : 0;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={state.phase === "confirm" || state.phase === "done" ? onClose : undefined} />
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl">
+        {/* Icon */}
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
+            <Sparkles className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+              {state.phase === "done" ? "Переклад завершено" : "AI переклад FAQ"}
+            </h3>
+            <p className="text-xs text-[var(--color-text-muted)]">GPT-4o-mini · uk → en</p>
+          </div>
+          {(state.phase === "confirm" || state.phase === "done") && (
+            <button type="button" onClick={onClose} className="ml-auto rounded-lg p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-section)]">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Confirm */}
+        {state.phase === "confirm" && (
+          <>
+            <p className="mb-2 text-sm text-[var(--color-text-primary)]">
+              Буде перекладено <strong>{state.count}</strong> {state.count === 1 ? "питання" : state.count < 5 ? "питання" : "питань"} без англійського перекладу.
+            </p>
+            <p className="mb-5 text-xs text-[var(--color-text-muted)]">
+              ШІ автоматично перекладе питання та відповіді на англійську. Наявні переклади залишаться без змін.
+            </p>
+            <div className="flex gap-3">
+              <button type="button" onClick={onConfirm}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                <Sparkles className="h-4 w-4" />
+                Перекласти {state.count} {state.count < 5 ? "питання" : "питань"}
+              </button>
+              <button type="button" onClick={onClose}
+                className="rounded-lg border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-section)]">
+                Скасувати
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Running */}
+        {state.phase === "running" && (
+          <>
+            <div className="mb-3">
+              <div className="mb-1 flex justify-between text-xs">
+                <span className="text-[var(--color-text-secondary)]">Перекладається {state.done + 1} з {state.total}…</span>
+                <span className="font-semibold text-blue-600">{percent}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--color-bg-section)]">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            </div>
+            <p className="flex items-center gap-2 truncate text-xs text-[var(--color-text-muted)]">
+              <Loader2 className="h-3 w-3 shrink-0 animate-spin text-blue-500" />
+              {state.currentQuestion}
+            </p>
+            <p className="mt-3 text-center text-[10px] text-[var(--color-text-muted)]">Не закривайте сторінку</p>
+          </>
+        )}
+
+        {/* Done */}
+        {state.phase === "done" && (
+          <>
+            <div className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              ✅ Перекладено <strong>{state.translated}</strong> питань
+              {state.skipped > 0 && <span className="text-emerald-600"> · {state.skipped} пропущено (помилка)</span>}
+            </div>
+            <button type="button" onClick={() => window.location.reload()}
+              className="w-full rounded-lg bg-[var(--color-primary)] py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]">
+              Оновити сторінку
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  );
 }
 
 // ─── Drawer ───────────────────────────────────────────────────────────────────
@@ -193,8 +321,40 @@ function CategoryCombobox({ allCategories, defaultValue, knownCategories, custom
 
 function FaqDrawer({ item, totalItems, allCategories, customLabels, onClose, onSubmit, isPending }: DrawerProps) {
   const [showEn, setShowEn] = useState(!!item?.question_en);
+  const [question, setQuestion] = useState(item?.question ?? "");
+  const [answer, setAnswer] = useState(item?.answer ?? "");
+  const [questionEn, setQuestionEn] = useState(item?.question_en ?? "");
+  const [answerEn, setAnswerEn] = useState(item?.answer_en ?? "");
+  const [isTranslating, setIsTranslating] = useState(false);
   const catIsNew = item?.category ? !Object.keys(KNOWN_CATEGORIES).includes(item.category) : false;
   const [showCatLabels, setShowCatLabels] = useState(catIsNew);
+
+  const canTranslate = question.trim().length > 3 || answer.trim().length > 3;
+
+  const handleAutoTranslate = async () => {
+    if (!canTranslate) return;
+    setIsTranslating(true);
+    try {
+      const res = await fetch("/api/admin/translate-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts: [question, answer] }),
+      });
+      const data = (await res.json()) as { translations?: string[]; error?: string };
+      if (!res.ok || !data.translations) {
+        toast.error(data.error ?? "Помилка перекладу");
+        return;
+      }
+      setQuestionEn(data.translations[0] ?? "");
+      setAnswerEn(data.translations[1] ?? "");
+      setShowEn(true);
+      toast.success("Переклад готовий ✓");
+    } catch {
+      toast.error("Не вдалося перекласти");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   return (
     <>
@@ -227,7 +387,6 @@ function FaqDrawer({ item, totalItems, allCategories, customLabels, onClose, onS
                   knownCategories={KNOWN_CATEGORIES}
                   customLabels={customLabels}
                 />
-                {/* Labels for new category */}
                 <button
                   type="button"
                   onClick={() => setShowCatLabels((v) => !v)}
@@ -292,6 +451,7 @@ function FaqDrawer({ item, totalItems, allCategories, customLabels, onClose, onS
 
             <hr className="border-[var(--color-border)]" />
 
+            {/* Ukrainian fields */}
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">🇺🇦 Українська</p>
               <div className="space-y-3">
@@ -299,43 +459,91 @@ function FaqDrawer({ item, totalItems, allCategories, customLabels, onClose, onS
                   <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
                     Питання <span className="text-red-500">*</span>
                   </label>
-                  <textarea name="question" required rows={2} defaultValue={item?.question ?? ""} key={item?.id ?? "new-q"} placeholder="Введіть питання..."
-                    className="w-full resize-none rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20" />
+                  <textarea
+                    name="question"
+                    required
+                    rows={2}
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    placeholder="Введіть питання..."
+                    className="w-full resize-none rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
                     Відповідь <span className="text-red-500">*</span>
                   </label>
-                  <textarea name="answer" required rows={5} defaultValue={item?.answer ?? ""} key={item?.id ?? "new-a"} placeholder="Введіть відповідь..."
-                    className="w-full resize-y rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20" />
+                  <textarea
+                    name="answer"
+                    required
+                    rows={5}
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    placeholder="Введіть відповідь..."
+                    className="w-full resize-y rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                  />
                 </div>
               </div>
             </div>
 
+            {/* English section */}
             <div>
-              <button type="button" onClick={() => setShowEn((v) => !v)}
-                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)] hover:underline">
-                <Languages className="h-3.5 w-3.5" />
-                🇬🇧 English переклад
-                {showEn ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowEn((v) => !v)}
+                  className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)] hover:underline"
+                >
+                  <Languages className="h-3.5 w-3.5" />
+                  🇬🇧 English переклад
+                  {showEn ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
+
+                {/* AI translate button — works for both new and existing items */}
+                <button
+                  type="button"
+                  onClick={() => void handleAutoTranslate()}
+                  disabled={!canTranslate || isTranslating}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                    canTranslate
+                      ? "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                      : "cursor-not-allowed bg-[var(--color-bg-section)] text-[var(--color-text-muted)]",
+                  )}
+                >
+                  {isTranslating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {isTranslating ? "Перекладаю…" : "Перекласти ШІ"}
+                </button>
+              </div>
+
               {showEn && (
                 <div className="mt-3 space-y-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">Question (EN)</label>
-                    <textarea name="question_en" rows={2} defaultValue={item?.question_en ?? ""} key={item?.id ?? "new-qen"} placeholder="Enter question in English..."
-                      className="w-full resize-none rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                    <textarea
+                      name="question_en"
+                      rows={2}
+                      value={questionEn}
+                      onChange={(e) => setQuestionEn(e.target.value)}
+                      placeholder="Enter question in English..."
+                      className="w-full resize-none rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">Answer (EN)</label>
-                    <textarea name="answer_en" rows={5} defaultValue={item?.answer_en ?? ""} key={item?.id ?? "new-aen"} placeholder="Enter answer in English..."
-                      className="w-full resize-y rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                    <textarea
+                      name="answer_en"
+                      rows={5}
+                      value={answerEn}
+                      onChange={(e) => setAnswerEn(e.target.value)}
+                      placeholder="Enter answer in English..."
+                      className="w-full resize-y rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
                   </div>
-                  {item && (
-                    <div className="pt-1">
-                      <TranslateButton table="faq_items" id={item.id} fields={{ question: item.question, answer: item.answer }} />
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -390,7 +598,7 @@ function SortableFaqRow({ item, allCategories, onEdit, onDelete }: RowProps) {
       )}
     >
       <div className="flex items-start gap-3 px-5 py-4">
-        {/* Drag handle */}
+        {/* Item drag handle */}
         <button
           type="button"
           {...attributes}
@@ -444,22 +652,115 @@ function SortableFaqRow({ item, allCategories, onEdit, onDelete }: RowProps) {
   );
 }
 
+// ─── Sortable Category Block ──────────────────────────────────────────────────
+
+type CategoryBlockProps = {
+  catVal: string;
+  catItems: FaqItem[];
+  allCategories: string[];
+  onEdit: (item: FaqItem) => void;
+  onDelete: (fd: FormData) => void;
+  onItemDragEnd: (event: DragEndEvent) => void;
+  sensors: ReturnType<typeof useSensors>;
+};
+
+function SortableCategoryBlock({
+  catVal,
+  catItems,
+  allCategories,
+  onEdit,
+  onDelete,
+  onItemDragEnd,
+  sensors,
+}: CategoryBlockProps) {
+  const meta = getCatMeta(catVal, allCategories);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `cat::${catVal}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "overflow-hidden rounded-xl border border-[var(--color-border)] bg-white transition",
+        isDragging && "shadow-2xl opacity-95 ring-2 ring-[var(--color-primary)]/30",
+      )}
+    >
+      {/* Category header with drag handle */}
+      <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-3 py-2.5">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none rounded p-1 text-[var(--color-text-muted)] opacity-40 transition hover:bg-[var(--color-bg-section)] hover:opacity-100 active:cursor-grabbing"
+          aria-label="Перетягнути категорію"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", meta.color)}>
+          {meta.label}
+        </span>
+        <span className="ml-auto text-xs text-[var(--color-text-muted)]">{catItems.length} питань</span>
+      </div>
+
+      {/* Items with their own DnD context */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onItemDragEnd}>
+        <SortableContext items={catItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          {catItems.map((item) => (
+            <SortableFaqRow
+              key={item.id}
+              item={item}
+              allCategories={allCategories}
+              onEdit={() => onEdit(item)}
+              onDelete={onDelete}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export function FaqAdminClient({ items: initial, customLabels }: { items: FaqItem[]; customLabels: FaqCategoryLabels }) {
+export function FaqAdminClient({
+  items: initial,
+  customLabels,
+  savedCategoryOrder,
+}: {
+  items: FaqItem[];
+  customLabels: FaqCategoryLabels;
+  savedCategoryOrder: FaqCategoryOrder;
+}) {
   const [items, setItems] = useState(initial);
   const [editItem, setEditItem] = useState<FaqItem | null | "new">(null);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("all");
   const [isPending, startTransition] = useTransition();
+  const [bulkState, setBulkState] = useState<BulkTranslateState>({ phase: "idle" });
+  const abortRef = useRef(false);
 
   const drawerOpen = editItem !== null;
   const drawerItem = editItem === "new" ? null : editItem;
 
+  // Sensors with 5px activation distance to avoid accidental drag on click
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
+  // All unique categories from data
   const allCategories = useMemo(() => {
     const fromData = Array.from(new Set(items.map((i) => i.category)));
     const knownKeys = Object.keys(KNOWN_CATEGORIES);
@@ -467,6 +768,20 @@ export function FaqAdminClient({ items: initial, customLabels }: { items: FaqIte
     const custom = fromData.filter((k) => !knownKeys.includes(k));
     return [...known, ...custom];
   }, [items]);
+
+  // Category order state — initialized from saved order, unknown categories appended
+  const [categoryOrder, setCategoryOrder] = useState<string[]>(() => {
+    const saved = savedCategoryOrder.filter((c) => allCategories.includes(c));
+    const rest = allCategories.filter((c) => !saved.includes(c));
+    return [...saved, ...rest];
+  });
+
+  // Ordered categories for rendering (respects categoryOrder, appends any new ones)
+  const orderedCategories = useMemo(() => {
+    const inOrder = categoryOrder.filter((c) => allCategories.includes(c));
+    const rest = allCategories.filter((c) => !inOrder.includes(c));
+    return [...inOrder, ...rest];
+  }, [categoryOrder, allCategories]);
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
@@ -479,16 +794,17 @@ export function FaqAdminClient({ items: initial, customLabels }: { items: FaqIte
 
   const grouped = useMemo(() => {
     const map = new Map<string, FaqItem[]>();
-    for (const cat of allCategories) map.set(cat, []);
+    for (const cat of orderedCategories) map.set(cat, []);
     for (const item of filtered) {
       const arr = map.get(item.category) ?? [];
       arr.push(item);
       map.set(item.category, arr);
     }
     return map;
-  }, [filtered, allCategories]);
+  }, [filtered, orderedCategories]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  // Item drag & drop within a category
+  const handleItemDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -507,6 +823,29 @@ export function FaqAdminClient({ items: initial, customLabels }: { items: FaqIte
         reordered.map((item) => ({ id: item.id, sort_order: item.sort_order })),
       );
       if (!result.ok) toast.error(result.message);
+    });
+  };
+
+  // Category drag & drop
+  const handleCategoryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    // IDs are prefixed with "cat::" to avoid collisions with item IDs
+    const activeId = String(active.id).replace("cat::", "");
+    const overId = String(over.id).replace("cat::", "");
+
+    const oldIndex = orderedCategories.indexOf(activeId);
+    const newIndex = orderedCategories.indexOf(overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(orderedCategories, oldIndex, newIndex);
+    setCategoryOrder(newOrder);
+
+    startTransition(async () => {
+      const result = await updateFaqCategoryOrderAction(newOrder);
+      if (!result.ok) toast.error(result.message);
+      else toast.success("Порядок категорій збережено");
     });
   };
 
@@ -536,6 +875,45 @@ export function FaqAdminClient({ items: initial, customLabels }: { items: FaqIte
     });
   };
 
+  // ── Bulk AI translate ──────────────────────────────────────────────────────
+  const untranslated = useMemo(() => items.filter((i) => !i.question_en || !i.answer_en), [items]);
+
+  const handleBulkTranslateClick = () => {
+    if (untranslated.length === 0) {
+      toast.info("Усі питання вже перекладені 🎉");
+      return;
+    }
+    setBulkState({ phase: "confirm", count: untranslated.length });
+  };
+
+  const handleBulkTranslateConfirm = async () => {
+    abortRef.current = false;
+    const toTranslate = untranslated;
+    let translated = 0;
+    let skipped = 0;
+
+    for (let i = 0; i < toTranslate.length; i++) {
+      if (abortRef.current) break;
+      const item = toTranslate[i]!;
+      setBulkState({
+        phase: "running",
+        done: i,
+        total: toTranslate.length,
+        currentQuestion: item.question,
+      });
+      const ok = await translateOneItem(item.id, item.question, item.answer);
+      if (ok) translated++;
+      else skipped++;
+    }
+
+    setBulkState({ phase: "done", translated, skipped });
+  };
+
+  const handleBulkClose = () => {
+    abortRef.current = true;
+    setBulkState({ phase: "idle" });
+  };
+
   return (
     <>
       {/* Toolbar */}
@@ -549,21 +927,42 @@ export function FaqAdminClient({ items: initial, customLabels }: { items: FaqIte
           <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
             className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none">
             <option value="all">Всі категорії</option>
-            {allCategories.map((catVal) => (
+            {orderedCategories.map((catVal) => (
               <option key={catVal} value={catVal}>{getCatMeta(catVal, allCategories).label}</option>
             ))}
           </select>
         </div>
-        <button type="button" onClick={() => setEditItem("new")}
-          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]">
-          <Plus className="h-4 w-4" />
-          Нове питання
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleBulkTranslateClick()}
+            title={untranslated.length === 0 ? "Всі перекладені" : `${untranslated.length} без EN перекладу`}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+              untranslated.length > 0
+                ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : "border-[var(--color-border)] text-[var(--color-text-muted)] opacity-60",
+            )}
+          >
+            <Sparkles className="h-4 w-4" />
+            EN переклад
+            {untranslated.length > 0 && (
+              <span className="rounded-full bg-blue-200 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
+                {untranslated.length}
+              </span>
+            )}
+          </button>
+          <button type="button" onClick={() => setEditItem("new")}
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]">
+            <Plus className="h-4 w-4" />
+            Нове питання
+          </button>
+        </div>
       </div>
 
       {/* Stats bar */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {allCategories.map((catVal) => {
+        {orderedCategories.map((catVal) => {
           const count = items.filter((i) => i.category === catVal).length;
           if (!count) return null;
           const meta = getCatMeta(catVal, allCategories);
@@ -580,45 +979,53 @@ export function FaqAdminClient({ items: initial, customLabels }: { items: FaqIte
         </span>
       </div>
 
-      {/* Grouped sortable list */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="space-y-4">
-          {allCategories.map((catVal) => {
-            const catItems = grouped.get(catVal) ?? [];
-            if (catItems.length === 0) return null;
-            const meta = getCatMeta(catVal, allCategories);
-            return (
-              <div key={catVal} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
-                <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-2.5">
-                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", meta.color)}>
-                    {meta.label}
-                  </span>
-                  <span className="text-xs text-[var(--color-text-muted)]">{catItems.length} питань</span>
-                </div>
-                <SortableContext items={catItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-                  {catItems.map((item) => (
-                    <SortableFaqRow
-                      key={item.id}
-                      item={item}
-                      allCategories={allCategories}
-                      onEdit={() => setEditItem(item)}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </SortableContext>
-              </div>
-            );
-          })}
+      {/* Hint */}
+      {orderedCategories.length > 1 && (
+        <p className="mb-3 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+          <GripVertical className="h-3.5 w-3.5" />
+          Перетягуйте категорії та питання для зміни порядку
+        </p>
+      )}
 
-          {filtered.length === 0 && (
-            <div className="rounded-xl border border-[var(--color-border)] bg-white px-5 py-16 text-center">
-              <HelpCircle className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-muted)]" />
-              <p className="text-sm text-[var(--color-text-muted)]">
-                {search || filterCat !== "all" ? "Нічого не знайдено" : "Немає FAQ записів"}
-              </p>
-            </div>
-          )}
-        </div>
+      {/* Outer DndContext — category reordering */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleCategoryDragEnd}
+      >
+        <SortableContext
+          items={orderedCategories.map((c) => `cat::${c}`)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-4">
+            {orderedCategories.map((catVal) => {
+              const catItems = grouped.get(catVal) ?? [];
+              if (catItems.length === 0) return null;
+
+              return (
+                <SortableCategoryBlock
+                  key={catVal}
+                  catVal={catVal}
+                  catItems={catItems}
+                  allCategories={allCategories}
+                  onEdit={setEditItem}
+                  onDelete={handleDelete}
+                  onItemDragEnd={handleItemDragEnd}
+                  sensors={sensors}
+                />
+              );
+            })}
+
+            {filtered.length === 0 && (
+              <div className="rounded-xl border border-[var(--color-border)] bg-white px-5 py-16 text-center">
+                <HelpCircle className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-muted)]" />
+                <p className="text-sm text-[var(--color-text-muted)]">
+                  {search || filterCat !== "all" ? "Нічого не знайдено" : "Немає FAQ записів"}
+                </p>
+              </div>
+            )}
+          </div>
+        </SortableContext>
       </DndContext>
 
       {/* Drawer */}
@@ -633,6 +1040,13 @@ export function FaqAdminClient({ items: initial, customLabels }: { items: FaqIte
           isPending={isPending}
         />
       )}
+
+      {/* Bulk translate modal */}
+      <BulkTranslateModal
+        state={bulkState}
+        onConfirm={() => void handleBulkTranslateConfirm()}
+        onClose={handleBulkClose}
+      />
     </>
   );
 }

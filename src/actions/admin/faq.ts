@@ -96,6 +96,20 @@ export async function deleteFaqItemAction(formData: FormData) {
   return { ok: true, message: "FAQ видалено." };
 }
 
+export async function updateFaqCategoryOrderAction(order: string[]) {
+  await requireAdmin();
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return { ok: false, message: "Service client не налаштований." };
+
+  await supabase
+    .from("site_settings")
+    .upsert({ key: "faq_category_order", value: order });
+
+  revalidatePath("/faq");
+  revalidatePath("/admin/faq");
+  return { ok: true, message: "Порядок категорій оновлено." };
+}
+
 export async function updateFaqSortOrderAction(
   items: { id: string; sort_order: number }[],
 ) {

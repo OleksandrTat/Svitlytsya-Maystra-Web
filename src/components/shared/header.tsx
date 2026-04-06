@@ -277,16 +277,27 @@ export function SiteHeader() {
                   {currentUser.displayName}
                 </div>
                 <div className="p-1">
-                  {profileLinks.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={closeMenus}
-                      className="block rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
+                  {profileLinks.map((item) =>
+                    item.href.startsWith("/admin") ? (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeMenus}
+                        className="block rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeMenus}
+                        className="block rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]"
+                      >
+                        {item.label}
+                      </Link>
+                    )
+                  )}
                   <button
                     type="button"
                     onClick={() => void handleSignOut()}
@@ -364,18 +375,27 @@ export function SiteHeader() {
           <LanguageSwitcher className="mb-1 self-start" />
           {currentUser ? (
             <>
-              {profileLinks.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMenus}
-                  className={cn(
-                    "inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface)]",
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {profileLinks.map((item) =>
+                item.href.startsWith("/admin") ? (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMenus}
+                    className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMenus}
+                    className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
+                  >
+                    {item.label}
+                  </Link>
+                )
+              )}
               <Button variant="danger" className="w-full" onClick={() => void handleSignOut()}>
                 {t("signOut")}
               </Button>

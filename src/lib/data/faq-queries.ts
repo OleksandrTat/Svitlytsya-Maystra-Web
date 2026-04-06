@@ -36,6 +36,18 @@ export async function getAllFaqItemsForAdmin(): Promise<FaqItem[]> {
 }
 
 export type FaqCategoryLabels = Record<string, { uk?: string; en?: string }>;
+export type FaqCategoryOrder = string[];
+
+export async function getFaqCategoryOrder(): Promise<FaqCategoryOrder> {
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "faq_category_order")
+    .maybeSingle();
+  return Array.isArray(data?.value) ? (data.value as string[]) : [];
+}
 
 export async function getFaqCategoryLabels(): Promise<FaqCategoryLabels> {
   const supabase = createSupabaseServiceClient();
