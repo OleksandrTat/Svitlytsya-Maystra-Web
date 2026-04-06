@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { PRODUCT_CATEGORY_LABELS, SERVICE_TYPES } from "@/lib/constants";
 import { getContactSettings, getProductBySlug } from "@/lib/data/queries";
+import { WORKSHOP_MAP_EMBED_SRC } from "@/lib/maps";
 import type { InquirySchema } from "@/lib/validation/inquiry";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -91,7 +92,7 @@ export default async function ContactPage({
     typeof contacts.address === "string" && contacts.address.trim().length > 0
       ? contacts.address
       : fallbackAddress;
-  const mapSrc = `https://www.google.com/maps?output=embed&q=${encodeURIComponent(mapAddress)}`;
+  const mapSrc = WORKSHOP_MAP_EMBED_SRC;
 
   const CONTACT_BLOCKS = [
     {
