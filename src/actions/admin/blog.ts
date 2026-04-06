@@ -101,7 +101,7 @@ export async function upsertBlogPostAction(
     return { ok: false, message: `Помилки валідації: ${errors}` };
   }
 
-  const payload: Record<string, unknown> = {
+  const payload = {
     id: parsed.data.id ?? randomUUID(),
     title: parsed.data.title,
     slug: parsed.data.slug,
@@ -119,19 +119,23 @@ export async function upsertBlogPostAction(
     author_avatar: parsed.data.author_avatar || null,
     related_service_id: parsed.data.related_service_id || null,
     related_product_id: parsed.data.related_product_id || null,
+    // EN translation fields are included only when provided.
+    ...(String(formData.get("title_en") ?? "").trim()
+      ? { title_en: String(formData.get("title_en") ?? "").trim() }
+      : {}),
+    ...(String(formData.get("excerpt_en") ?? "").trim()
+      ? { excerpt_en: String(formData.get("excerpt_en") ?? "").trim() }
+      : {}),
+    ...(String(formData.get("content_en") ?? "").trim()
+      ? { content_en: String(formData.get("content_en") ?? "").trim() }
+      : {}),
+    ...(String(formData.get("seo_title_en") ?? "").trim()
+      ? { seo_title_en: String(formData.get("seo_title_en") ?? "").trim() }
+      : {}),
+    ...(String(formData.get("seo_description_en") ?? "").trim()
+      ? { seo_description_en: String(formData.get("seo_description_en") ?? "").trim() }
+      : {}),
   };
-
-  // EN translation fields (optional)
-  const titleEn = String(formData.get("title_en") ?? "").trim();
-  const excerptEn = String(formData.get("excerpt_en") ?? "").trim();
-  const contentEn = String(formData.get("content_en") ?? "").trim();
-  const seoTitleEn = String(formData.get("seo_title_en") ?? "").trim();
-  const seoDescriptionEn = String(formData.get("seo_description_en") ?? "").trim();
-  if (titleEn) payload.title_en = titleEn;
-  if (excerptEn) payload.excerpt_en = excerptEn;
-  if (contentEn) payload.content_en = contentEn;
-  if (seoTitleEn) payload.seo_title_en = seoTitleEn;
-  if (seoDescriptionEn) payload.seo_description_en = seoDescriptionEn;
 
   const { error } = await supabase.from("blog_posts").upsert(payload);
   if (error) return { ok: false, message: error.message };
