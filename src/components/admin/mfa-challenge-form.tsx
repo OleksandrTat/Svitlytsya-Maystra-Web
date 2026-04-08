@@ -26,7 +26,7 @@ export function MfaChallengeForm() {
       (factor: { id: string; status?: string }) => factor.status === "verified",
     );
     if (!totp) {
-      router.replace("/admin/security");
+      router.replace("/admin/settings");
       router.refresh();
       return;
     }

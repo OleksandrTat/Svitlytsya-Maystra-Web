@@ -24,7 +24,6 @@ import {
   Search,
   Send,
   Settings,
-  Shield,
   UserCircle2,
   Users,
   Wrench,
@@ -77,7 +76,6 @@ const secondaryItems: NavItem[] = [
   { href: "/admin/certificates", labelKey: "nav.certificates", icon: Award },
   { href: "/admin/wishlist", labelKey: "nav.wishlist", icon: Heart },
   { href: "/admin/newsletter", labelKey: "nav.newsletter", icon: Send },
-  { href: "/admin/security", labelKey: "nav.security", icon: Shield },
   { href: "/admin/settings", labelKey: "nav.settings", icon: Settings },
 ];
 

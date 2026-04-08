@@ -24,6 +24,8 @@ import {
   BookOpen,
   Settings,
   Search,
+  Zap,
+  Link2,
 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -49,20 +51,20 @@ type Props = {
 // ─── Toggle Switch ─────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <label className="flex cursor-pointer items-center gap-3">
+    <label className="flex cursor-pointer items-center justify-between gap-3 group">
+      <span className="text-sm text-zinc-600 group-hover:text-zinc-900 transition-colors">{label}</span>
       <div
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative h-5 w-9 rounded-full transition-colors",
+          "relative h-5 w-9 rounded-full transition-all duration-200 shadow-inner",
           checked ? "bg-[var(--color-primary)]" : "bg-zinc-200",
         )}
       >
         <div className={cn(
-          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
+          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200",
           checked ? "left-4" : "left-0.5",
         )} />
       </div>
-      <span className="text-sm text-zinc-700">{label}</span>
     </label>
   );
 }
@@ -96,17 +98,17 @@ function FieldLabel({
   hasValue?: boolean;
 }) {
   return (
-    <div className="mb-1.5 flex items-center justify-between">
-      <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{label}</label>
+    <div className="mb-2 flex items-center justify-between">
+      <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">{label}</label>
       {onTranslate && (
         <button
           type="button"
           onClick={onTranslate}
           disabled={translating || !hasValue}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition",
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-all",
             hasValue
-              ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+              ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:shadow-sm"
               : "cursor-not-allowed text-zinc-300",
           )}
         >
@@ -125,9 +127,11 @@ function SerpPreview({ title, description, slug }: { title: string; description:
   const displayUrl = `svitlytsya-maystra.com/blog/${slug || "slug"}`;
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-3">
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Як виглядатиме в Google</p>
-      <div className="text-[11px] text-zinc-400">{displayUrl}</div>
+    <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+        <Search size={9} /> Прев'ю в Google
+      </p>
+      <div className="text-[11px] text-emerald-700">{displayUrl}</div>
       <div className="mt-0.5 text-sm font-medium leading-snug text-blue-700 hover:underline">
         {displayTitle.slice(0, 60)}{displayTitle.length > 60 && "..."}
       </div>
@@ -138,28 +142,89 @@ function SerpPreview({ title, description, slug }: { title: string; description:
   );
 }
 
-// ─── Sidebar section ──────────────────────────────────────────────────────────
-function SideSection({ title, icon, children, defaultOpen = true }: {
+// ─── Sidebar card ──────────────────────────────────────────────────────────────
+function SideCard({ title, icon, children, defaultOpen = true, accent }: {
   title: string;
   icon: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  accent?: "blue" | "red";
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+    <div className={cn(
+      "overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md",
+      accent === "red" ? "border-red-200" : "border-zinc-200/80",
+    )}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left"
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-zinc-50/80 transition-colors"
       >
-        <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800">
-          <span className="text-zinc-400">{icon}</span>
+        <div className={cn(
+          "flex items-center gap-2 text-sm font-semibold",
+          accent === "red" ? "text-red-700" : "text-zinc-800",
+        )}>
+          <span className={cn(accent === "red" ? "text-red-400" : "text-zinc-400")}>{icon}</span>
           {title}
         </div>
-        <ChevronDown size={14} className={cn("text-zinc-400 transition-transform", open && "rotate-180")} />
+        <ChevronDown size={13} className={cn("transition-transform duration-200", open ? "rotate-180 text-zinc-400" : "text-zinc-300")} />
       </button>
-      {open && <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">{children}</div>}
+      {open && (
+        <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Label ────────────────────────────────────────────────────────────────────
+function SideLabel({ children }: { children: React.ReactNode }) {
+  return <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-zinc-400">{children}</label>;
+}
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+function SideInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={cn(
+        "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none transition-all",
+        "focus:border-[var(--color-primary-300)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-100)]",
+        className,
+      )}
+    />
+  );
+}
+
+// ─── Select ───────────────────────────────────────────────────────────────────
+function SideSelect({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={cn(
+        "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none transition-all appearance-none",
+        "focus:border-[var(--color-primary-300)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-100)]",
+        className,
+      )}
+    />
+  );
+}
+
+// ─── Char counter bar ─────────────────────────────────────────────────────────
+function CharBar({ value, max, warnAt }: { value: number; max: number; warnAt: number }) {
+  const pct = Math.min(100, (value / max) * 100);
+  const warn = value > warnAt;
+  return (
+    <div className="mt-1.5 flex items-center gap-2">
+      <div className="h-0.5 flex-1 overflow-hidden rounded-full bg-zinc-100">
+        <div
+          className={cn("h-0.5 rounded-full transition-all duration-300", warn ? "bg-amber-400" : "bg-emerald-400")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={cn("text-[10px] tabular-nums", warn ? "text-amber-500" : "text-zinc-400")}>{value}/{max}</span>
     </div>
   );
 }
@@ -409,69 +474,73 @@ export function BlogPostForm({ initialData, services, products }: Props) {
   const readingTime = Math.max(1, Math.ceil(words / 200));
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-[#f8f7f5]">
+
       {/* ── Sticky top bar ── */}
-      <div className="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-2.5">
+      <div className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-5 py-3">
+
+          {/* Back button */}
           <button
             type="button"
             onClick={() => router.push("/admin/blog")}
-            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+            className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-zinc-500 transition-all hover:bg-zinc-100 hover:text-zinc-900"
           >
             <ArrowLeft size={15} />
-            Блог
+            <span className="hidden sm:inline">Блог</span>
           </button>
 
           <div className="h-4 w-px bg-zinc-200" />
 
-          {/* Status indicator */}
+          {/* Status */}
           <div className="flex items-center gap-2">
             {pending ? (
-              <span className="flex items-center gap-1.5 text-xs text-zinc-400">
-                <Loader2 size={12} className="animate-spin" /> Збереження…
+              <span className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-500">
+                <Loader2 size={11} className="animate-spin" /> Збереження…
               </span>
             ) : isDirty ? (
-              <span className="flex items-center gap-1.5 text-xs text-amber-500">
+              <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-600">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                 Незбережені зміни
               </span>
             ) : lastSaved ? (
-              <span className="flex items-center gap-1.5 text-xs text-emerald-600">
+              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600">
                 <Check size={11} />
-                Збережено {lastSaved.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}
+                {lastSaved.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <span className={cn(
+                "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                isPublished ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500",
+              )}>
                 <span className={cn("h-1.5 w-1.5 rounded-full", isPublished ? "bg-emerald-400" : "bg-zinc-300")} />
                 {isPublished ? "Опубліковано" : "Чернетка"}
               </span>
             )}
-
             {isFeatured && (
-              <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                 <Star size={9} /> Featured
               </span>
             )}
           </div>
 
-          {/* Reading time */}
+          {/* Reading stats */}
           {words > 0 && (
-            <span className="hidden items-center gap-1 text-xs text-zinc-400 sm:flex">
+            <span className="hidden items-center gap-1.5 text-xs text-zinc-400 md:flex">
               <BookOpen size={11} />
               ~{readingTime} хв · {words} слів
             </span>
           )}
 
           <div className="ml-auto flex items-center gap-2">
-            {/* Keyboard hint */}
-            <span className="hidden text-[10px] text-zinc-300 lg:block">⌘S зберегти · ⌘↵ публікувати</span>
+            <span className="hidden text-[10px] text-zinc-300 xl:block">⌘S зберегти · ⌘↵ публікувати</span>
 
             {initialData?.slug && (
               <a
                 href={`/blog/${initialData.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
+                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm"
               >
                 <Eye size={13} /> Переглянути
               </a>
@@ -480,17 +549,17 @@ export function BlogPostForm({ initialData, services, products }: Props) {
               type="button"
               onClick={() => handleSubmit(false)}
               disabled={pending}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm disabled:opacity-40"
             >
-              <Save size={13} /> Чернетка
+              <Save size={13} /> Зберегти
             </button>
             <button
               type="button"
               onClick={() => handleSubmit(true)}
               disabled={pending}
-              className="flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[var(--color-primary-700)] hover:shadow-md disabled:opacity-40"
             >
-              <Send size={13} />
+              {pending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
               {isPublished ? "Оновити" : "Опублікувати"}
             </button>
           </div>
@@ -498,106 +567,110 @@ export function BlogPostForm({ initialData, services, products }: Props) {
       </div>
 
       {/* ── Main content ── */}
-      <div className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6">
-        <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
+      <div className="mx-auto w-full max-w-[1440px] flex-1 px-5 py-6">
+        <div className="grid gap-5 xl:grid-cols-[1fr_300px]">
 
           {/* ── Left: editor ── */}
-          <div className="space-y-4">
+          <div className="space-y-5">
 
             {/* Cover image */}
-            <div className="overflow-hidden rounded-2xl border border-zinc-200">
+            <div className={cn(
+              "group overflow-hidden rounded-2xl border-2 transition-all duration-200",
+              isDragActive
+                ? "border-blue-400 bg-blue-50 shadow-lg"
+                : coverImage
+                  ? "border-transparent shadow-lg"
+                  : "border-dashed border-zinc-300 bg-white hover:border-zinc-400",
+            )}>
               {coverImage ? (
-                <div className="group relative aspect-[21/9]">
+                <div className="relative aspect-[21/8]">
                   <Image src={coverImage} alt="" fill className="object-cover" sizes="900px" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition group-hover:opacity-100" />
-                  <button
-                    type="button"
-                    onClick={() => { setCoverImage(""); markDirty(); }}
-                    className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-zinc-700 shadow-md backdrop-blur-sm transition hover:bg-white"
-                  >
-                    <X size={15} />
-                  </button>
-                  <label
-                    {...getRootProps()}
-                    className="absolute bottom-3 left-3 flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-md backdrop-blur-sm transition hover:bg-white"
-                  >
-                    <input {...getInputProps()} />
-                    <ImagePlus size={12} /> Змінити
-                  </label>
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  {/* Actions */}
+                  <div className="absolute right-3 top-3 flex gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <label
+                      {...getRootProps()}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-xl bg-white/95 px-3 py-2 text-xs font-semibold text-zinc-700 shadow-lg backdrop-blur-sm transition hover:bg-white"
+                    >
+                      <input {...getInputProps()} />
+                      <ImagePlus size={12} /> Змінити
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => { setCoverImage(""); markDirty(); }}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/95 text-zinc-700 shadow-lg backdrop-blur-sm transition hover:bg-white hover:text-red-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div
                   {...getRootProps()}
-                  className={cn(
-                    "flex aspect-[21/9] cursor-pointer flex-col items-center justify-center gap-3 transition",
-                    isDragActive
-                      ? "bg-blue-50 text-blue-500"
-                      : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100",
-                  )}
+                  className="flex aspect-[21/8] cursor-pointer flex-col items-center justify-center gap-4 p-8"
                 >
                   <input {...getInputProps()} />
                   {coverUploading ? (
-                    <Loader2 size={28} className="animate-spin text-zinc-300" />
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 size={32} className="animate-spin text-[var(--color-primary-300)]" />
+                      <p className="text-sm font-medium text-zinc-500">Завантаження…</p>
+                    </div>
                   ) : (
-                    <ImagePlus size={28} className="text-zinc-300" />
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className={cn(
+                        "flex h-14 w-14 items-center justify-center rounded-2xl transition-colors",
+                        isDragActive ? "bg-blue-100 text-blue-500" : "bg-zinc-100 text-zinc-400",
+                      )}>
+                        <ImagePlus size={26} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-600">
+                          {isDragActive ? "Відпустіть для завантаження" : "Додати обкладинку"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-400">Перетягніть або натисніть · JPG / PNG / WEBP до 10MB</p>
+                      </div>
+                    </div>
                   )}
-                  <div className="text-center">
-                    <p className="text-sm font-medium">
-                      {coverUploading ? "Завантаження…" : isDragActive ? "Відпустіть файл" : "Перетягніть обкладинку"}
-                    </p>
-                    <p className="text-xs opacity-60">JPG / PNG / WEBP до 10MB</p>
-                  </div>
                 </div>
               )}
             </div>
 
-            {/* Language tabs */}
+            {/* Language tabs + translate all */}
             <div className="flex items-center justify-between">
-              <div className="flex overflow-hidden rounded-xl border border-zinc-200">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("uk")}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-sm font-medium transition",
-                    activeTab === "uk"
-                      ? "bg-[var(--color-primary)] text-white"
-                      : "bg-white text-zinc-500 hover:bg-zinc-50",
-                  )}
-                >
-                  🇺🇦 Українська
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("en")}
-                  className={cn(
-                    "flex items-center gap-2 border-l border-zinc-200 px-4 py-2 text-sm font-medium transition",
-                    activeTab === "en"
-                      ? "bg-[var(--color-primary)] text-white"
-                      : "bg-white text-zinc-500 hover:bg-zinc-50",
-                  )}
-                >
-                  🇬🇧 English
-                  {hasEnTranslation && (
-                    <span className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                      activeTab === "en" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700",
-                    )}>
-                      ✓
-                    </span>
-                  )}
-                </button>
+              <div className="flex items-center gap-1 rounded-xl bg-zinc-100/80 p-1">
+                {(["uk", "en"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200",
+                      activeTab === tab
+                        ? "bg-white text-zinc-900 shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-700",
+                    )}
+                  >
+                    {tab === "uk" ? "🇺🇦 Українська" : "🇬🇧 English"}
+                    {tab === "en" && hasEnTranslation && (
+                      <span className={cn(
+                        "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                        activeTab === "en" ? "bg-emerald-100 text-emerald-700" : "bg-emerald-100 text-emerald-700",
+                      )}>✓</span>
+                    )}
+                  </button>
+                ))}
               </div>
 
-              {/* Translate all button */}
               <button
                 type="button"
                 onClick={() => void handleTranslateAll()}
                 disabled={translatingAll || (!title && !excerpt && !content)}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition",
+                  "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all",
                   translatingAll || (!title && !excerpt && !content)
-                    ? "cursor-not-allowed border-zinc-100 text-zinc-300"
-                    : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100",
+                    ? "cursor-not-allowed text-zinc-300"
+                    : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:shadow-sm",
                 )}
               >
                 {translatingAll ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
@@ -605,269 +678,229 @@ export function BlogPostForm({ initialData, services, products }: Props) {
               </button>
             </div>
 
-            {/* ── 🇺🇦 Ukrainian content ── */}
-            {activeTab === "uk" && (
-              <div className="space-y-4">
-                {/* Title */}
+            {/* ── Content card ── */}
+            <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm">
+
+              {/* Title */}
+              <div className="border-b border-zinc-100 px-8 pb-4 pt-6">
                 <input
                   type="text"
-                  value={title}
-                  onChange={(e) => { setTitle(e.target.value); markDirty(); }}
-                  placeholder="Заголовок статті..."
-                  className="w-full border-0 bg-transparent font-[Cormorant,serif] text-4xl font-bold text-zinc-900 outline-none placeholder:text-zinc-300"
+                  value={activeTab === "uk" ? title : titleEn}
+                  onChange={(e) => {
+                    if (activeTab === "uk") setTitle(e.target.value);
+                    else setTitleEn(e.target.value);
+                    markDirty();
+                  }}
+                  placeholder={activeTab === "uk" ? "Заголовок статті..." : "Article title..."}
+                  className="w-full border-0 bg-transparent font-[Cormorant,serif] text-[2.5rem] font-bold leading-tight text-zinc-900 outline-none placeholder:text-zinc-200"
                 />
 
-                {/* Slug */}
-                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-                  <Globe size={13} className="shrink-0 text-zinc-400" />
-                  <span className="text-xs text-zinc-400">/blog/</span>
-                  <input
-                    type="text"
-                    value={slug}
-                    onChange={(e) => { setSlug(e.target.value); markDirty(); }}
-                    placeholder="slug-url"
-                    className="min-w-0 flex-1 bg-transparent text-sm text-zinc-700 outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleAutoSlug()}
-                    title="Згенерувати зі заголовку"
-                    className="rounded p-1 text-zinc-400 hover:text-zinc-700"
-                  >
-                    <RefreshCw size={13} />
-                  </button>
-                </div>
+                {/* EN translate button for title */}
+                {activeTab === "en" && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => void translateField("title", title, setTitleEn)}
+                      disabled={translating.title || !title}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-all",
+                        title ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100" : "cursor-not-allowed text-zinc-300",
+                      )}
+                    >
+                      {translating.title ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+                      Перекласти з укр.
+                    </button>
+                  </div>
+                )}
 
-                {/* Excerpt */}
-                <div>
-                  <FieldLabel label="Анонс" />
-                  <textarea
-                    value={excerpt}
-                    onChange={(e) => { setExcerpt(e.target.value); markDirty(); }}
-                    placeholder="Короткий опис статті..."
-                    maxLength={300}
-                    rows={3}
-                    className="w-full resize-none rounded-xl border border-zinc-200 px-4 py-3 text-sm text-zinc-700 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
-                  />
-                  <p className="mt-1 text-right text-xs text-zinc-400">{excerpt.length}/300</p>
-                </div>
+                {/* Slug (only in UK tab) */}
+                {activeTab === "uk" && (
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2">
+                    <Link2 size={12} className="shrink-0 text-zinc-300" />
+                    <span className="text-xs text-zinc-400">/blog/</span>
+                    <input
+                      type="text"
+                      value={slug}
+                      onChange={(e) => { setSlug(e.target.value); markDirty(); }}
+                      placeholder="slug-url"
+                      className="min-w-0 flex-1 bg-transparent text-xs text-zinc-600 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleAutoSlug()}
+                      title="Згенерувати зі заголовку"
+                      className="rounded-lg p-1 text-zinc-300 transition hover:bg-zinc-200 hover:text-zinc-600"
+                    >
+                      <RefreshCw size={11} />
+                    </button>
+                  </div>
+                )}
+              </div>
 
-                {/* Content editor */}
-                <div>
-                  <FieldLabel label="Контент" />
-                  <BlogEditor
-                    initialContent={content}
-                    onChange={(html) => { setContent(html); markDirty(); }}
-                  />
+              {/* Excerpt */}
+              <div className="border-b border-zinc-100 px-8 py-5">
+                <FieldLabel
+                  label="Анонс"
+                  onTranslate={activeTab === "en" ? () => void translateField("excerpt", excerpt, setExcerptEn) : undefined}
+                  translating={translating.excerpt}
+                  hasValue={!!excerpt}
+                />
+                <textarea
+                  value={activeTab === "uk" ? excerpt : excerptEn}
+                  onChange={(e) => {
+                    if (activeTab === "uk") setExcerpt(e.target.value);
+                    else setExcerptEn(e.target.value);
+                    markDirty();
+                  }}
+                  placeholder={activeTab === "uk" ? "Короткий опис статті, який відображається в списку…" : "Short article description shown in the listing..."}
+                  maxLength={300}
+                  rows={3}
+                  className="w-full resize-none border-0 bg-transparent text-base leading-relaxed text-zinc-600 outline-none placeholder:text-zinc-300"
+                />
+                <div className="flex items-center justify-end">
+                  <span className="text-[10px] text-zinc-300">
+                    {activeTab === "uk" ? excerpt.length : excerptEn.length}/300
+                  </span>
                 </div>
               </div>
-            )}
 
-            {/* ── 🇬🇧 English content ── */}
-            {activeTab === "en" && (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3">
-                  <p className="text-xs text-blue-600">
-                    Натисніть <strong>«Перекласти все»</strong> або використовуйте кнопки поруч із кожним полем.
-                    Після збереження переклад буде видно англомовним користувачам.
-                  </p>
-                </div>
-
-                {/* Title EN */}
-                <div>
-                  <FieldLabel
-                    label="Заголовок (EN)"
-                    onTranslate={() => void translateField("title", title, setTitleEn)}
-                    translating={translating.title}
-                    hasValue={!!title}
-                  />
-                  <input
-                    type="text"
-                    value={titleEn}
-                    onChange={(e) => { setTitleEn(e.target.value); markDirty(); }}
-                    placeholder="Article title..."
-                    className="w-full rounded-xl border border-blue-200 bg-white px-4 py-3 font-[Cormorant,serif] text-3xl font-bold text-zinc-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
-
-                {/* Excerpt EN */}
-                <div>
-                  <FieldLabel
-                    label="Анонс (EN)"
-                    onTranslate={() => void translateField("excerpt", excerpt, setExcerptEn)}
-                    translating={translating.excerpt}
-                    hasValue={!!excerpt}
-                  />
-                  <textarea
-                    value={excerptEn}
-                    onChange={(e) => { setExcerptEn(e.target.value); markDirty(); }}
-                    placeholder="Short article description..."
-                    maxLength={300}
-                    rows={3}
-                    className="w-full resize-none rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm text-zinc-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                  />
-                  <p className="mt-1 text-right text-xs text-zinc-400">{excerptEn.length}/300</p>
-                </div>
-
-                {/* Content EN */}
-                <div>
-                  <FieldLabel
-                    label="Контент (EN)"
-                    onTranslate={() => void translateField("content", content.replace(/<[^>]+>/g, " "), setContentEn)}
-                    translating={translating.content}
-                    hasValue={!!content}
-                  />
-                  <BlogEditor
-                    key="en-editor"
-                    initialContent={contentEn}
-                    onChange={(html) => { setContentEn(html); markDirty(); }}
-                    placeholder="Write article content in English..."
-                  />
-                </div>
+              {/* Content editor */}
+              <div className="px-8 py-5">
+                <FieldLabel
+                  label="Контент"
+                  onTranslate={activeTab === "en" ? () => void translateField("content", content.replace(/<[^>]+>/g, " "), setContentEn) : undefined}
+                  translating={translating.content}
+                  hasValue={!!content}
+                />
+                {activeTab === "en" && (
+                  <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-indigo-100 bg-indigo-50/40 px-4 py-3">
+                    <Sparkles size={13} className="mt-0.5 shrink-0 text-indigo-400" />
+                    <p className="text-xs text-indigo-600">
+                      Натисніть <strong>«Перекласти все»</strong> або використовуйте кнопки поруч із кожним полем для AI-перекладу.
+                    </p>
+                  </div>
+                )}
+                <BlogEditor
+                  key={activeTab}
+                  initialContent={activeTab === "uk" ? content : contentEn}
+                  onChange={(html) => {
+                    if (activeTab === "uk") setContent(html);
+                    else setContentEn(html);
+                    markDirty();
+                  }}
+                  placeholder={activeTab === "uk" ? "Почніть писати статтю…" : "Write article content in English..."}
+                />
               </div>
-            )}
+            </div>
+
           </div>
 
           {/* ── Right: sidebar ── */}
-          <div className="space-y-3">
+          <div className="space-y-4">
 
-            {/* Publish status */}
-            <SideSection title="Публікація" icon={<Send size={14} />}>
-              <Toggle
-                checked={isPublished}
-                onChange={(v) => { setIsPublished(v); markDirty(); }}
-                label={isPublished ? "Опубліковано" : "Чернетка"}
-              />
-              <Toggle
-                checked={isFeatured}
-                onChange={(v) => { setIsFeatured(v); markDirty(); }}
-                label="Featured (на головній)"
-              />
-              <div className="flex gap-2 pt-1">
+            {/* Publish card */}
+            <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm">
+              <div className="border-b border-zinc-100 px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Публікація</p>
+              </div>
+              <div className="space-y-3 px-4 py-4">
+                <Toggle
+                  checked={isPublished}
+                  onChange={(v) => { setIsPublished(v); markDirty(); }}
+                  label={isPublished ? "Опубліковано" : "Чернетка"}
+                />
+                <Toggle
+                  checked={isFeatured}
+                  onChange={(v) => { setIsFeatured(v); markDirty(); }}
+                  label="На головній (Featured)"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2 border-t border-zinc-100 px-4 py-3">
                 <button
                   type="button"
                   onClick={() => handleSubmit(false)}
                   disabled={pending}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 py-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 py-2.5 text-xs font-semibold text-zinc-600 transition-all hover:bg-zinc-50 hover:shadow-sm disabled:opacity-40"
                 >
-                  <Save size={12} /> Зберегти
+                  <Save size={13} /> Зберегти
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSubmit(true)}
                   disabled={pending}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--color-primary)] py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-[var(--color-primary)] py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[var(--color-primary-700)] hover:shadow-md disabled:opacity-40"
                 >
-                  <Send size={12} />
+                  {pending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                   {isPublished ? "Оновити" : "Публікувати"}
                 </button>
               </div>
-            </SideSection>
+            </div>
 
             {/* Organization */}
-            <SideSection title="Організація" icon={<Settings size={14} />}>
+            <SideCard title="Організація" icon={<Settings size={14} />}>
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">Категорія</label>
-                <select
+                <SideLabel>Категорія</SideLabel>
+                <SideSelect
                   value={category}
                   onChange={(e) => { setCategory(e.target.value); markDirty(); }}
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                 >
                   {BLOG_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
                   ))}
-                </select>
+                </SideSelect>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">Теги</label>
+                <SideLabel>Теги</SideLabel>
                 <TagInput
                   value={tags}
                   onChange={(next) => { setTags(next); markDirty(); }}
                   placeholder="Додати тег..."
                 />
               </div>
-            </SideSection>
-
-            {/* Author */}
-            <SideSection title="Автор" icon={<User size={14} />} defaultOpen={false}>
-              <div>
-                <label className="mb-1 block text-xs text-zinc-500">Ім'я</label>
-                <input
-                  type="text"
-                  value={authorName}
-                  onChange={(e) => { setAuthorName(e.target.value); markDirty(); }}
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-zinc-500">Аватар (URL)</label>
-                <input
-                  type="url"
-                  value={authorAvatar}
-                  onChange={(e) => { setAuthorAvatar(e.target.value); markDirty(); }}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-                />
-              </div>
-            </SideSection>
+            </SideCard>
 
             {/* SEO */}
-            <SideSection title="SEO" icon={<Search size={14} />}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-zinc-400">Мета-дані для пошуку</span>
-                <button
-                  type="button"
-                  onClick={() => void handleGenerateSeo()}
-                  disabled={seoLoading || (!title && !excerpt)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-500 to-indigo-500 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                >
-                  {seoLoading ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                  AI генерація
-                </button>
-              </div>
+            <SideCard title="SEO" icon={<Search size={14} />}>
+              {/* AI button */}
+              <button
+                type="button"
+                onClick={() => void handleGenerateSeo()}
+                disabled={seoLoading || (!title && !excerpt)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:opacity-50"
+              >
+                {seoLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                AI-генерація SEO
+              </button>
 
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">SEO Title</label>
-                <input
+                <SideLabel>SEO Title</SideLabel>
+                <SideInput
                   type="text"
                   value={seoTitle}
                   onChange={(e) => { setSeoTitle(e.target.value); markDirty(); }}
                   maxLength={60}
                   placeholder="Заголовок для пошуку..."
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                 />
-                <div className="mt-1.5 flex items-center gap-2">
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-100">
-                    <div className={cn("h-1 rounded-full transition-all", seoTitle.length > 50 ? "bg-amber-400" : "bg-emerald-400")}
-                      style={{ width: `${Math.min(100, (seoTitle.length / 60) * 100)}%` }} />
-                  </div>
-                  <span className="text-[10px] text-zinc-400">{seoTitle.length}/60</span>
-                </div>
+                <CharBar value={seoTitle.length} max={60} warnAt={50} />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">SEO Description</label>
+                <SideLabel>SEO Description</SideLabel>
                 <textarea
                   value={seoDescription}
                   onChange={(e) => { setSeoDescription(e.target.value); markDirty(); }}
                   maxLength={160}
                   rows={3}
                   placeholder="Короткий опис для пошуку..."
-                  className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none transition-all focus:border-[var(--color-primary-300)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-100)]"
                 />
-                <div className="flex items-center gap-2">
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-100">
-                    <div className={cn("h-1 rounded-full transition-all", seoDescription.length > 140 ? "bg-amber-400" : "bg-emerald-400")}
-                      style={{ width: `${Math.min(100, (seoDescription.length / 160) * 100)}%` }} />
-                  </div>
-                  <span className="text-[10px] text-zinc-400">{seoDescription.length}/160</span>
-                </div>
+                <CharBar value={seoDescription.length} max={160} warnAt={140} />
               </div>
 
               {/* EN SEO */}
-              <div className="space-y-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+              <div className="space-y-2 rounded-xl border border-indigo-100 bg-indigo-50/30 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500">🇬🇧 EN SEO</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">🇬🇧 EN SEO</span>
                   <button
                     type="button"
                     onClick={() => void (async () => {
@@ -884,7 +917,7 @@ export function BlogPostForm({ initialData, services, products }: Props) {
                       }
                     })()}
                     disabled={translating.seo || (!seoTitle && !seoDescription)}
-                    className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:underline disabled:opacity-40"
+                    className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-indigo-500 shadow-sm transition hover:shadow disabled:opacity-40"
                   >
                     {translating.seo ? <Loader2 size={9} className="animate-spin" /> : <Languages size={9} />}
                     Перекласти
@@ -896,7 +929,7 @@ export function BlogPostForm({ initialData, services, products }: Props) {
                   onChange={(e) => { setSeoTitleEn(e.target.value); markDirty(); }}
                   maxLength={60}
                   placeholder="SEO title in English..."
-                  className="w-full rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-400"
+                  className="w-full rounded-lg border border-indigo-100 bg-white px-2.5 py-2 text-xs text-zinc-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
                 />
                 <textarea
                   value={seoDescriptionEn}
@@ -904,7 +937,7 @@ export function BlogPostForm({ initialData, services, products }: Props) {
                   maxLength={160}
                   rows={2}
                   placeholder="SEO description in English..."
-                  className="w-full resize-none rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-400"
+                  className="w-full resize-none rounded-lg border border-indigo-100 bg-white px-2.5 py-2 text-xs text-zinc-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
 
@@ -912,48 +945,68 @@ export function BlogPostForm({ initialData, services, products }: Props) {
               {(seoTitle || title) && (
                 <SerpPreview title={seoTitle || title} description={seoDescription || excerpt} slug={slug} />
               )}
-            </SideSection>
+            </SideCard>
+
+            {/* Author */}
+            <SideCard title="Автор" icon={<User size={14} />} defaultOpen={false}>
+              <div>
+                <SideLabel>Ім'я</SideLabel>
+                <SideInput
+                  type="text"
+                  value={authorName}
+                  onChange={(e) => { setAuthorName(e.target.value); markDirty(); }}
+                />
+              </div>
+              <div>
+                <SideLabel>Аватар (URL)</SideLabel>
+                <SideInput
+                  type="url"
+                  value={authorAvatar}
+                  onChange={(e) => { setAuthorAvatar(e.target.value); markDirty(); }}
+                  placeholder="https://..."
+                />
+              </div>
+            </SideCard>
 
             {/* Relations */}
-            <SideSection title="Зв'язки" icon={<Globe size={14} />} defaultOpen={false}>
+            <SideCard title="Зв'язки" icon={<Globe size={14} />} defaultOpen={false}>
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">Послуга</label>
-                <select
+                <SideLabel>Пов'язана послуга</SideLabel>
+                <SideSelect
                   value={relatedServiceId}
                   onChange={(e) => { setRelatedServiceId(e.target.value); markDirty(); }}
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                 >
                   <option value="">— Немає —</option>
                   {services.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
-                </select>
+                </SideSelect>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-zinc-500">Продукт</label>
-                <select
+                <SideLabel>Пов'язаний продукт</SideLabel>
+                <SideSelect
                   value={relatedProductId}
                   onChange={(e) => { setRelatedProductId(e.target.value); markDirty(); }}
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
                 >
                   <option value="">— Немає —</option>
                   {products.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-                </select>
+                </SideSelect>
               </div>
-            </SideSection>
+            </SideCard>
 
             {/* Danger zone */}
             {initialData?.id && (
-              <div className="rounded-xl border border-red-200 bg-red-50/50 p-4">
-                <p className="mb-3 text-xs font-semibold text-red-700">Небезпечна зона</p>
+              <SideCard title="Небезпечна зона" icon={<Trash2 size={14} />} defaultOpen={false} accent="red">
+                <p className="text-xs text-red-500">Видалення статті є незворотною дією.</p>
                 <button
                   type="button"
                   onClick={handleDelete}
                   disabled={pending}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-700 hover:shadow-md disabled:opacity-50"
                 >
                   <Trash2 size={14} /> Видалити статтю
                 </button>
-              </div>
+              </SideCard>
             )}
+
           </div>
         </div>
       </div>

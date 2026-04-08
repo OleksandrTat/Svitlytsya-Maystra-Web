@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { FinalCtaSection } from "@/components/sections/final-cta";
 import { InquiryForm } from "@/components/shared/inquiry-form";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
@@ -201,7 +200,6 @@ export default async function ContactPage({
         </Container>
       </section>
 
-      <FinalCtaSection />
     </>
   );
 }

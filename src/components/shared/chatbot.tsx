@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Message = {
@@ -19,45 +19,42 @@ const WELCOME: Record<string, string> = {
 
 const UI = {
   uk: {
-    title: "Консультант",
-    subtitle: "Зазвичай відповідає миттєво",
-    placeholder: "Напишіть питання...",
+    title: "Svitlytsya AI",
+    subtitle: "Онлайн · готовий допомогти",
+    placeholder: "Напишіть питання…",
     send: "Надіслати",
     open: "Відкрити чат",
+    newChat: "Новий чат",
     error: "Щось пішло не так. Спробуйте ще раз.",
     poweredBy: "На основі даних сайту",
   },
   en: {
-    title: "Assistant",
-    subtitle: "Usually replies instantly",
-    placeholder: "Ask a question...",
+    title: "Svitlytsya AI",
+    subtitle: "Online · ready to help",
+    placeholder: "Ask a question…",
     send: "Send",
     open: "Open chat",
+    newChat: "New chat",
     error: "Something went wrong. Please try again.",
     poweredBy: "Powered by site data",
   },
 };
 
 function linkifyText(text: string) {
-  // Replace markdown-style links [text](url) or bare /path with <a>
   const parts: React.ReactNode[] = [];
   const regex = /\[([^\]]+)\]\(([^)]+)\)|(\/(products|services|contact|faq|blog)[^\s,]*)/g;
   let last = 0;
   let match;
 
   while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) {
-      parts.push(text.slice(last, match.index));
-    }
+    if (match.index > last) parts.push(text.slice(last, match.index));
     if (match[1] && match[2]) {
-      // [label](href)
       parts.push(
         <Link key={match.index} href={match[2] as "/products"} className="underline underline-offset-2 opacity-90 hover:opacity-100">
           {match[1]}
         </Link>
       );
     } else if (match[3]) {
-      // bare /path
       parts.push(
         <Link key={match.index} href={match[3] as "/products"} className="underline underline-offset-2 opacity-90 hover:opacity-100">
           {match[3]}
@@ -74,23 +71,19 @@ function linkifyText(text: string) {
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
   return (
-    <div className={cn("flex gap-2.5", isUser ? "flex-row-reverse" : "flex-row")}>
-      <div
-        className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white",
-          isUser ? "bg-[var(--color-primary)]" : "bg-[var(--color-accent)]",
-        )}
-      >
+    <div className={cn("flex min-w-0 gap-2.5", isUser ? "flex-row-reverse" : "flex-row")}>
+      <div className={cn(
+        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white",
+        isUser ? "bg-[var(--color-primary)]" : "bg-[var(--color-accent)]",
+      )}>
         {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
       </div>
-      <div
-        className={cn(
-          "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
-          isUser
-            ? "rounded-tr-sm bg-[var(--color-primary)] text-white"
-            : "rounded-tl-sm bg-[var(--color-surface)] text-[var(--color-text-primary)]",
-        )}
-      >
+      <div className={cn(
+        "max-w-[80%] min-w-0 break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+        isUser
+          ? "rounded-tr-sm bg-[var(--color-primary)] text-white"
+          : "rounded-tl-sm bg-[var(--color-surface)] text-[var(--color-text-primary)]",
+      )}>
         {linkifyText(msg.content)}
       </div>
     </div>
@@ -138,6 +131,14 @@ export function Chatbot() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  // Auto-grow textarea
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  };
+
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
@@ -145,6 +146,10 @@ export function Chatbot() {
     const userMsg: Message = { id: Date.now().toString(), role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    // Reset textarea height
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
     setLoading(true);
 
     try {
@@ -161,11 +166,7 @@ export function Chatbot() {
 
       const data = (await res.json()) as { reply?: string; error?: string };
       const reply = data.reply ?? ui.error;
-      const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: reply,
-      };
+      const assistantMsg: Message = { id: (Date.now() + 1).toString(), role: "assistant", content: reply };
       setMessages((prev) => [...prev, assistantMsg]);
       if (!open) setUnread((n) => n + 1);
     } catch {
@@ -185,6 +186,13 @@ export function Chatbot() {
     }
   };
 
+  const startNewChat = () => {
+    setMessages([{ id: "welcome", role: "assistant", content: welcome }]);
+    setInput("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
   return (
     <>
       {/* Chat window */}
@@ -200,10 +208,21 @@ export function Chatbot() {
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
             <Bot className="h-5 w-5 text-white" />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-white">{ui.title}</p>
-            <p className="text-xs text-white/70">{ui.subtitle}</p>
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <p className="text-xs text-white/70">{ui.subtitle}</p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={startNewChat}
+            title={ui.newChat}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition hover:bg-white/20 hover:text-white"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -215,7 +234,7 @@ export function Chatbot() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        <div className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-4 py-4">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}
@@ -230,24 +249,20 @@ export function Chatbot() {
               ref={inputRef}
               rows={1}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKey}
               placeholder={ui.placeholder}
               className="flex-1 resize-none bg-transparent text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
-              style={{ maxHeight: 96 }}
+              style={{ maxHeight: 120, overflowY: "auto" }}
             />
             <button
               type="button"
               onClick={() => void send()}
               disabled={!input.trim() || loading}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-40"
+              className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-40"
               aria-label={ui.send}
             >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             </button>
           </div>
           <p className="mt-1.5 text-center text-[10px] text-[var(--color-text-muted)]">

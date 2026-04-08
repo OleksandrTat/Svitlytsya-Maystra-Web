@@ -121,22 +121,19 @@ export default async function ProductsPage({
       {/* Main content */}
       <section className="py-10 pb-24 md:py-14 md:pb-28">
         <Container>
-          {hasOpenAi ? (
-            <div className="mb-8">
-              <SimilarProductsSearch />
-            </div>
-          ) : null}
-
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
             {/* Sidebar filters */}
-            <Suspense fallback={<ProductFiltersFallback />}>
-              <ProductFiltersPanel
-                filters={filters}
-                categoryOptions={filterOptions.categories}
-                styleOptions={filterOptions.styles}
-                materialOptions={filterOptions.materials}
-              />
-            </Suspense>
+            <div className="space-y-4">
+              {hasOpenAi ? <SimilarProductsSearch /> : null}
+              <Suspense fallback={<ProductFiltersFallback />}>
+                <ProductFiltersPanel
+                  filters={filters}
+                  categoryOptions={filterOptions.categories}
+                  styleOptions={filterOptions.styles}
+                  materialOptions={filterOptions.materials}
+                />
+              </Suspense>
+            </div>
 
             {/* Products area */}
             <div>

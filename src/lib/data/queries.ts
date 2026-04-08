@@ -460,6 +460,19 @@ export async function getAllProductsForAdmin(): Promise<Product[]> {
   return (data ?? []) as Product[];
 }
 
+export async function getProductByIdForAdmin(id: string): Promise<Product | null> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  return (data as Product | null) ?? null;
+}
+
 export async function getAllActiveProducts(): Promise<Product[]> {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {

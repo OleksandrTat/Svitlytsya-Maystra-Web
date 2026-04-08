@@ -8,7 +8,7 @@ import { isSupportedProductModelUrl } from "@/lib/models/product-models";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import type { ProductStatus } from "@/lib/types";
 
-type ActionResult = { ok: boolean; message: string };
+type ActionResult<T = undefined> = { ok: boolean; message: string; data?: T };
 
 const productSchema = z.object({
   id: z.string().uuid().optional(),
@@ -56,7 +56,7 @@ function normalizeSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-export async function upsertProductAction(formData: FormData): Promise<ActionResult> {
+export async function upsertProductAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
   await requireAdmin();
   const supabase = createSupabaseServiceClient();
   if (!supabase) {
@@ -130,7 +130,7 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
   revalidatePath(`/products/${payload.slug}`);
   revalidatePath("/admin/products");
 
-  return { ok: true, message: "Продукт збережено." };
+  return { ok: true, message: "Продукт збережено.", data: { id: payload.id } };
 }
 
 export async function deleteProductAction(formData: FormData): Promise<ActionResult> {

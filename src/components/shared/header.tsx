@@ -22,7 +22,6 @@ const NAV_HREFS = [
   { href: "/products" as const, key: "products" as const },
   { href: "/services" as const, key: "services" as const },
   { href: "/blog" as const, key: "blog" as const },
-  { href: "/faq" as const, key: "faq" as const },
   { href: "/contact" as const, key: "contact" as const },
 ];
 

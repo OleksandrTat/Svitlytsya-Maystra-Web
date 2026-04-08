@@ -50,11 +50,11 @@ function ToolbarButton({ onClick, active, disabled, title, children }: ToolbarBu
       disabled={disabled}
       title={title}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+        "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-150",
         active
-          ? "bg-[var(--color-primary-100)] text-[var(--color-primary)]"
-          : "text-zinc-500 hover:bg-zinc-100",
-        disabled && "opacity-40",
+          ? "bg-[var(--color-primary)] text-white shadow-sm"
+          : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800",
+        disabled && "opacity-30 cursor-not-allowed",
       )}
     >
       {children}
@@ -63,7 +63,7 @@ function ToolbarButton({ onClick, active, disabled, title, children }: ToolbarBu
 }
 
 function ToolbarDivider() {
-  return <div className="mx-1 h-5 w-px bg-zinc-200" />;
+  return <div className="mx-1.5 h-4 w-px bg-zinc-200" />;
 }
 
 export function BlogEditor({ initialContent = "", onChange, placeholder }: Props) {
@@ -143,9 +143,9 @@ export function BlogEditor({ initialContent = "", onChange, placeholder }: Props
   const readingTime = Math.max(1, Math.ceil(words / 200));
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200">
+    <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 bg-zinc-50 px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-100 bg-zinc-50/80 px-2.5 py-2">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           active={editor.isActive("heading", { level: 1 })}
@@ -270,8 +270,8 @@ export function BlogEditor({ initialContent = "", onChange, placeholder }: Props
       <EditorContent editor={editor} />
 
       {/* Footer */}
-      <div className="flex items-center gap-4 border-t border-zinc-200 bg-zinc-50 px-4 py-2 text-xs text-zinc-400">
-        <span>{words} слів</span>
+      <div className="flex items-center gap-4 border-t border-zinc-100 bg-zinc-50/80 px-4 py-2 text-[11px] text-zinc-400">
+        <span className="font-medium">{words} слів</span>
         <span>{chars} символів</span>
         <span>~{readingTime} хв читання</span>
       </div>

@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminSecurityMfa } from "@/components/admin/admin-security-mfa";
 import { OrderTemplatesSettings } from "@/components/admin/orders/order-templates-settings";
 import { upsertSiteSettingAction } from "@/actions/admin";
 import {
@@ -10,8 +11,9 @@ import {
 } from "@/lib/data/queries";
 
 export default async function AdminSettingsPage() {
-  const [t, settings, orderTemplates] = await Promise.all([
+  const [t, tSec, settings, orderTemplates] = await Promise.all([
     getTranslations("admin.pages.settings"),
+    getTranslations("admin.pages.security"),
     getSiteSettingsForAdmin(),
     getOrderTemplatesForAdmin(),
   ]);
@@ -19,6 +21,24 @@ export default async function AdminSettingsPage() {
   return (
     <AdminShell title={t("title")} description={t("description")}>
       <OrderTemplatesSettings initial={orderTemplates} />
+
+      {/* Security */}
+      <AdminCard>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{tSec("mfaTitle")}</h2>
+        <div className="mt-3">
+          <AdminSecurityMfa />
+        </div>
+      </AdminCard>
+
+      <AdminCard>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{tSec("checklistTitle")}</h2>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--color-text-secondary)]">
+          <li>{tSec("checklistMfa")}</li>
+          <li>{tSec("checklistTurnstile")}</li>
+          <li>{tSec("checklistSignedUrls")}</li>
+          <li>{tSec("checklistBackup")}</li>
+        </ul>
+      </AdminCard>
 
       <AdminCard>
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Поточні налаштування</h2>

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { ExternalLink, Package, Pencil, Plus, Search, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteProductAction } from "@/actions/admin/products";
-import { ProductFormPopup } from "@/components/admin/products/product-form-popup";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import type { PriceFormula, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -19,9 +18,9 @@ type ProductAttribute = {
 
 type Props = {
   products: Product[];
-  formulas: PriceFormula[];
-  styleAttributes: Record<string, ProductAttribute[]>;
-  materialAttributes: Record<string, ProductAttribute[]>;
+  formulas?: PriceFormula[];
+  styleAttributes?: Record<string, ProductAttribute[]>;
+  materialAttributes?: Record<string, ProductAttribute[]>;
 };
 
 const STATUS_CHIP: Record<string, string> = {
@@ -71,14 +70,9 @@ function PriorityDots({ value }: { value: number }) {
 
 export default function AdminProductsClient({
   products: initialProducts,
-  formulas,
-  styleAttributes,
-  materialAttributes,
 }: Props) {
   const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -180,7 +174,7 @@ export default function AdminProductsClient({
 
         <button
           type="button"
-          onClick={() => setCreateOpen(true)}
+          onClick={() => router.push("/admin/products/new")}
           className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]"
         >
           <Plus size={16} />
@@ -220,7 +214,7 @@ export default function AdminProductsClient({
           </p>
           <button
             type="button"
-            onClick={() => setCreateOpen(true)}
+            onClick={() => router.push("/admin/products/new")}
             className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
           >
             <Plus size={14} />
@@ -325,7 +319,7 @@ export default function AdminProductsClient({
                       </Link>
                       <button
                         type="button"
-                        onClick={() => setEditProduct(product)}
+                        onClick={() => router.push(`/admin/products/${product.id}/edit`)}
                         className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
                       >
                         <Pencil size={13} />
@@ -347,34 +341,6 @@ export default function AdminProductsClient({
         </div>
       )}
 
-      {createOpen ? (
-        <ProductFormPopup
-          key="create-product"
-          open={createOpen}
-          onClose={() => {
-            setCreateOpen(false);
-            router.refresh();
-          }}
-          formulas={formulas}
-          styleAttributes={styleAttributes}
-          materialAttributes={materialAttributes}
-        />
-      ) : null}
-
-      {editProduct ? (
-        <ProductFormPopup
-          key={`edit-product-${editProduct.id}`}
-          open={Boolean(editProduct)}
-          onClose={() => {
-            setEditProduct(null);
-            router.refresh();
-          }}
-          formulas={formulas}
-          styleAttributes={styleAttributes}
-          materialAttributes={materialAttributes}
-          initialData={editProduct}
-        />
-      ) : null}
     </div>
   );
 }
