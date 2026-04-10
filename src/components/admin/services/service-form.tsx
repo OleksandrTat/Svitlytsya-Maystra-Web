@@ -25,6 +25,7 @@ import {
   upsertServiceAction,
 } from "@/actions/admin";
 import { CategoryCombobox, type CategoryLabels } from "@/components/admin/shared/category-combobox";
+import { CoverImageUpload } from "@/components/admin/shared/cover-image-upload";
 import { requestContentAssist } from "@/lib/admin/request-content-assist";
 import type { Service, ServiceFeature, ServiceProcessStep } from "@/lib/types";
 import { slugify, cn } from "@/lib/utils";
@@ -480,8 +481,13 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
 
                   {/* Cover image */}
                   <div>
-                    <FieldLabel>Обкладинка (URL)</FieldLabel>
-                    <FormInput value={form.cover_image} onChange={e => setField("cover_image", e.target.value)} placeholder="https://…" type="url" />
+                    <FieldLabel>Обкладинка</FieldLabel>
+                    <CoverImageUpload
+                      value={form.cover_image}
+                      onChange={(url) => setField("cover_image", url)}
+                      bucket="service-images"
+                      folder="services"
+                    />
                   </div>
                 </div>
               )}

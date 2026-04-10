@@ -9,6 +9,7 @@ import {
   deleteCertificateAction,
 } from "@/actions/admin/certificates";
 import { ConfirmDeleteButton } from "@/components/admin/shared/confirm-delete-button";
+import { CoverImageUpload } from "@/components/admin/shared/cover-image-upload";
 import type { Certificate } from "@/lib/types";
 
 export function CertificatesAdminClient({
@@ -18,14 +19,17 @@ export function CertificatesAdminClient({
 }) {
   const [items, setItems] = useState(initial);
   const [editItem, setEditItem] = useState<Certificate | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (formData: FormData) => {
+    formData.set("image_url", imageUrl);
     startTransition(async () => {
       const result = await upsertCertificateAction(formData);
       if (result.ok) {
         toast.success(result.message);
         setEditItem(null);
+        setImageUrl("");
         window.location.reload();
       } else {
         toast.error(result.message);
@@ -157,15 +161,14 @@ export function CertificatesAdminClient({
 
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
-              URL зображення
+              Зображення
             </label>
-            <input
-              type="url"
-              name="image_url"
-              placeholder="https://..."
-              defaultValue={editItem?.image_url ?? ""}
-              key={editItem?.id ?? "new-img"}
-              className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+            <CoverImageUpload
+              value={imageUrl}
+              onChange={setImageUrl}
+              bucket="certificate-images"
+              folder="certificates"
+              aspectRatio="4/3"
             />
           </div>
 
@@ -181,7 +184,7 @@ export function CertificatesAdminClient({
             {editItem && (
               <button
                 type="button"
-                onClick={() => setEditItem(null)}
+                onClick={() => { setEditItem(null); setImageUrl(""); }}
                 className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm transition hover:bg-[var(--color-bg-warm)]"
               >
                 Скасувати
@@ -232,7 +235,7 @@ export function CertificatesAdminClient({
             <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
               <button
                 type="button"
-                onClick={() => setEditItem(cert)}
+                onClick={() => { setEditItem(cert); setImageUrl(cert.image_url ?? ""); }}
                 className="rounded-lg bg-white p-1.5 shadow-sm hover:bg-[var(--color-bg-warm)]"
                 title="Редагувати"
               >

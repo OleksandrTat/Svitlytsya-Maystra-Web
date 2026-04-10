@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AdminShell } from "@/components/admin/admin-shell";
 import { FormulaForm } from "@/components/admin/pricing/formula-form";
 import {
   getFormulaComponentsForAdmin,
@@ -23,5 +24,9 @@ export default async function AdminPricingEditPage({
     redirect("/admin/pricing");
   }
 
-  return <FormulaForm initialData={formula} initialComponents={components} presets={presets} />;
+  return (
+    <AdminShell title="" bare>
+      <FormulaForm initialData={formula} initialComponents={components} presets={presets} />
+    </AdminShell>
+  );
 }
