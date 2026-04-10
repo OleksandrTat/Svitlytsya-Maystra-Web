@@ -25,13 +25,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { upsertProductAction, deleteProductAction } from "@/actions/admin/products";
+import { CategoryCombobox, type CategoryLabels } from "@/components/admin/shared/category-combobox";
 import { FormulaPicker } from "@/components/admin/shared/formula-picker";
 import { PhotoUploadPopup } from "@/components/admin/shared/photo-upload-popup";
 import { PriorityBar } from "@/components/admin/shared/priority-bar";
 import { TagInput } from "@/components/admin/shared/tag-input";
 import { TranslateButton } from "@/components/admin/shared/translate-button";
 import { useAiSeoAssist } from "@/hooks/use-ai-seo-assist";
-import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
+import { PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import {
   buildProductModelPath,
   PRODUCT_MODEL_BUCKET,
@@ -43,16 +44,17 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { PriceFormula, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ProductAttribute = { value: string; usage_count: number };
-
 type Props = {
   initialData?: Product | null;
   formulas: PriceFormula[];
-  styleAttributes: Record<string, ProductAttribute[]>;
-  materialAttributes: Record<string, ProductAttribute[]>;
+  allStyles: string[];
+  allMaterials: string[];
+  allCategories: string[];
+  categoryLabels?: CategoryLabels;
+  styleTranslations?: Record<string, string>;
+  materialTranslations?: Record<string, string>;
 };
 
-const CATEGORIES = Object.entries(PRODUCT_CATEGORY_LABELS) as [string, string][];
 const STATUSES = Object.entries(PRODUCT_STATUS_LABELS) as [string, string][];
 
 type Tab = "content" | "en" | "seo";
@@ -141,7 +143,7 @@ function SideCard({ title, icon, children, defaultOpen = true }: {
 }
 
 // ─── Main form ────────────────────────────────────────────────────────────────
-export function ProductForm({ initialData, formulas, styleAttributes, materialAttributes }: Props) {
+export function ProductForm({ initialData, formulas, allStyles, allMaterials, allCategories, categoryLabels, styleTranslations, materialTranslations }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { generate, loading: aiLoading } = useAiSeoAssist();
@@ -177,10 +179,11 @@ export function ProductForm({ initialData, formulas, styleAttributes, materialAt
 
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [catLabels, setCatLabels] = useState<CategoryLabels>(categoryLabels ?? {});
+  const [styleTransl, setStyleTransl] = useState<Record<string, string>>(styleTranslations ?? {});
+  const [materialTransl, setMaterialTransl] = useState<Record<string, string>>(materialTranslations ?? {});
   const markDirty = useCallback(() => setIsDirty(true), []);
 
-  const categoryStyles = (styleAttributes[category] ?? []).map(i => i.value);
-  const categoryMaterials = (materialAttributes[category] ?? []).map(i => i.value);
   const hasEnTranslation = !!(titleEn || descriptionEn);
   const hasSeo = !!(seoTitle || seoDescription);
 
@@ -253,6 +256,9 @@ export function ProductForm({ initialData, formulas, styleAttributes, materialAt
       fd.set("short_description_en", shortDescriptionEn.trim());
       fd.set("seo_title_en", seoTitleEn.trim());
       fd.set("seo_description_en", seoDescriptionEn.trim());
+      fd.set("category_labels", JSON.stringify(catLabels));
+      fd.set("style_translations", JSON.stringify(styleTransl));
+      fd.set("material_translations", JSON.stringify(materialTransl));
 
       const result = await upsertProductAction(fd);
       if (!result.ok) { toast.error(result.message); return; }
@@ -266,7 +272,7 @@ export function ProductForm({ initialData, formulas, styleAttributes, materialAt
       router.refresh();
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, slug, description, shortDescription, category, materials, styles, priority, sortOrder, isFeatured, coverImage, model3dUrl, images, priceFrom, formulaId, seoTitle, seoDescription, titleEn, descriptionEn, shortDescriptionEn, seoTitleEn, seoDescriptionEn]);
+  }, [title, slug, description, shortDescription, category, materials, styles, priority, sortOrder, isFeatured, coverImage, model3dUrl, images, priceFrom, formulaId, seoTitle, seoDescription, titleEn, descriptionEn, shortDescriptionEn, seoTitleEn, seoDescriptionEn, catLabels, styleTransl, materialTransl]);
 
   // ── Delete ────────────────────────────────────────────────────────────────────
   const handleDelete = () => {
@@ -525,8 +531,26 @@ export function ProductForm({ initialData, formulas, styleAttributes, materialAt
 
                   {/* Attributes */}
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <TagInput value={styles} onChange={(v) => { setStyles(v); markDirty(); }} suggestions={categoryStyles} label="Стилі" placeholder="Додати стиль..." />
-                    <TagInput value={materials} onChange={(v) => { setMaterials(v); markDirty(); }} suggestions={categoryMaterials} label="Матеріали" placeholder="Додати матеріал..." />
+                    <TagInput
+                      value={styles}
+                      onChange={(v) => { setStyles(v); markDirty(); }}
+                      suggestions={allStyles}
+                      translationsEn={styleTransl}
+                      onTranslationChange={setStyleTransl}
+                      autoTranslate={true}
+                      label="Стилі"
+                      placeholder="Додати стиль..."
+                    />
+                    <TagInput
+                      value={materials}
+                      onChange={(v) => { setMaterials(v); markDirty(); }}
+                      suggestions={allMaterials}
+                      translationsEn={materialTransl}
+                      onTranslationChange={setMaterialTransl}
+                      autoTranslate={true}
+                      label="Матеріали"
+                      placeholder="Додати матеріал..."
+                    />
                   </div>
                 </div>
               )}
@@ -669,16 +693,13 @@ export function ProductForm({ initialData, formulas, styleAttributes, materialAt
 
             {/* Category */}
             <SideCard title="Категорія" icon={<Layers size={14} />}>
-              <div className="grid grid-cols-2 gap-1.5">
-                {CATEGORIES.map(([v, l]) => (
-                  <button key={v} type="button" onClick={() => { setCategory(v); markDirty(); }}
-                    className={cn("rounded-xl border px-2 py-2 text-xs font-semibold transition-all",
-                      category === v ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-sm"
-                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50")}>
-                    {l}
-                  </button>
-                ))}
-              </div>
+              <CategoryCombobox
+                value={category}
+                onChange={(v) => { setCategory(v); markDirty(); }}
+                allCategories={allCategories}
+                labels={catLabels}
+                onLabelsChange={setCatLabels}
+              />
             </SideCard>
 
             {/* 3D Model */}

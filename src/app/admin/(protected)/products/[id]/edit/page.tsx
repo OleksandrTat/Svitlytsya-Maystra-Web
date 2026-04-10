@@ -9,25 +9,25 @@ import {
 
 async function getProductAttributes() {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
-  if (!supabase) return { styles: {}, materials: {} };
+  if (!supabase) return { allStyles: [], allMaterials: [], allCategories: [], categoryLabels: {}, styleTranslations: {}, materialTranslations: {} };
 
-  const { data } = await supabase
-    .from("product_attributes")
-    .select("category, type, value, usage_count")
-    .order("usage_count", { ascending: false });
+  const [attrRes, catRes, settingsRes] = await Promise.all([
+    supabase.from("product_attributes").select("type, value").order("usage_count", { ascending: false }),
+    supabase.from("products").select("category").not("category", "is", null),
+    supabase.from("site_settings").select("key, value").in("key", ["product_category_labels", "style_translations", "material_translations"]),
+  ]);
 
-  const styles: Record<string, { value: string; usage_count: number }[]> = {};
-  const materials: Record<string, { value: string; usage_count: number }[]> = {};
+  const allStyles = [...new Set((attrRes.data ?? []).filter(r => r.type === "style").map(r => r.value))];
+  const allMaterials = [...new Set((attrRes.data ?? []).filter(r => r.type === "material").map(r => r.value))];
+  const allCategories = [...new Set((catRes.data ?? []).map(r => r.category).filter(Boolean))];
+  const settingsMap = Object.fromEntries((settingsRes.data ?? []).map(r => [r.key, r.value]));
 
-  for (const row of data ?? []) {
-    if (row.type === "style") {
-      styles[row.category] = [...(styles[row.category] ?? []), { value: row.value, usage_count: row.usage_count }];
-    } else if (row.type === "material") {
-      materials[row.category] = [...(materials[row.category] ?? []), { value: row.value, usage_count: row.usage_count }];
-    }
-  }
-
-  return { styles, materials };
+  return {
+    allStyles, allMaterials, allCategories,
+    categoryLabels: (settingsMap["product_category_labels"] ?? {}) as Record<string, { uk?: string; en?: string }>,
+    styleTranslations: (settingsMap["style_translations"] ?? {}) as Record<string, string>,
+    materialTranslations: (settingsMap["material_translations"] ?? {}) as Record<string, string>,
+  };
 }
 
 export default async function AdminProductEditPage({
@@ -49,8 +49,12 @@ export default async function AdminProductEditPage({
       <ProductForm
         initialData={product}
         formulas={formulas}
-        styleAttributes={attributes.styles}
-        materialAttributes={attributes.materials}
+        allStyles={attributes.allStyles}
+        allMaterials={attributes.allMaterials}
+        allCategories={attributes.allCategories}
+        categoryLabels={attributes.categoryLabels}
+        styleTranslations={attributes.styleTranslations}
+        materialTranslations={attributes.materialTranslations}
       />
     </AdminShell>
   );

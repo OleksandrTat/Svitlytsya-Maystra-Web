@@ -16,7 +16,7 @@ const productSchema = z.object({
   slug: z.string().min(2),
   description: z.string().min(10),
   short_description: z.string().optional(),
-  category: z.enum(["doors", "furniture", "windows", "restoration"]),
+  category: z.string().min(1),
   materials: z.string().default(""),
   style: z.string().default(""),
   cover_image: z.string().url().optional().or(z.literal("")),
@@ -125,6 +125,22 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
   if (error) {
     return { ok: false, message: error.message };
   }
+
+  // Save translations to site_settings
+  const mergeToSettings = async (key: string, raw: FormDataEntryValue | null) => {
+    if (!raw) return;
+    let parsed: Record<string, unknown>;
+    try { parsed = JSON.parse(String(raw)); } catch { return; }
+    if (!Object.keys(parsed).length) return;
+    const { data: existing } = await supabase.from("site_settings").select("value").eq("key", key).maybeSingle();
+    const merged = { ...(existing?.value as Record<string, unknown> ?? {}), ...parsed };
+    await supabase.from("site_settings").upsert({ key, value: merged });
+  };
+  await Promise.all([
+    mergeToSettings("product_category_labels", formData.get("category_labels")),
+    mergeToSettings("style_translations", formData.get("style_translations")),
+    mergeToSettings("material_translations", formData.get("material_translations")),
+  ]);
 
   revalidatePath("/products");
   revalidatePath(`/products/${payload.slug}`);

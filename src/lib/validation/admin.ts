@@ -8,7 +8,7 @@ export const serviceFormSchema = z.object({
   short_description: z.string().min(10),
   description: z.string().min(20),
   icon: z.string().default(""),
-  category: z.enum(["production", "consultation", "installation", "restoration"]).default("production"),
+  category: z.string().default(""),
   features: z.string().default("[]"),
   process_steps: z.string().default(""),
   cover_image: z.union([z.string().url(), z.literal("")]).default(""),
@@ -21,6 +21,12 @@ export const serviceFormSchema = z.object({
   seo_title: z.string().optional(),
   seo_description: z.string().optional(),
   sort_order: z.coerce.number().int().min(0),
+  title_en: z.string().optional(),
+  tagline_en: z.string().optional(),
+  short_description_en: z.string().optional(),
+  description_en: z.string().optional(),
+  seo_title_en: z.string().optional(),
+  seo_description_en: z.string().optional(),
 });
 
 export const testimonialFormSchema = z.object({

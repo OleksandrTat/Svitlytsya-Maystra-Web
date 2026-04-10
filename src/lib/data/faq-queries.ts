@@ -25,6 +25,17 @@ export const getPublishedFaqByCategory = cache(async (): Promise<Record<string, 
   }, {});
 });
 
+export async function getFaqItemByIdForAdmin(id: string): Promise<FaqItem | null> {
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("faq_items")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as FaqItem | null) ?? null;
+}
+
 export async function getAllFaqItemsForAdmin(): Promise<FaqItem[]> {
   const supabase = createSupabaseServiceClient();
   if (!supabase) return [];

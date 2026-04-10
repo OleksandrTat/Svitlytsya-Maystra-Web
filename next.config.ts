@@ -42,6 +42,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "th.bing.com",
       },
+      {
+        protocol: "https",
+        hostname: "**.prom.ua",
+      },
+      {
+        protocol: "https",
+        hostname: "**.rozetka.com.ua",
+      },
     ],
   },
   async headers() {

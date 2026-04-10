@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
@@ -8,7 +9,6 @@ import {
   Edit2,
   GripVertical,
   HelpCircle,
-  Languages,
   Loader2,
   Plus,
   Search,
@@ -31,7 +31,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  upsertFaqItemAction,
   deleteFaqItemAction,
   updateFaqSortOrderAction,
   updateFaqCategoryOrderAction,
@@ -195,378 +194,6 @@ function BulkTranslateModal({
   );
 }
 
-// ─── Drawer ───────────────────────────────────────────────────────────────────
-
-type DrawerProps = {
-  item: FaqItem | null;
-  totalItems: number;
-  allCategories: string[];
-  customLabels: FaqCategoryLabels;
-  onClose: () => void;
-  onSubmit: (fd: FormData) => void;
-  isPending: boolean;
-};
-
-function CategoryCombobox({ allCategories, defaultValue, knownCategories, customLabels }: {
-  allCategories: string[];
-  defaultValue: string;
-  knownCategories: Record<string, { label: string; color: string }>;
-  customLabels: FaqCategoryLabels;
-}) {
-  const [value, setValue] = useState(defaultValue);
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const containerRef = useState<HTMLDivElement | null>(null);
-
-  const isNew = value.trim() !== "" && !allCategories.includes(value.trim());
-
-  const getLabel = (cat: string) =>
-    knownCategories[cat]?.label ?? customLabels[cat]?.uk ?? customLabels[cat]?.en ?? cat;
-
-  const suggestions = allCategories.filter((cat) => {
-    if (!query) return true;
-    const label = getLabel(cat);
-    return (
-      cat.toLowerCase().includes(query.toLowerCase()) ||
-      label.toLowerCase().includes(query.toLowerCase())
-    );
-  });
-
-  const selectCat = (cat: string) => {
-    setValue(cat);
-    setQuery("");
-    setOpen(false);
-  };
-
-  return (
-    <div className="relative" ref={(el) => { (containerRef as unknown as React.MutableRefObject<HTMLDivElement | null>).current = el; }}>
-      <input type="hidden" name="category" value={value} />
-      <div
-        className={cn(
-          "flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition",
-          open
-            ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20"
-            : "border-[var(--color-border)]",
-        )}
-      >
-        {/* Selected badge or input */}
-        {!open && value ? (
-          <button
-            type="button"
-            onClick={() => { setQuery(""); setOpen(true); }}
-            className="flex flex-1 items-center gap-1.5 text-left"
-          >
-            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", knownCategories[value]?.color ?? "bg-gray-100 text-gray-600")}>
-              {getLabel(value)}
-            </span>
-            {isNew && <span className="text-[10px] text-amber-600">нова</span>}
-            <ChevronDown className="ml-auto h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-          </button>
-        ) : (
-          <input
-            autoFocus={open}
-            type="text"
-            placeholder="Пошук або нова категорія..."
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setValue(e.target.value); }}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            className="flex-1 bg-transparent outline-none placeholder:text-[var(--color-text-muted)]"
-          />
-        )}
-      </div>
-
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-52 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-white shadow-lg">
-          {suggestions.length > 0 ? (
-            suggestions.map((cat) => {
-              const meta = knownCategories[cat] ?? { label: getLabel(cat), color: "bg-gray-100 text-gray-600" };
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onMouseDown={() => selectCat(cat)}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--color-bg-section)]"
-                >
-                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", meta.color)}>
-                    {meta.label}
-                  </span>
-                  <span className="text-xs text-[var(--color-text-muted)]">{cat}</span>
-                </button>
-              );
-            })
-          ) : (
-            <div className="px-3 py-2.5 text-sm text-[var(--color-text-muted)]">
-              Натисніть Enter щоб створити &ldquo;<strong>{query}</strong>&rdquo;
-            </div>
-          )}
-
-          {/* Create new option */}
-          {query && !allCategories.includes(query) && (
-            <button
-              type="button"
-              onMouseDown={() => selectCat(query)}
-              className="flex w-full items-center gap-2 border-t border-[var(--color-border)] px-3 py-2.5 text-left text-sm text-[var(--color-primary)] hover:bg-[var(--color-bg-section)]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Створити категорію &ldquo;{query}&rdquo;
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FaqDrawer({ item, totalItems, allCategories, customLabels, onClose, onSubmit, isPending }: DrawerProps) {
-  const [showEn, setShowEn] = useState(!!item?.question_en);
-  const [question, setQuestion] = useState(item?.question ?? "");
-  const [answer, setAnswer] = useState(item?.answer ?? "");
-  const [questionEn, setQuestionEn] = useState(item?.question_en ?? "");
-  const [answerEn, setAnswerEn] = useState(item?.answer_en ?? "");
-  const [isTranslating, setIsTranslating] = useState(false);
-  const catIsNew = item?.category ? !Object.keys(KNOWN_CATEGORIES).includes(item.category) : false;
-  const [showCatLabels, setShowCatLabels] = useState(catIsNew);
-
-  const canTranslate = question.trim().length > 3 || answer.trim().length > 3;
-
-  const handleAutoTranslate = async () => {
-    if (!canTranslate) return;
-    setIsTranslating(true);
-    try {
-      const res = await fetch("/api/admin/translate-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texts: [question, answer] }),
-      });
-      const data = (await res.json()) as { translations?: string[]; error?: string };
-      if (!res.ok || !data.translations) {
-        toast.error(data.error ?? "Помилка перекладу");
-        return;
-      }
-      setQuestionEn(data.translations[0] ?? "");
-      setAnswerEn(data.translations[1] ?? "");
-      setShowEn(true);
-      toast.success("Переклад готовий ✓");
-    } catch {
-      toast.error("Не вдалося перекласти");
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
-          <div className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4 text-[var(--color-primary)]" />
-            <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
-              {item ? "Редагувати питання" : "Нове питання"}
-            </h2>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-section)]">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <form action={onSubmit} className="flex flex-1 flex-col overflow-y-auto">
-          {item && <input type="hidden" name="id" value={item.id} />}
-
-          <div className="flex-1 space-y-5 px-6 py-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Категорія
-                </label>
-                <CategoryCombobox
-                  allCategories={allCategories}
-                  defaultValue={item?.category ?? "general"}
-                  knownCategories={KNOWN_CATEGORIES}
-                  customLabels={customLabels}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCatLabels((v) => !v)}
-                  className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--color-primary)] hover:underline"
-                >
-                  <Languages className="h-3 w-3" />
-                  {showCatLabels ? "Приховати назви" : "Задати назви категорії (uk/en)"}
-                </button>
-                {showCatLabels && (
-                  <div className="mt-2 space-y-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-section)] p-3">
-                    <div>
-                      <label className="mb-1 block text-[10px] font-medium text-[var(--color-text-muted)]">Назва 🇺🇦</label>
-                      <input name="category_label_uk" type="text" placeholder="напр. Монтаж"
-                        defaultValue={item?.category ? KNOWN_CATEGORIES[item.category]?.label ?? "" : ""}
-                        className="w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1.5 text-xs focus:border-[var(--color-primary)] focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[10px] font-medium text-[var(--color-text-muted)]">Label 🇬🇧</label>
-                      <input name="category_label_en" type="text" placeholder="e.g. Installation"
-                        className="w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1.5 text-xs focus:border-[var(--color-primary)] focus:outline-none" />
-                    </div>
-                    <p className="text-[10px] text-[var(--color-text-muted)]">
-                      Назви будуть збережені і відображатимуться на сайті.
-                    </p>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Порядок
-                </label>
-                <input
-                  type="number"
-                  name="sort_order"
-                  min={0}
-                  defaultValue={item?.sort_order ?? totalItems * 10}
-                  key={item?.id ?? "new-sort"}
-                  className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
-                />
-              </div>
-            </div>
-
-            <label className="flex cursor-pointer items-center gap-3">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  name="is_published_check"
-                  defaultChecked={item?.is_published ?? true}
-                  key={item?.id ?? "new-pub"}
-                  onChange={(e) => {
-                    const hidden = e.target.form?.querySelector('input[name="is_published"]') as HTMLInputElement;
-                    if (hidden) hidden.value = e.target.checked ? "true" : "false";
-                  }}
-                  className="peer sr-only"
-                />
-                <input type="hidden" name="is_published" defaultValue={item?.is_published !== false ? "true" : "false"} key={item?.id ?? "new-pubh"} />
-                <div className="h-5 w-9 rounded-full bg-[var(--color-border)] transition peer-checked:bg-[var(--color-primary)]" />
-                <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4" />
-              </div>
-              <span className="text-sm text-[var(--color-text-secondary)]">Опубліковано</span>
-            </label>
-
-            <hr className="border-[var(--color-border)]" />
-
-            {/* Ukrainian fields */}
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">🇺🇦 Українська</p>
-              <div className="space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
-                    Питання <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="question"
-                    required
-                    rows={2}
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Введіть питання..."
-                    className="w-full resize-none rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
-                    Відповідь <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="answer"
-                    required
-                    rows={5}
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Введіть відповідь..."
-                    className="w-full resize-y rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* English section */}
-            <div>
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setShowEn((v) => !v)}
-                  className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)] hover:underline"
-                >
-                  <Languages className="h-3.5 w-3.5" />
-                  🇬🇧 English переклад
-                  {showEn ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                </button>
-
-                {/* AI translate button — works for both new and existing items */}
-                <button
-                  type="button"
-                  onClick={() => void handleAutoTranslate()}
-                  disabled={!canTranslate || isTranslating}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition",
-                    canTranslate
-                      ? "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-                      : "cursor-not-allowed bg-[var(--color-bg-section)] text-[var(--color-text-muted)]",
-                  )}
-                >
-                  {isTranslating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
-                  )}
-                  {isTranslating ? "Перекладаю…" : "Перекласти ШІ"}
-                </button>
-              </div>
-
-              {showEn && (
-                <div className="mt-3 space-y-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">Question (EN)</label>
-                    <textarea
-                      name="question_en"
-                      rows={2}
-                      value={questionEn}
-                      onChange={(e) => setQuestionEn(e.target.value)}
-                      placeholder="Enter question in English..."
-                      className="w-full resize-none rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">Answer (EN)</label>
-                    <textarea
-                      name="answer_en"
-                      rows={5}
-                      value={answerEn}
-                      onChange={(e) => setAnswerEn(e.target.value)}
-                      placeholder="Enter answer in English..."
-                      className="w-full resize-y rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border-t border-[var(--color-border)] px-6 py-4">
-            <div className="flex gap-3">
-              <button type="submit" disabled={isPending}
-                className="flex-1 rounded-lg bg-[var(--color-primary)] py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-50">
-                {isPending ? "Збереження..." : item ? "Зберегти зміни" : "Додати питання"}
-              </button>
-              <button type="button" onClick={onClose}
-                className="rounded-lg border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-section)]">
-                Скасувати
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </>
-  );
-}
-
 // ─── Sortable Row ─────────────────────────────────────────────────────────────
 
 type RowProps = {
@@ -636,11 +263,11 @@ function SortableFaqRow({ item, allCategories, onEdit, onDelete }: RowProps) {
 
         {/* Actions */}
         <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
-          <button type="button" onClick={onEdit}
+          <Link href={`/admin/faq/${item.id}/edit`}
             className="rounded-lg p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-section)] hover:text-[var(--color-primary)]"
             title="Редагувати">
             <Edit2 className="h-3.5 w-3.5" />
-          </button>
+          </Link>
           <form action={onDelete}>
             <input type="hidden" name="id" value={item.id} />
             <ConfirmDeleteButton label="" pendingLabel=""
@@ -745,15 +372,11 @@ export function FaqAdminClient({
   savedCategoryOrder: FaqCategoryOrder;
 }) {
   const [items, setItems] = useState(initial);
-  const [editItem, setEditItem] = useState<FaqItem | null | "new">(null);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("all");
   const [isPending, startTransition] = useTransition();
   const [bulkState, setBulkState] = useState<BulkTranslateState>({ phase: "idle" });
   const abortRef = useRef(false);
-
-  const drawerOpen = editItem !== null;
-  const drawerItem = editItem === "new" ? null : editItem;
 
   // Sensors with 5px activation distance to avoid accidental drag on click
   const sensors = useSensors(
@@ -849,19 +472,6 @@ export function FaqAdminClient({
     });
   };
 
-  const handleSubmit = (formData: FormData) => {
-    startTransition(async () => {
-      const result = await upsertFaqItemAction(formData);
-      if (result.ok) {
-        toast.success(result.message);
-        setEditItem(null);
-        window.location.reload();
-      } else {
-        toast.error(result.message);
-      }
-    });
-  };
-
   const handleDelete = (formData: FormData) => {
     startTransition(async () => {
       const result = await deleteFaqItemAction(formData);
@@ -952,11 +562,11 @@ export function FaqAdminClient({
               </span>
             )}
           </button>
-          <button type="button" onClick={() => setEditItem("new")}
+          <Link href="/admin/faq/new"
             className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]">
             <Plus className="h-4 w-4" />
             Нове питання
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -1008,7 +618,7 @@ export function FaqAdminClient({
                   catVal={catVal}
                   catItems={catItems}
                   allCategories={allCategories}
-                  onEdit={setEditItem}
+                  onEdit={() => {}}
                   onDelete={handleDelete}
                   onItemDragEnd={handleItemDragEnd}
                   sensors={sensors}
@@ -1027,19 +637,6 @@ export function FaqAdminClient({
           </div>
         </SortableContext>
       </DndContext>
-
-      {/* Drawer */}
-      {drawerOpen && (
-        <FaqDrawer
-          item={drawerItem}
-          totalItems={items.length}
-          allCategories={allCategories}
-          customLabels={customLabels}
-          onClose={() => setEditItem(null)}
-          onSubmit={handleSubmit}
-          isPending={isPending}
-        />
-      )}
 
       {/* Bulk translate modal */}
       <BulkTranslateModal

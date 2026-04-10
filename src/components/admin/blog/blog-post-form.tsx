@@ -30,6 +30,7 @@ import {
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { BlogEditor } from "./blog-editor";
+import { CategoryCombobox, type CategoryLabels } from "@/components/admin/shared/category-combobox";
 import { TagInput } from "@/components/admin/shared/tag-input";
 import {
   upsertBlogPostAction,
@@ -38,7 +39,6 @@ import {
 } from "@/actions/admin/blog";
 import { useAiSeoAssist } from "@/hooks/use-ai-seo-assist";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { BLOG_CATEGORIES } from "@/lib/constants";
 import type { BlogPost, Service, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +46,10 @@ type Props = {
   initialData?: BlogPost | null;
   services: Pick<Service, "id" | "title">[];
   products: Pick<Product, "id" | "title">[];
+  allCategories?: string[];
+  categoryLabels?: CategoryLabels;
+  allTags?: string[];
+  tagTranslations?: Record<string, string>;
 };
 
 // ─── Toggle Switch ─────────────────────────────────────────────────────────────
@@ -230,9 +234,11 @@ function CharBar({ value, max, warnAt }: { value: number; max: number; warnAt: n
 }
 
 // ─── Main form ────────────────────────────────────────────────────────────────
-export function BlogPostForm({ initialData, services, products }: Props) {
+export function BlogPostForm({ initialData, services, products, allCategories = [], categoryLabels, allTags = [], tagTranslations }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [catLabels, setCatLabels] = useState<CategoryLabels>(categoryLabels ?? {});
+  const [tagTransl, setTagTransl] = useState<Record<string, string>>(tagTranslations ?? {});
 
   // 🇺🇦 Ukrainian fields
   const [title, setTitle] = useState(initialData?.title ?? "");
@@ -249,7 +255,7 @@ export function BlogPostForm({ initialData, services, products }: Props) {
 
   // Meta
   const [coverImage, setCoverImage] = useState(initialData?.cover_image ?? "");
-  const [category, setCategory] = useState(initialData?.category ?? "tips");
+  const [category, setCategory] = useState(initialData?.category ?? "");
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [isPublished, setIsPublished] = useState(initialData?.is_published ?? false);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? false);
@@ -406,6 +412,8 @@ export function BlogPostForm({ initialData, services, products }: Props) {
       if (contentEn) fd.set("content_en", contentEn);
       if (seoTitleEn) fd.set("seo_title_en", seoTitleEn);
       if (seoDescriptionEn) fd.set("seo_description_en", seoDescriptionEn);
+      fd.set("category_labels", JSON.stringify(catLabels));
+      fd.set("tag_translations", JSON.stringify(tagTransl));
 
       const result = await upsertBlogPostAction(fd);
       if (result.ok) {
@@ -840,20 +848,23 @@ export function BlogPostForm({ initialData, services, products }: Props) {
             <SideCard title="Організація" icon={<Settings size={14} />}>
               <div>
                 <SideLabel>Категорія</SideLabel>
-                <SideSelect
+                <CategoryCombobox
                   value={category}
-                  onChange={(e) => { setCategory(e.target.value); markDirty(); }}
-                >
-                  {BLOG_CATEGORIES.map((cat) => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </SideSelect>
+                  onChange={(v) => { setCategory(v); markDirty(); }}
+                  allCategories={allCategories}
+                  labels={catLabels}
+                  onLabelsChange={setCatLabels}
+                />
               </div>
               <div>
                 <SideLabel>Теги</SideLabel>
                 <TagInput
                   value={tags}
                   onChange={(next) => { setTags(next); markDirty(); }}
+                  suggestions={allTags}
+                  translationsEn={tagTransl}
+                  onTranslationChange={setTagTransl}
+                  autoTranslate={true}
                   placeholder="Додати тег..."
                 />
               </div>

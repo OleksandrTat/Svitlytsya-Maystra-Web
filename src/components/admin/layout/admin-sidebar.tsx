@@ -11,6 +11,7 @@ import {
   Calculator,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   ExternalLink,
   FileText,
   HeadphonesIcon,
@@ -47,36 +48,58 @@ type AdminSidebarProps = {
 
 type NavItem = {
   href: string;
-  labelKey: string;
+  label: string;
   icon: ComponentType<{ size?: number; className?: string }>;
   badgeKey?: keyof NavCounts;
 };
 
-const primaryItems: NavItem[] = [
-  { href: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard },
-  {
-    href: "/admin/inbox",
-    labelKey: "nav.messages",
-    icon: MessageSquare,
-    badgeKey: "unreadMessages",
-  },
-  { href: "/admin/inquiries", labelKey: "nav.inquiries", icon: Mail, badgeKey: "newInquiries" },
-  { href: "/admin/orders", labelKey: "nav.orders", icon: Package },
-  { href: "/admin/clients", labelKey: "nav.clients", icon: Users },
-];
+type NavSection = {
+  title?: string;
+  items: NavItem[];
+};
 
-const secondaryItems: NavItem[] = [
-  { href: "/admin/products", labelKey: "nav.products", icon: Package2 },
-  { href: "/admin/services", labelKey: "nav.services", icon: Wrench },
-  { href: "/admin/blog", labelKey: "nav.blog", icon: FileText },
-  { href: "/admin/company", labelKey: "nav.company", icon: Building2 },
-  { href: "/admin/pricing", labelKey: "nav.pricing", icon: Calculator },
-  { href: "/admin/support", labelKey: "nav.support", icon: HeadphonesIcon, badgeKey: "unreadSupport" },
-  { href: "/admin/faq", labelKey: "nav.faq", icon: HelpCircle },
-  { href: "/admin/certificates", labelKey: "nav.certificates", icon: Award },
-  { href: "/admin/wishlist", labelKey: "nav.wishlist", icon: Heart },
-  { href: "/admin/newsletter", labelKey: "nav.newsletter", icon: Send },
-  { href: "/admin/settings", labelKey: "nav.settings", icon: Settings },
+const NAV_SECTIONS: NavSection[] = [
+  {
+    items: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "Клієнти",
+    items: [
+      { href: "/admin/inbox",     label: "Повідомлення", icon: MessageSquare, badgeKey: "unreadMessages" },
+      { href: "/admin/inquiries", label: "Заявки",       icon: Mail,           badgeKey: "newInquiries"  },
+      { href: "/admin/orders",    label: "Замовлення",   icon: Package },
+      { href: "/admin/clients",   label: "Клієнти",      icon: Users },
+      { href: "/admin/support",   label: "Підтримка",    icon: HeadphonesIcon, badgeKey: "unreadSupport" },
+    ],
+  },
+  {
+    title: "Каталог",
+    items: [
+      { href: "/admin/products", label: "Продукти",       icon: Package2 },
+      { href: "/admin/services", label: "Послуги",         icon: Wrench },
+      { href: "/admin/pricing",  label: "Ціноутворення",  icon: Calculator },
+    ],
+  },
+  {
+    title: "Контент",
+    items: [
+      { href: "/admin/blog",         label: "Блог",        icon: FileText },
+      { href: "/admin/faq",          label: "FAQ",         icon: HelpCircle },
+      { href: "/admin/certificates", label: "Сертифікати", icon: Award },
+      { href: "/admin/company",      label: "Компанія",    icon: Building2 },
+    ],
+  },
+  {
+    title: "Система",
+    items: [
+      { href: "/admin/wishlist",   label: "Списки бажань", icon: Heart },
+      { href: "/admin/newsletter", label: "Розсилка",      icon: Send },
+      { href: "/admin/audit-log",  label: "Журнал",        icon: ClipboardList },
+      { href: "/admin/settings",   label: "Налаштування",  icon: Settings },
+    ],
+  },
 ];
 
 function NavLink({
@@ -84,13 +107,11 @@ function NavLink({
   collapsed,
   pathname,
   badgeValue,
-  label,
 }: {
   item: NavItem;
   collapsed: boolean;
   pathname: string;
   badgeValue?: number;
-  label: string;
 }) {
   const isRoot = item.href === "/admin";
   const isActive = isRoot
@@ -100,7 +121,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      title={collapsed ? label : undefined}
+      title={collapsed ? item.label : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150",
         isActive
@@ -109,7 +130,7 @@ function NavLink({
       )}
     >
       <item.icon size={18} className="shrink-0" />
-      {!collapsed ? <span className="flex-1 truncate">{label}</span> : null}
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
       {!collapsed && badgeValue && badgeValue > 0 ? (
         <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
           {badgeValue > 99 ? "99+" : badgeValue}
@@ -140,6 +161,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
       transition={{ duration: 0.2, ease: "easeOut" }}
       className="sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[var(--color-primary-900)] text-[color:var(--color-on-primary)] md:flex"
     >
+      {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-white/10 px-3">
         {!collapsed ? (
           <Link
@@ -159,7 +181,6 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
             </div>
           </Link>
         )}
-
         <button
           type="button"
           onClick={onToggle}
@@ -170,7 +191,8 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
         </button>
       </div>
 
-      {!collapsed ? (
+      {/* Back to site */}
+      {!collapsed && (
         <div className="px-3 pt-2">
           <Link
             href="/"
@@ -182,8 +204,9 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
             {t("sidebar.backToSite")}
           </Link>
         </div>
-      ) : null}
+      )}
 
+      {/* Search */}
       <div className="px-3 py-2">
         <button
           type="button"
@@ -195,47 +218,43 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           title={collapsed ? `${t("sidebar.search")} (Ctrl/Cmd+K)` : undefined}
         >
           <Search size={14} />
-          {!collapsed ? (
+          {!collapsed && (
             <>
               <span className="flex-1 text-left">{t("sidebar.search")}</span>
               <kbd className="rounded border border-white/20 px-1 text-[10px] text-[color:var(--color-on-primary-faint)]">
-                Ctrl/Cmd+K
+                ⌘K
               </kbd>
             </>
-          ) : null}
+          )}
         </button>
       </div>
 
-      <nav className="admin-scrollbar flex-1 space-y-5 overflow-y-auto px-3 py-2">
-        <div className="space-y-1">
-          {primaryItems.map((item) => (
-            <NavLink
-              key={item.href}
-              item={item}
-              pathname={pathname}
-              collapsed={collapsed}
-              badgeValue={item.badgeKey ? counts[item.badgeKey] : 0}
-              label={t(item.labelKey as Parameters<typeof t>[0])}
-            />
-          ))}
-        </div>
-
-        <div className="h-px bg-white/10" />
-
-        <div className="space-y-1">
-          {secondaryItems.map((item) => (
-            <NavLink
-              key={item.href}
-              item={item}
-              pathname={pathname}
-              collapsed={collapsed}
-              badgeValue={item.badgeKey ? counts[item.badgeKey] : 0}
-              label={t(item.labelKey as Parameters<typeof t>[0])}
-            />
-          ))}
-        </div>
+      {/* Nav sections */}
+      <nav className="admin-scrollbar flex-1 overflow-y-auto px-3 py-2">
+        {NAV_SECTIONS.map((section, si) => (
+          <div key={si} className={cn(si > 0 && "mt-4")}>
+            {section.title && !collapsed && (
+              <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
+                {section.title}
+              </p>
+            )}
+            {si > 0 && collapsed && <div className="mb-2 h-px bg-white/10" />}
+            <div className="space-y-0.5">
+              {section.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  collapsed={collapsed}
+                  badgeValue={item.badgeKey ? counts[item.badgeKey] : 0}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </nav>
 
+      {/* Footer */}
       <div className="border-t border-white/10 p-3">
         <div
           className={cn(
@@ -244,7 +263,7 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
           )}
         >
           <UserCircle2 size={16} className="shrink-0" />
-          {!collapsed ? <span className="text-sm">{t("sidebar.owner")}</span> : null}
+          {!collapsed && <span className="text-sm">{t("sidebar.owner")}</span>}
         </div>
         <div className={cn("mb-2", collapsed ? "flex justify-center" : "")}>
           <AdminLanguageSwitcher collapsed={collapsed} />

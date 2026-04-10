@@ -11,16 +11,9 @@ import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants"
 import type { PriceFormula, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ProductAttribute = {
-  value: string;
-  usage_count: number;
-};
-
 type Props = {
   products: Product[];
   formulas?: PriceFormula[];
-  styleAttributes?: Record<string, ProductAttribute[]>;
-  materialAttributes?: Record<string, ProductAttribute[]>;
 };
 
 const STATUS_CHIP: Record<string, string> = {

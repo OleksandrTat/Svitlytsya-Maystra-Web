@@ -823,6 +823,19 @@ export async function getAllServicesForAdmin(): Promise<Service[]> {
   return data.map(mapService);
 }
 
+export async function getServiceByIdForAdmin(id: string): Promise<Service | null> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("services")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  return data ? mapService(data) : null;
+}
+
 export async function getAllTestimonialsForAdmin(): Promise<Testimonial[]> {
   const supabase = await createSupabaseServerClient();
 
@@ -1331,6 +1344,19 @@ export async function getPriceFormulasForAdmin(): Promise<PriceFormula[]> {
   }
 
   return data as PriceFormula[];
+}
+
+export async function getPriceFormulaByIdForAdmin(id: string): Promise<PriceFormula | null> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("price_formulas")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  return (data as PriceFormula | null) ?? null;
 }
 
 export async function getFormulaComponentsForAdmin(formulaId: string): Promise<FormulaComponent[]> {

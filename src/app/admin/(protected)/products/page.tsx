@@ -13,35 +13,19 @@ import {
 async function getProductAttributes() {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
-    return {
-      styles: {} as Record<string, { value: string; usage_count: number }[]>,
-      materials: {} as Record<string, { value: string; usage_count: number }[]>,
-    };
+    return { allStyles: [] as string[], allMaterials: [] as string[], allCategories: [] as string[] };
   }
 
-  const { data } = await supabase
-    .from("product_attributes")
-    .select("category, type, value, usage_count")
-    .order("usage_count", { ascending: false });
+  const [attrRes, catRes] = await Promise.all([
+    supabase.from("product_attributes").select("type, value").order("usage_count", { ascending: false }),
+    supabase.from("products").select("category").not("category", "is", null),
+  ]);
 
-  const styles: Record<string, { value: string; usage_count: number }[]> = {};
-  const materials: Record<string, { value: string; usage_count: number }[]> = {};
+  const allStyles = [...new Set((attrRes.data ?? []).filter(r => r.type === "style").map(r => r.value))];
+  const allMaterials = [...new Set((attrRes.data ?? []).filter(r => r.type === "material").map(r => r.value))];
+  const allCategories = [...new Set((catRes.data ?? []).map(r => r.category).filter(Boolean))];
 
-  for (const row of data ?? []) {
-    if (row.type === "style") {
-      styles[row.category] = [
-        ...(styles[row.category] ?? []),
-        { value: row.value, usage_count: row.usage_count },
-      ];
-    } else if (row.type === "material") {
-      materials[row.category] = [
-        ...(materials[row.category] ?? []),
-        { value: row.value, usage_count: row.usage_count },
-      ];
-    }
-  }
-
-  return { styles, materials };
+  return { allStyles, allMaterials, allCategories };
 }
 
 export default async function AdminProductsPage() {
@@ -57,8 +41,6 @@ export default async function AdminProductsPage() {
       <AdminProductsClient
         products={products}
         formulas={formulas}
-        styleAttributes={attributes.styles}
-        materialAttributes={attributes.materials}
       />
     </AdminShell>
   );

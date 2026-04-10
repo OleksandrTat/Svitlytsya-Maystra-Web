@@ -10,7 +10,6 @@ import {
   toggleServiceActiveAction,
   toggleServiceFeaturedAction,
 } from "@/actions/admin";
-import { ServiceFormPopup } from "@/components/admin/services/service-form-popup";
 import type { Service } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +27,6 @@ const CATEGORY_META: Record<string, string> = {
 export function ServicesAdminClient({ services: initialServices }: Props) {
   const router = useRouter();
   const [services, setServices] = useState(initialServices);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editService, setEditService] = useState<Service | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -157,14 +154,13 @@ export function ServicesAdminClient({ services: initialServices }: Props) {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setCreateOpen(true)}
+          <Link
+            href="/admin/services/new"
             className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#402617]"
           >
             <Plus size={16} />
             Новий сервіс
-          </button>
+          </Link>
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -271,13 +267,12 @@ export function ServicesAdminClient({ services: initialServices }: Props) {
                 {service.is_active ? <Eye size={14} className="inline" /> : <EyeOff size={14} className="inline" />}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setEditService(service)}
+              <Link
+                href={`/admin/services/${service.id}/edit`}
                 className="rounded-2xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-secondary)]"
               >
                 <Pencil size={14} className="inline" />
-              </button>
+              </Link>
 
               <Link
                 href={`/services/${service.slug}`}
@@ -300,8 +295,6 @@ export function ServicesAdminClient({ services: initialServices }: Props) {
         ))}
       </div>
 
-      <ServiceFormPopup open={createOpen} onClose={() => setCreateOpen(false)} />
-      <ServiceFormPopup open={Boolean(editService)} onClose={() => setEditService(null)} initialData={editService} />
     </div>
   );
 }

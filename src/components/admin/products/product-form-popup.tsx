@@ -27,7 +27,7 @@ import { PriorityBar } from "@/components/admin/shared/priority-bar";
 import { TagInput } from "@/components/admin/shared/tag-input";
 import { TranslateButton } from "@/components/admin/shared/translate-button";
 import { useAiSeoAssist } from "@/hooks/use-ai-seo-assist";
-import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
+import { PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import {
   buildProductModelPath,
   PRODUCT_MODEL_BUCKET,
@@ -39,21 +39,16 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { PriceFormula, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type ProductAttribute = {
-  value: string;
-  usage_count: number;
-};
-
 type Props = {
   open: boolean;
   onClose: () => void;
   formulas: PriceFormula[];
-  styleAttributes: Record<string, ProductAttribute[]>;
-  materialAttributes: Record<string, ProductAttribute[]>;
+  allStyles: string[];
+  allMaterials: string[];
+  allCategories: string[];
   initialData?: Partial<Product>;
 };
 
-const CATEGORIES = Object.entries(PRODUCT_CATEGORY_LABELS) as [string, string][];
 const STATUSES = Object.entries(PRODUCT_STATUS_LABELS) as [string, string][];
 
 type Tab = "content" | "en" | "seo";
@@ -137,8 +132,9 @@ export function ProductFormPopup({
   open,
   onClose,
   formulas,
-  styleAttributes,
-  materialAttributes,
+  allStyles,
+  allMaterials,
+  allCategories,
   initialData,
 }: Props) {
   const router = useRouter();
@@ -181,8 +177,6 @@ export function ProductFormPopup({
     if (!slugManual) setSlug(slugify(nextTitle));
   };
 
-  const categoryStyles = (styleAttributes[category] ?? []).map((item) => item.value);
-  const categoryMaterials = (materialAttributes[category] ?? []).map((item) => item.value);
 
   const onModel3dUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -453,14 +447,14 @@ export function ProductFormPopup({
                           <TagInput
                             value={styles}
                             onChange={setStyles}
-                            suggestions={categoryStyles}
+                            suggestions={allStyles}
                             label="Стилі"
                             placeholder="Додати стиль..."
                           />
                           <TagInput
                             value={materials}
                             onChange={setMaterials}
-                            suggestions={categoryMaterials}
+                            suggestions={allMaterials}
                             label="Матеріали"
                             placeholder="Додати матеріал..."
                           />
@@ -672,22 +666,14 @@ export function ProductFormPopup({
                     <div className="border-b border-zinc-100 px-4 py-2.5">
                       <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Категорія</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-1.5 p-3">
-                      {CATEGORIES.map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => setCategory(value)}
-                          className={cn(
-                            "rounded-xl border px-2 py-2 text-xs font-semibold transition-all",
-                            category === value
-                              ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-sm"
-                              : "border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50",
-                          )}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                    <div className="p-3">
+                      <input
+                        type="text"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        placeholder="напр. Двері, Меблі…"
+                        className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none transition-all focus:border-[var(--color-primary-300)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-100)]"
+                      />
                     </div>
                   </div>
 

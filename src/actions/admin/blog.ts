@@ -140,6 +140,21 @@ export async function upsertBlogPostAction(
   const { error } = await supabase.from("blog_posts").upsert(payload);
   if (error) return { ok: false, message: error.message };
 
+  // Save labels/translations to site_settings
+  const mergeToSettings = async (key: string, raw: FormDataEntryValue | null) => {
+    if (!raw) return;
+    let parsed: Record<string, unknown>;
+    try { parsed = JSON.parse(String(raw)); } catch { return; }
+    if (!Object.keys(parsed).length) return;
+    const { data: existing } = await supabase.from("site_settings").select("value").eq("key", key).maybeSingle();
+    const merged = { ...(existing?.value as Record<string, unknown> ?? {}), ...parsed };
+    await supabase.from("site_settings").upsert({ key, value: merged });
+  };
+  await Promise.all([
+    mergeToSettings("blog_category_labels", formData.get("category_labels")),
+    mergeToSettings("blog_tag_translations", formData.get("tag_translations")),
+  ]);
+
   revalidatePath("/blog");
   revalidatePath(`/blog/${payload.slug}`);
   revalidatePath("/admin/blog");

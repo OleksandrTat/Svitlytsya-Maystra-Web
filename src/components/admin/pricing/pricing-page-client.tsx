@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Calculator, ChevronRight, Layers, Pencil, Plus } from "lucide-react";
-import { FormulaBuilderPopup } from "@/components/admin/pricing/formula-builder-popup";
+import {
+  Calculator,
+  ChevronRight,
+  Layers,
+  Pencil,
+  Plus,
+  Search,
+} from "lucide-react";
 import { VariablesPopup } from "@/components/admin/pricing/variables-popup";
 import { getFormulaUserInputs } from "@/lib/pricing/expression";
 import type { FormulaComponent, PriceFormula, PricePreset } from "@/lib/types";
@@ -17,246 +22,195 @@ type Props = {
   formulaComponentsMap: Record<string, FormulaComponent[]>;
 };
 
-const PRODUCT_TYPE_META: Record<
-  string,
-  { label: string; gradient: string; badgeClassName: string }
-> = {
-  door: {
-    label: "Двері",
-    gradient: "from-sky-500 to-sky-700",
-    badgeClassName: "bg-sky-50 text-sky-700",
-  },
-  furniture: {
-    label: "Меблі",
-    gradient: "from-amber-500 to-amber-700",
-    badgeClassName: "bg-amber-50 text-amber-700",
-  },
-  window: {
-    label: "Вікна",
-    gradient: "from-emerald-500 to-emerald-700",
-    badgeClassName: "bg-emerald-50 text-emerald-700",
-  },
-  restoration: {
-    label: "Реставрація",
-    gradient: "from-rose-500 to-rose-700",
-    badgeClassName: "bg-rose-50 text-rose-700",
-  },
+const TYPE_META: Record<string, { label: string; chip: string }> = {
+  door:         { label: "Двері",       chip: "bg-sky-50 text-sky-700 border-sky-200" },
+  furniture:    { label: "Меблі",       chip: "bg-amber-50 text-amber-700 border-amber-200" },
+  window:       { label: "Вікна",       chip: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  restoration:  { label: "Реставрація", chip: "bg-rose-50 text-rose-700 border-rose-200" },
 };
 
-function FormulaCard({
-  formula,
-  componentCount,
-  onEdit,
-}: {
-  formula: PriceFormula;
-  componentCount: number;
-  onEdit: (formula: PriceFormula) => void;
-}) {
-  const meta = PRODUCT_TYPE_META[formula.product_type] ?? PRODUCT_TYPE_META.door;
-  const inputs = getFormulaUserInputs(formula);
+type FilterKey = "all" | keyof typeof TYPE_META;
 
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className={cn("h-1 w-full bg-gradient-to-r", meta.gradient)} />
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "Всі" },
+  ...Object.entries(TYPE_META).map(([k, v]) => ({ key: k as FilterKey, label: v.label })),
+];
 
-      <div className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", meta.badgeClassName)}>
-                {meta.label}
-              </span>
-              {formula.is_active ? null : (
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-500">
-                  Неактивна
-                </span>
-              )}
-            </div>
-
-            <h3 className="mt-2 text-lg font-semibold leading-tight text-[var(--color-text-primary)]">
-              {formula.name}
-            </h3>
-
-            {formula.description ? (
-              <p className="mt-1 line-clamp-2 text-sm text-[var(--color-text-secondary)]">
-                {formula.description}
-              </p>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onEdit(formula)}
-            className="rounded-lg border border-[var(--color-border)] p-1.5 text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-          >
-            <Pencil size={13} />
-          </button>
-        </div>
-
-        {inputs.length > 0 ? (
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
-              Input-змінні
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {inputs.map((input) => (
-                <span
-                  key={input.key}
-                  className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 font-mono text-[10px] text-violet-700"
-                >
-                  {input.key}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-3">
-          <div className="text-xs text-[var(--color-text-secondary)]">
-            {componentCount} компонентів
-          </div>
-          <Link
-            href={`/admin/pricing/${formula.id}`}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-primary)] hover:underline"
-          >
-            Компоненти
-            <ChevronRight size={12} />
-          </Link>
-        </div>
-      </div>
-    </motion.article>
-  );
-}
-
-export function PricingPageClient({
-  formulas,
-  presets,
-  formulaComponentsMap,
-}: Props) {
+export function PricingPageClient({ formulas, presets, formulaComponentsMap }: Props) {
   const router = useRouter();
   const [variablesOpen, setVariablesOpen] = useState(false);
-  const [builderOpen, setBuilderOpen] = useState(false);
-  const [editingFormula, setEditingFormula] = useState<PriceFormula | null>(null);
   const [localPresets, setLocalPresets] = useState(presets);
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [search, setSearch] = useState("");
 
-  const totalsByType = Object.fromEntries(
-    Object.keys(PRODUCT_TYPE_META).map((type) => [
-      type,
-      formulas.filter((formula) => formula.product_type === type).length,
-    ]),
+  const filtered = formulas.filter((f) => {
+    if (filter !== "all" && f.product_type !== filter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return f.name.toLowerCase().includes(q) || (f.description ?? "").toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const countByType = Object.fromEntries(
+    Object.keys(TYPE_META).map((t) => [t, formulas.filter((f) => f.product_type === t).length]),
   );
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
-        <div
-          className="px-6 py-5"
-          style={{ background: "linear-gradient(135deg, #100303 0%, #1c0606 55%, #2a0909 100%)" }}
-        >
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="font-display text-xl text-white">Система ціноутворення</h2>
-              <p className="mt-1 text-sm text-white/60">
-                {formulas.length} формул · {localPresets.length} змінних у бібліотеці
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setVariablesOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
-              >
-                <Layers size={16} />
-                Змінні
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingFormula(null);
-                  setBuilderOpen(true);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#b5860d] px-4 py-2.5 text-sm font-semibold text-[#140606] transition hover:bg-[#c9991c]"
-              >
-                <Plus size={16} />
-                Нова формула
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 divide-x divide-y divide-[var(--color-border)] border-t border-[var(--color-border)] md:grid-cols-4 md:divide-y-0">
-          {Object.entries(PRODUCT_TYPE_META).map(([type, meta]) => (
-            <div key={type} className="px-4 py-3 text-center">
-              <p className="text-xs text-[var(--color-text-secondary)]">{meta.label}</p>
-              <p className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">
-                {totalsByType[type] ?? 0}
-              </p>
-            </div>
-          ))}
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-zinc-500">
+          Всього: {formulas.length} формул · {presets.length} пресетів
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setVariablesOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+          >
+            <Layers size={15} />
+            Пресети
+          </button>
+          <Link
+            href="/admin/pricing/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
+          >
+            <Plus size={16} />
+            Нова формула
+          </Link>
         </div>
       </div>
 
-      {formulas.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[var(--color-border)] py-16 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-surface)]">
-            <Calculator size={24} className="text-[var(--color-border)]" />
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Object.entries(TYPE_META).map(([type, meta]) => (
+          <div
+            key={type}
+            className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-4 cursor-pointer transition-colors hover:bg-zinc-50"
+            onClick={() => setFilter(filter === type ? "all" : type as FilterKey)}
+          >
+            <div>
+              <p className="text-2xl font-bold text-zinc-900">{countByType[type] ?? 0}</p>
+              <p className="text-xs text-zinc-500">{meta.label}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-[var(--color-text-primary)]">Формул ще немає</p>
-            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              Створіть першу формулу, щоб запустити новий калькулятор на продуктах
-            </p>
-          </div>
+        ))}
+      </div>
+
+      {/* Filters + Search */}
+      <div className="flex flex-wrap items-center gap-3">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => setFilter(f.key)}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              filter === f.key
+                ? "bg-zinc-900 text-white"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200",
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+        <div className="relative ml-auto">
+          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Пошук..."
+            className="h-8 w-48 rounded-lg border border-zinc-200 bg-white pl-8 pr-3 text-sm outline-none focus:border-zinc-400"
+          />
+        </div>
+      </div>
+
+      {/* List */}
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-12 text-center">
+          <Calculator size={40} className="mx-auto text-zinc-300" />
+          <p className="mt-3 text-zinc-600">Формул не знайдено</p>
+          <Link
+            href="/admin/pricing/new"
+            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--color-primary)]"
+          >
+            <Plus size={14} />
+            Створити першу формулу
+          </Link>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {formulas.map((formula) => (
-            <FormulaCard
-              key={formula.id}
-              formula={formula}
-              componentCount={formulaComponentsMap[formula.id]?.length ?? 0}
-              onEdit={(nextFormula) => {
-                setEditingFormula(nextFormula);
-                setBuilderOpen(true);
-              }}
-            />
-          ))}
+        <div className="space-y-2">
+          {filtered.map((formula) => {
+            const meta = TYPE_META[formula.product_type] ?? TYPE_META.door;
+            const inputs = getFormulaUserInputs(formula);
+            const componentCount = formulaComponentsMap[formula.id]?.length ?? 0;
+
+            return (
+              <div
+                key={formula.id}
+                className="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:bg-zinc-50"
+              >
+                {/* Type badge */}
+                <span className={cn("hidden shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold sm:inline", meta.chip)}>
+                  {meta.label}
+                </span>
+
+                {/* Name + description */}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-zinc-900">{formula.name}</p>
+                  {formula.description ? (
+                    <p className="truncate text-xs text-zinc-500">{formula.description}</p>
+                  ) : inputs.length > 0 ? (
+                    <p className="truncate text-xs text-zinc-400 font-mono">
+                      {inputs.map((i) => i.key).join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Component count */}
+                <span className="hidden shrink-0 text-xs text-zinc-400 md:block">
+                  {componentCount} компон.
+                </span>
+
+                {/* Status */}
+                {!formula.is_active && (
+                  <span className="hidden shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500 sm:inline">
+                    Неактивна
+                  </span>
+                )}
+
+                {/* Actions */}
+                <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Link
+                    href={`/admin/pricing/${formula.id}/edit`}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-200"
+                    title="Редагувати"
+                  >
+                    <Pencil size={14} />
+                  </Link>
+                  <Link
+                    href={`/admin/pricing/${formula.id}`}
+                    className="flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-xs font-medium text-zinc-500 hover:bg-zinc-200"
+                    title="Компоненти"
+                  >
+                    Компоненти
+                    <ChevronRight size={12} />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
       <VariablesPopup
         open={variablesOpen}
-        onClose={() => {
-          setVariablesOpen(false);
-          router.refresh();
-        }}
+        onClose={() => { setVariablesOpen(false); router.refresh(); }}
         presets={localPresets}
         onPresetsChange={setLocalPresets}
       />
-
-      {builderOpen ? (
-        <FormulaBuilderPopup
-          key={editingFormula?.id ?? "new-formula"}
-          open={builderOpen}
-          onClose={() => {
-            setBuilderOpen(false);
-            setEditingFormula(null);
-          }}
-          presets={localPresets}
-          initialData={editingFormula ?? undefined}
-          initialComponents={
-            editingFormula ? formulaComponentsMap[editingFormula.id] ?? [] : []
-          }
-          onSaved={() => {
-            router.refresh();
-          }}
-        />
-      ) : null}
     </div>
   );
 }

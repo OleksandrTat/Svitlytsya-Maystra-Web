@@ -12,9 +12,10 @@ import {
 import type { InquiryStatus } from "@/lib/types";
 import type { Json } from "@/lib/types/database";
 
-type ActionResult = {
+type ActionResult<T = undefined> = {
   ok: boolean;
   message: string;
+  data?: T;
 };
 
 async function logActivity(
@@ -79,7 +80,7 @@ function parseJsonArray<T>(value: FormDataEntryValue | null, fallback: T[] = [])
   }
 }
 
-export async function upsertServiceAction(formData: FormData): Promise<ActionResult> {
+export async function upsertServiceAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
   await requireAdmin();
 
   const supabase = createSupabaseServiceClient();
@@ -95,7 +96,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     short_description: formData.get("short_description"),
     description: formData.get("description"),
     icon: formData.get("icon") || "",
-    category: formData.get("category") || "production",
+    category: formData.get("category") || "",
     features: formData.get("features") || "[]",
     process_steps: formData.get("process_steps") || "[]",
     cover_image: formData.get("cover_image") || "",
@@ -108,6 +109,12 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     seo_title: formData.get("seo_title") || undefined,
     seo_description: formData.get("seo_description") || undefined,
     sort_order: formData.get("sort_order") || 0,
+    title_en: String(formData.get("title_en") ?? ""),
+    tagline_en: String(formData.get("tagline_en") ?? ""),
+    short_description_en: String(formData.get("short_description_en") ?? ""),
+    description_en: String(formData.get("description_en") ?? ""),
+    seo_title_en: String(formData.get("seo_title_en") ?? ""),
+    seo_description_en: String(formData.get("seo_description_en") ?? ""),
   });
 
   if (!parsed.success) {
@@ -144,12 +151,31 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     seo_title: parsed.data.seo_title || null,
     seo_description: parsed.data.seo_description || null,
     sort_order: parsed.data.sort_order,
+    title_en: parsed.data.title_en || null,
+    tagline_en: parsed.data.tagline_en || null,
+    short_description_en: parsed.data.short_description_en || null,
+    description_en: parsed.data.description_en || null,
+    seo_title_en: parsed.data.seo_title_en || null,
+    seo_description_en: parsed.data.seo_description_en || null,
   };
 
   const { error } = await supabase.from("services").upsert(payload);
 
   if (error) {
     return { ok: false, message: "Не вдалося зберегти послугу." };
+  }
+
+  // Save category labels to site_settings
+  const rawCatLabels = formData.get("category_labels");
+  if (rawCatLabels) {
+    try {
+      const parsed2 = JSON.parse(String(rawCatLabels)) as Record<string, unknown>;
+      if (Object.keys(parsed2).length) {
+        const { data: existing2 } = await supabase.from("site_settings").select("value").eq("key", "service_category_labels").maybeSingle();
+        const merged = { ...(existing2?.value as Record<string, unknown> ?? {}), ...parsed2 };
+        await supabase.from("site_settings").upsert({ key: "service_category_labels", value: merged });
+      }
+    } catch { /* ignore */ }
   }
 
   await logActivity(parsed.data.id ? "update" : "create", "service", payload.id, payload);
@@ -162,7 +188,7 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
   revalidatePath(`/services/${payload.slug}`);
   revalidatePath("/admin/services");
 
-  return { ok: true, message: "Послугу збережено." };
+  return { ok: true, message: "Послугу збережено.", data: { id: payload.id } };
 }
 
 export async function toggleServiceActiveAction(formData: FormData): Promise<ActionResult> {
