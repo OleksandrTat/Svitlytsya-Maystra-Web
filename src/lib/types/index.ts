@@ -398,6 +398,118 @@ export interface Certificate {
   issuer_en?: string | null;
 }
 
+// ── CRM: CONTACTS + DEALS ────────────────────────────────
+
+export type DealStage =
+  | "lead"
+  | "contacted"
+  | "quoted"
+  | "consulting"
+  | "design"
+  | "approved"
+  | "production"
+  | "ready"
+  | "installation"
+  | "completed"
+  | "lost"
+  | "archived";
+
+export type DealPriority = "normal" | "urgent";
+export type DealMessageSender = "client" | "admin" | "system";
+export type DealMessageChannel = "internal" | "viber" | "whatsapp" | "email" | "phone_note";
+
+export interface Contact {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  source: string;
+  notes: string | null;
+  linked_user_id: string | null;
+  created_at: string;
+  last_activity_at: string;
+  // enriched
+  deals_count?: number;
+  open_deals_count?: number;
+}
+
+export interface Deal {
+  id: string;
+  contact_id: string;
+  title: string;
+  service_type: string | null;
+  stage: DealStage;
+  priority: DealPriority;
+  value: number | null;
+  expected_date: string | null;
+  internal_notes: string | null;
+  inquiry_id: string | null;
+  order_id: string | null;
+  created_at: string;
+  updated_at: string;
+  // enriched
+  contact?: Contact;
+  unread_count?: number;
+}
+
+export interface DealMessage {
+  id: string;
+  deal_id: string;
+  sender_type: DealMessageSender;
+  sender_id: string | null;
+  channel: DealMessageChannel;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface DealStageHistory {
+  id: string;
+  deal_id: string;
+  from_stage: DealStage | null;
+  to_stage: DealStage;
+  comment: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
+  lead:         "Новий лід",
+  contacted:    "Контакт",
+  quoted:       "КП надіслано",
+  consulting:   "Консультація",
+  design:       "Проект",
+  approved:     "Погоджено",
+  production:   "Виробництво",
+  ready:        "Готово",
+  installation: "Монтаж",
+  completed:    "Завершено",
+  lost:         "Відмова",
+  archived:     "Архів",
+};
+
+export const DEAL_STAGE_COLORS: Record<DealStage, { bg: string; text: string; dot: string }> = {
+  lead:         { bg: "bg-sky-50",     text: "text-sky-700",     dot: "bg-sky-400" },
+  contacted:    { bg: "bg-blue-50",    text: "text-blue-700",    dot: "bg-blue-400" },
+  quoted:       { bg: "bg-violet-50",  text: "text-violet-700",  dot: "bg-violet-400" },
+  consulting:   { bg: "bg-amber-50",   text: "text-amber-700",   dot: "bg-amber-400" },
+  design:       { bg: "bg-orange-50",  text: "text-orange-700",  dot: "bg-orange-400" },
+  approved:     { bg: "bg-lime-50",    text: "text-lime-700",    dot: "bg-lime-400" },
+  production:   { bg: "bg-yellow-50",  text: "text-yellow-700",  dot: "bg-yellow-500" },
+  ready:        { bg: "bg-teal-50",    text: "text-teal-700",    dot: "bg-teal-400" },
+  installation: { bg: "bg-cyan-50",    text: "text-cyan-700",    dot: "bg-cyan-400" },
+  completed:    { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
+  lost:         { bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400" },
+  archived:     { bg: "bg-zinc-50",    text: "text-zinc-500",    dot: "bg-zinc-300" },
+};
+
+// Stages shown on the Kanban board (terminal stages hidden by default)
+export const PIPELINE_STAGES: DealStage[] = [
+  "lead", "contacted", "quoted",
+  "consulting", "design", "approved",
+  "production", "ready", "installation",
+];
+
 // ── NEWSLETTER ───────────────────────────────────────────
 
 export interface NewsletterSubscriber {

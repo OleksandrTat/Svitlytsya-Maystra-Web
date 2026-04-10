@@ -14,6 +14,7 @@ import {
   ClipboardList,
   ExternalLink,
   FileText,
+  GitMerge,
   HeadphonesIcon,
   Heart,
   HelpCircle,
@@ -37,6 +38,8 @@ type NavCounts = {
   unreadMessages: number;
   newInquiries: number;
   unreadSupport: number;
+  newDeals: number;
+  unreadDealMessages: number;
 };
 
 type AdminSidebarProps = {
@@ -65,9 +68,17 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Клієнти",
+    title: "CRM",
     items: [
-      { href: "/admin/inbox",     label: "Повідомлення", icon: MessageSquare, badgeKey: "unreadMessages" },
+      { href: "/admin/messages",  label: "Повідомлення", icon: MessageSquare,  badgeKey: "unreadDealMessages" },
+      { href: "/admin/pipeline",  label: "Pipeline",     icon: GitMerge,       badgeKey: "newDeals" },
+      { href: "/admin/contacts",  label: "Контакти",     icon: Users },
+    ],
+  },
+  {
+    title: "Старе (legacy)",
+    items: [
+      { href: "/admin/inbox",     label: "Inbox",        icon: Mail,           badgeKey: "unreadMessages" },
       { href: "/admin/inquiries", label: "Заявки",       icon: Mail,           badgeKey: "newInquiries"  },
       { href: "/admin/orders",    label: "Замовлення",   icon: Package },
       { href: "/admin/clients",   label: "Клієнти",      icon: Users },

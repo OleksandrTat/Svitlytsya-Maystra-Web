@@ -14,6 +14,8 @@ type AdminWorkspaceClientProps = {
     unreadMessages: number;
     newInquiries: number;
     unreadSupport: number;
+    newDeals: number;
+    unreadDealMessages: number;
   };
   children: ReactNode;
   bare?: boolean;

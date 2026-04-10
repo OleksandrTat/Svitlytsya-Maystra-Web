@@ -7,6 +7,11 @@ import type {
   Certificate,
   CompanyInfo,
   CompanyTeamMember,
+  Contact,
+  Deal,
+  DealMessage,
+  DealStage,
+  DealStageHistory,
   FormulaComponent,
   Inquiry,
   NewsletterSubscriber,
@@ -754,10 +759,10 @@ export const getAdminWorkspaceCounts = unstable_cache(
   async () => {
     const supabase = await getSupabaseForAdminQueries();
     if (!supabase) {
-      return { unreadMessages: 0, newInquiries: 0, unreadSupport: 0 };
+      return { unreadMessages: 0, newInquiries: 0, unreadSupport: 0, newDeals: 0, unreadDealMessages: 0 };
     }
 
-    const [messagesResult, inquiriesResult, supportResult] = await Promise.all([
+    const [messagesResult, inquiriesResult, supportResult, newDealsResult, unreadDealMsgResult] = await Promise.all([
       supabase
         .from("order_messages")
         .select("id", { count: "exact", head: true })
@@ -769,12 +774,23 @@ export const getAdminWorkspaceCounts = unstable_cache(
         .select("id", { count: "exact", head: true })
         .eq("sender_type", "client")
         .eq("is_read", false),
+      supabase
+        .from("deals")
+        .select("id", { count: "exact", head: true })
+        .eq("stage", "lead"),
+      supabase
+        .from("deal_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("sender_type", "client")
+        .eq("is_read", false),
     ]);
 
     return {
       unreadMessages: messagesResult.count ?? 0,
       newInquiries: inquiriesResult.count ?? 0,
       unreadSupport: supportResult.count ?? 0,
+      newDeals: newDealsResult.count ?? 0,
+      unreadDealMessages: unreadDealMsgResult.count ?? 0,
     };
   },
   ["admin-workspace-counts"],
@@ -1570,4 +1586,237 @@ export async function getWishlistStatsForAdmin(): Promise<
     }))
     .sort((a, b) => b.wishlist_count - a.wishlist_count)
     .slice(0, 20);
+}
+
+// ── CRM: CONTACTS ─────────────────────────────────────────
+
+export async function getContactsForAdmin(limit = 200): Promise<Contact[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return [];
+
+  const { data: contacts } = await supabase
+    .from("contacts")
+    .select("*")
+    .order("last_activity_at", { ascending: false })
+    .limit(limit);
+
+  if (!contacts?.length) return [];
+
+  // Enrich with deal counts
+  const { data: dealCounts } = await supabase
+    .from("deals")
+    .select("contact_id, stage")
+    .in("contact_id", contacts.map((c) => c.id));
+
+  const totalMap = new Map<string, number>();
+  const openMap = new Map<string, number>();
+  const terminalStages = new Set(["completed", "lost", "archived"]);
+
+  for (const d of dealCounts ?? []) {
+    totalMap.set(d.contact_id, (totalMap.get(d.contact_id) ?? 0) + 1);
+    if (!terminalStages.has(d.stage)) {
+      openMap.set(d.contact_id, (openMap.get(d.contact_id) ?? 0) + 1);
+    }
+  }
+
+  return contacts.map((c) => ({
+    ...c,
+    deals_count: totalMap.get(c.id) ?? 0,
+    open_deals_count: openMap.get(c.id) ?? 0,
+  }));
+}
+
+export async function getContactByIdForAdmin(id: string): Promise<Contact | null> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("contacts")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  return data ?? null;
+}
+
+// ── CRM: DEALS ────────────────────────────────────────────
+
+export async function getDealsForAdmin(limit = 500): Promise<Deal[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return [];
+
+  const { data: deals } = await supabase
+    .from("deals")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (!deals?.length) return [];
+
+  // Enrich with contact info
+  const contactIds = [...new Set(deals.map((d) => d.contact_id))];
+  const { data: contacts } = await supabase
+    .from("contacts")
+    .select("id, name, phone, email, source, notes, linked_user_id, created_at, last_activity_at")
+    .in("id", contactIds);
+
+  const contactMap = new Map((contacts ?? []).map((c) => [c.id, c]));
+
+  // Enrich with unread message counts
+  const dealIds = deals.map((d) => d.id);
+  const { data: unread } = await supabase
+    .from("deal_messages")
+    .select("deal_id")
+    .in("deal_id", dealIds)
+    .eq("sender_type", "client")
+    .eq("is_read", false);
+
+  const unreadMap = new Map<string, number>();
+  for (const m of unread ?? []) {
+    unreadMap.set(m.deal_id, (unreadMap.get(m.deal_id) ?? 0) + 1);
+  }
+
+  return deals.map((d) => ({
+    ...d,
+    contact: contactMap.get(d.contact_id),
+    unread_count: unreadMap.get(d.id) ?? 0,
+  }));
+}
+
+export async function getDealByIdForAdmin(id: string): Promise<Deal | null> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("deals")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!data) return null;
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("*")
+    .eq("id", data.contact_id)
+    .single();
+
+  return { ...data, contact: contact ?? undefined };
+}
+
+export async function getContactDealsForAdmin(contactId: string): Promise<Deal[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from("deals")
+    .select("*")
+    .eq("contact_id", contactId)
+    .order("created_at", { ascending: false });
+
+  return data ?? [];
+}
+
+// ── CRM: DEAL MESSAGES ────────────────────────────────────
+
+export async function getDealMessagesForAdmin(dealId: string): Promise<DealMessage[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from("deal_messages")
+    .select("*")
+    .eq("deal_id", dealId)
+    .order("created_at", { ascending: true })
+    .limit(300);
+
+  // Mark client messages as read
+  await supabase
+    .from("deal_messages")
+    .update({ is_read: true })
+    .eq("deal_id", dealId)
+    .eq("sender_type", "client")
+    .eq("is_read", false);
+
+  return data ?? [];
+}
+
+export async function getDealStageHistoryForAdmin(dealId: string): Promise<DealStageHistory[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from("deal_stage_history")
+    .select("*")
+    .eq("deal_id", dealId)
+    .order("created_at", { ascending: true });
+
+  return data ?? [];
+}
+
+// Deals with unread messages — for the messages inbox
+export async function getDealsWithMessagesForAdmin(limit = 100): Promise<Deal[]> {
+  const supabase = await getSupabaseForAdminQueries();
+  if (!supabase) return [];
+
+  // Get deals that have at least one message, ordered by last message
+  const { data: recentMessages } = await supabase
+    .from("deal_messages")
+    .select("deal_id, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
+
+  if (!recentMessages?.length) return [];
+
+  // Unique deal IDs preserving order (most recent first)
+  const seen = new Set<string>();
+  const orderedDealIds: string[] = [];
+  for (const m of recentMessages) {
+    if (!seen.has(m.deal_id)) {
+      seen.add(m.deal_id);
+      orderedDealIds.push(m.deal_id);
+      if (orderedDealIds.length >= limit) break;
+    }
+  }
+
+  const { data: deals } = await supabase
+    .from("deals")
+    .select("*")
+    .in("id", orderedDealIds);
+
+  if (!deals?.length) return [];
+
+  const contactIds = [...new Set(deals.map((d) => d.contact_id))];
+  const { data: contacts } = await supabase
+    .from("contacts")
+    .select("id, name, phone, email, source, notes, linked_user_id, created_at, last_activity_at")
+    .in("id", contactIds);
+
+  const contactMap = new Map((contacts ?? []).map((c) => [c.id, c]));
+
+  const { data: unread } = await supabase
+    .from("deal_messages")
+    .select("deal_id")
+    .in("deal_id", orderedDealIds)
+    .eq("sender_type", "client")
+    .eq("is_read", false);
+
+  const unreadMap = new Map<string, number>();
+  for (const m of unread ?? []) {
+    unreadMap.set(m.deal_id, (unreadMap.get(m.deal_id) ?? 0) + 1);
+  }
+
+  // Return in order of last message
+  const dealMap = new Map(deals.map((d) => [d.id, d]));
+  return orderedDealIds
+    .map((id) => {
+      const d = dealMap.get(id);
+      if (!d) return null;
+      return {
+        ...d,
+        contact: contactMap.get(d.contact_id),
+        unread_count: unreadMap.get(d.id) ?? 0,
+      };
+    })
+    .filter(Boolean) as Deal[];
 }
