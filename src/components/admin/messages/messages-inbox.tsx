@@ -1,52 +1,61 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { motion, AnimatePresence } from "framer-motion";
 import {
+  ExternalLink,
   MessageSquare,
   Phone,
   Search,
   Send,
-  User,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { addDealMessageAction } from "@/actions/admin/deals";
-import { getDealMessagesForAdmin } from "@/lib/data/queries";
 import {
   DEAL_STAGE_COLORS,
-  DEAL_STAGE_LABELS,
   type Deal,
   type DealMessage,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Props = {
-  deals: Deal[];
-};
+type Props = { deals: Deal[] };
+
+const AVATAR_GRADIENTS = [
+  "from-sky-400 to-blue-500",
+  "from-violet-400 to-purple-500",
+  "from-amber-400 to-orange-500",
+  "from-emerald-400 to-teal-500",
+  "from-rose-400 to-pink-500",
+  "from-indigo-400 to-violet-500",
+];
 
 export function MessagesInbox({ deals: initialDeals }: Props) {
+  const t = useTranslations("admin.crm");
   const [deals] = useState(initialDeals);
-  const [selectedDealId, setSelectedDealId] = useState<string | null>(
-    initialDeals[0]?.id ?? null,
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(initialDeals[0]?.id ?? null);
   const [messages, setMessages] = useState<DealMessage[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [search, setSearch] = useState("");
   const [msgContent, setMsgContent] = useState("");
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const selectedDeal = deals.find((d) => d.id === selectedDealId);
+  const selectedDeal = deals.find((d) => d.id === selectedId);
+  const totalUnread = deals.reduce((s, d) => s + (d.unread_count ?? 0), 0);
 
+  // Load messages when selection changes
   useEffect(() => {
-    if (!selectedDealId) return;
-    setLoadingMessages(true);
-    // Fetch messages client-side when deal changes
-    fetch(`/api/admin/deal-messages/${selectedDealId}`)
+    if (!selectedId) { setMessages([]); return; }
+    setLoadingMsgs(true);
+    fetch(`/api/admin/deal-messages/${selectedId}`)
       .then((r) => r.json())
       .then((data: DealMessage[]) => setMessages(data))
       .catch(() => setMessages([]))
-      .finally(() => setLoadingMessages(false));
-  }, [selectedDealId]);
+      .finally(() => setLoadingMsgs(false));
+  }, [selectedId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,12 +73,12 @@ export function MessagesInbox({ deals: initialDeals }: Props) {
 
   const handleSend = () => {
     const content = msgContent.trim();
-    if (!content || !selectedDealId) return;
+    if (!content || !selectedId) return;
     setMsgContent("");
 
     const optimistic: DealMessage = {
       id: crypto.randomUUID(),
-      deal_id: selectedDealId,
+      deal_id: selectedId,
       sender_type: "admin",
       sender_id: null,
       channel: "internal",
@@ -81,7 +90,7 @@ export function MessagesInbox({ deals: initialDeals }: Props) {
 
     startTransition(async () => {
       const fd = new FormData();
-      fd.set("deal_id", selectedDealId);
+      fd.set("deal_id", selectedId);
       fd.set("content", content);
       const result = await addDealMessageAction(fd);
       if (!result.ok) {
@@ -91,74 +100,95 @@ export function MessagesInbox({ deals: initialDeals }: Props) {
     });
   };
 
-  const totalUnread = deals.reduce((s, d) => s + (d.unread_count ?? 0), 0);
-
   return (
-    <div className="flex h-[calc(100vh-140px)] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
-      {/* Left panel: deal list */}
-      <div className="flex w-80 shrink-0 flex-col border-r border-[var(--color-border)]">
-        <div className="border-b border-[var(--color-border)] p-3">
+    <div className="flex h-[calc(100vh-160px)] min-h-[500px] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm">
+      {/* ── Left panel: conversation list ───────────────────── */}
+      <div className="flex w-72 shrink-0 flex-col border-r border-[var(--color-border)]">
+        {/* Search */}
+        <div className="p-3 border-b border-[var(--color-border)]">
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Пошук…"
-              className="w-full rounded-lg border border-[var(--color-border)] py-1.5 pl-8 pr-3 text-sm focus:border-[var(--color-primary)] focus:outline-none"
+              placeholder={t("messages.searchPlaceholder")}
+              className="w-full rounded-xl border border-[var(--color-border)] py-2 pl-8 pr-8 text-sm focus:border-[var(--color-primary)] focus:outline-none"
             />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
+                <X size={12} />
+              </button>
+            )}
           </div>
           {totalUnread > 0 && (
-            <p className="mt-2 text-center text-xs text-red-500">{totalUnread} непрочитаних</p>
+            <p className="mt-2 text-center text-xs font-medium text-red-500">
+              {t("messages.unread", { count: totalUnread })}
+            </p>
           )}
         </div>
 
+        {/* List */}
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 && (
-            <div className="py-10 text-center text-sm text-[var(--color-text-muted)]">
-              Немає переписок
+            <div className="py-12 text-center text-sm text-[var(--color-text-muted)]">
+              {t("messages.noConversations")}
             </div>
           )}
-          {filtered.map((deal) => {
+          {filtered.map((deal, i) => {
+            const isSelected = deal.id === selectedId;
             const colors = DEAL_STAGE_COLORS[deal.stage];
-            const isSelected = deal.id === selectedDealId;
+            const gradient = AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length];
+            const unread = deal.unread_count ?? 0;
+
             return (
               <button
                 key={deal.id}
                 type="button"
-                onClick={() => setSelectedDealId(deal.id)}
+                onClick={() => setSelectedId(deal.id)}
                 className={cn(
-                  "w-full border-b border-[var(--color-border)] px-4 py-3 text-left transition",
+                  "w-full border-b border-[var(--color-border)] px-3 py-3 text-left transition-colors",
                   isSelected
                     ? "bg-[var(--color-primary-100)]"
                     : "hover:bg-[var(--color-bg-section)]",
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-section)] text-xs font-bold text-[var(--color-text-secondary)]">
-                      {deal.contact?.name?.[0]?.toUpperCase() ?? "?"}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-[var(--color-text-primary)]">
-                        {deal.contact?.name ?? "Невідомий"}
+                <div className="flex items-start gap-2.5">
+                  {/* Avatar */}
+                  <div className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white shadow-sm",
+                    gradient,
+                  )}>
+                    {deal.contact?.name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-1">
+                      <p className={cn(
+                        "truncate text-xs font-semibold",
+                        isSelected ? "text-[var(--color-primary)]" : "text-[var(--color-text-primary)]",
+                      )}>
+                        {deal.contact?.name ?? "—"}
                       </p>
-                      <p className="truncate text-[10px] text-[var(--color-text-muted)]">{deal.title}</p>
+                      {unread > 0 && (
+                        <span className="shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                          {unread}
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate text-[10px] text-[var(--color-text-muted)]">{deal.title}</p>
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", colors.dot)} />
+                      <span className={cn("text-[10px]", colors.text)}>
+                        {t(`stages.${deal.stage}` as Parameters<typeof t>[0])}
+                      </span>
+                      {deal.contact?.phone && (
+                        <span className="ml-auto flex items-center gap-0.5 text-[10px] text-[var(--color-text-muted)]">
+                          <Phone size={8} />
+                          {deal.contact.phone}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  {(deal.unread_count ?? 0) > 0 && (
-                    <span className="shrink-0 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                      {deal.unread_count}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <span className={cn("h-1.5 w-1.5 rounded-full", colors.dot)} />
-                  <span className={cn("text-[10px]", colors.text)}>{DEAL_STAGE_LABELS[deal.stage]}</span>
-                  {deal.contact?.phone && (
-                    <span className="ml-auto flex items-center gap-0.5 text-[10px] text-[var(--color-text-muted)]">
-                      <Phone size={8} /> {deal.contact.phone}
-                    </span>
-                  )}
                 </div>
               </button>
             );
@@ -166,100 +196,128 @@ export function MessagesInbox({ deals: initialDeals }: Props) {
         </div>
       </div>
 
-      {/* Right panel: conversation */}
-      {!selectedDeal ? (
-        <div className="flex flex-1 items-center justify-center">
-          <div className="text-center text-[var(--color-text-muted)]">
-            <MessageSquare size={40} className="mx-auto mb-3 opacity-20" />
-            <p className="text-sm">Оберіть переписку</p>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Chat header */}
-          <div className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary-100)] text-sm font-bold text-[var(--color-primary)]">
-              {selectedDeal.contact?.name?.[0]?.toUpperCase() ?? "?"}
+      {/* ── Right panel: conversation ────────────────────────── */}
+      <AnimatePresence mode="wait">
+        {!selectedDeal ? (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-1 flex-col items-center justify-center gap-3 text-[var(--color-text-muted)]"
+          >
+            <div className="rounded-3xl bg-[var(--color-bg-section)] p-8">
+              <MessageSquare size={36} className="opacity-20" />
             </div>
-            <div className="flex-1">
-              <p className="font-semibold text-[var(--color-text-primary)]">{selectedDeal.contact?.name ?? "Невідомий"}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">{selectedDeal.title}</p>
-            </div>
-            <a
-              href={`/admin/pipeline/${selectedDeal.id}`}
-              className="text-xs text-[var(--color-primary)] hover:underline"
-            >
-              Відкрити угоду →
-            </a>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {loadingMessages && (
-              <div className="text-center text-sm text-[var(--color-text-muted)]">Завантаження…</div>
-            )}
-            {!loadingMessages && messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-2 py-16 text-[var(--color-text-muted)]">
-                <MessageSquare size={32} className="opacity-20" />
-                <p className="text-sm">Повідомлень ще немає</p>
+            <p className="text-sm">{t("messages.selectConversation")}</p>
+          </motion.div>
+        ) : (
+          <motion.div
+            key={selectedDeal.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-1 flex-col overflow-hidden"
+          >
+            {/* Chat header */}
+            <div className="flex items-center gap-3 border-b border-[var(--color-border)] px-5 py-3">
+              <div className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-sm font-bold text-white shadow-sm",
+                AVATAR_GRADIENTS[deals.indexOf(selectedDeal) % AVATAR_GRADIENTS.length],
+              )}>
+                {selectedDeal.contact?.name?.[0]?.toUpperCase() ?? "?"}
               </div>
-            )}
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn("flex", msg.sender_type === "admin" ? "justify-end" : "justify-start")}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-[var(--color-text-primary)]">
+                  {selectedDeal.contact?.name ?? "—"}
+                </p>
+                <p className="truncate text-xs text-[var(--color-text-muted)]">{selectedDeal.title}</p>
+              </div>
+              <a
+                href={`/admin/pipeline/${selectedDeal.id}`}
+                className="flex items-center gap-1 rounded-xl border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)]/30 hover:text-[var(--color-primary)]"
               >
-                <div
-                  className={cn(
-                    "max-w-[70%] rounded-2xl px-4 py-2.5 text-sm",
-                    msg.sender_type === "admin"
-                      ? "rounded-tr-sm bg-[var(--color-primary)] text-white"
-                      : "rounded-tl-sm bg-[var(--color-bg-section)] text-[var(--color-text-primary)]",
-                  )}
-                >
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                  <p className="mt-1 text-[10px] opacity-60">
-                    {new Date(msg.created_at).toLocaleString("uk-UA", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </p>
+                <ExternalLink size={11} />
+                {t("messages.openDeal")}
+              </a>
+            </div>
+
+            {/* Messages area */}
+            <div className="flex-1 overflow-y-auto bg-[var(--color-bg-section)] p-5 space-y-3">
+              {loadingMsgs && (
+                <p className="text-center text-sm text-[var(--color-text-muted)]">
+                  {t("messages.loading")}
+                </p>
+              )}
+              {!loadingMsgs && messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center gap-3 py-20 text-center text-[var(--color-text-muted)]">
+                  <div className="rounded-2xl bg-white p-5 shadow-sm">
+                    <MessageSquare size={28} className="opacity-20" />
+                  </div>
+                  <p className="text-sm">{t("messages.noMessages")}</p>
                 </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="border-t border-[var(--color-border)] p-3">
-            <div className="flex gap-2">
-              <textarea
-                value={msgContent}
-                onChange={(e) => setMsgContent(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Написати повідомлення… (Enter — надіслати)"
-                rows={2}
-                className="flex-1 resize-none rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!msgContent.trim() || isPending}
-                className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-xl bg-[var(--color-primary)] text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-40"
-              >
-                <Send size={15} />
-              </button>
+              )}
+              {messages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className={cn("flex", msg.sender_type === "admin" ? "justify-end" : "justify-start")}
+                >
+                  <div
+                    className={cn(
+                      "max-w-[70%] rounded-2xl px-4 py-3 shadow-sm",
+                      msg.sender_type === "admin"
+                        ? "rounded-tr-sm bg-[var(--color-primary)] text-white"
+                        : "rounded-tl-sm bg-white text-[var(--color-text-primary)] border border-[var(--color-border)]",
+                    )}
+                  >
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                    <p className={cn(
+                      "mt-1 text-[10px]",
+                      msg.sender_type === "admin" ? "text-white/60" : "text-[var(--color-text-muted)]",
+                    )}>
+                      {new Date(msg.created_at).toLocaleString("uk-UA", {
+                        day: "numeric", month: "short",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
-          </div>
-        </div>
-      )}
+
+            {/* Input */}
+            <div className="border-t border-[var(--color-border)] bg-white p-3">
+              <div className="flex gap-2">
+                <textarea
+                  ref={textareaRef}
+                  value={msgContent}
+                  onChange={(e) => setMsgContent(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder={t("messages.placeholder")}
+                  rows={2}
+                  className="flex-1 resize-none rounded-xl border border-[var(--color-border)] px-3.5 py-2.5 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-shadow"
+                />
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={!msgContent.trim() || isPending}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-xl bg-[var(--color-primary)] text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-40"
+                  title={t("messages.send")}
+                >
+                  <Send size={15} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

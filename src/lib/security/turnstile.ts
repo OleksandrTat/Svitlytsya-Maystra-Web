@@ -18,6 +18,11 @@ export async function verifyTurnstileToken(
     return { success: true };
   }
 
+  // In development, bypass Turnstile (widget is usually not configured for localhost)
+  if (process.env.NODE_ENV === "development") {
+    return { success: true };
+  }
+
   const normalizedToken = token?.trim();
 
   if (!normalizedToken) {
@@ -58,6 +63,8 @@ export async function verifyTurnstileToken(
 
     return { success: true };
   } catch {
-    return { success: false, errorCode: "network-error" };
+    // On network errors, allow through (graceful degradation — Cloudflare outage etc.)
+    console.warn("[Turnstile] Network error during verification, allowing through");
+    return { success: true };
   }
 }

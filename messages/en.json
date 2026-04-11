@@ -397,6 +397,8 @@
     "nav": {
       "dashboard": "Dashboard",
       "messages": "Messages",
+      "pipeline": "Pipeline",
+      "contacts": "Contacts",
       "inquiries": "Inquiries",
       "orders": "Orders",
       "clients": "Clients",
@@ -562,6 +564,167 @@
       "newsletter": {
         "title": "Newsletter",
         "description": "Manage newsletter subscribers."
+      }
+    },
+    "crm": {
+      "sections": {
+        "crm": "CRM",
+        "catalog": "Catalog",
+        "content": "Content",
+        "system": "System"
+      },
+      "pipeline": {
+        "title": "Pipeline",
+        "description": "All deals from first contact to completion.",
+        "newDeal": "New Deal",
+        "unread": "{count} unread",
+        "searchPlaceholder": "Search deals, clients, phone…",
+        "showClosed": "Show closed & archived ({count})",
+        "hideClosed": "Hide closed & archived",
+        "preSale": "Pre-sale",
+        "production": "Production",
+        "dragHere": "Drop here",
+        "noDeals": "No deals",
+        "dealValue": "{value} UAH"
+      },
+      "deal": {
+        "title": "Deal",
+        "back": "Back to pipeline",
+        "delete": "Delete",
+        "confirmDelete": "Delete this deal? This action cannot be undone.",
+        "urgent": "Urgent",
+        "send": "Send",
+        "messagePlaceholder": "Write a note or message… (Enter to send)",
+        "noMessages": "No messages yet",
+        "contact": "Contact",
+        "openContact": "Contact card →",
+        "details": "Details",
+        "value": "Value",
+        "deadline": "Deadline",
+        "created": "Created",
+        "notes": "Notes",
+        "history": "Stage history",
+        "tab": {
+          "chat": "Chat",
+          "info": "Info",
+          "history": "History"
+        },
+        "stageChanged": "Stage updated",
+        "sent": "Sent",
+        "new": {
+          "title": "New Deal",
+          "contactSection": "Contact",
+          "existing": "Existing contact",
+          "newContact": "New contact",
+          "searchContact": "Search by name or phone…",
+          "noResults": "Not found — create new",
+          "dealSection": "Deal details",
+          "titleLabel": "Title *",
+          "titlePlaceholder": "e.g. Interior doors, 3 pcs",
+          "serviceType": "Service type",
+          "serviceNone": "Not specified",
+          "stage": "Stage",
+          "priority": "Priority",
+          "value": "Value (UAH)",
+          "expectedDate": "Expected date",
+          "notes": "Internal notes",
+          "contactName": "Name *",
+          "contactPhone": "Phone",
+          "contactEmail": "Email",
+          "contactSource": "Source",
+          "priorityNormal": "Normal",
+          "priorityUrgent": "Urgent",
+          "submit": "Create Deal",
+          "submitting": "Creating…",
+          "back": "Back"
+        }
+      },
+      "contacts": {
+        "title": "Contacts",
+        "description": "Everyone who has ever contacted the business.",
+        "newContact": "New Contact",
+        "searchPlaceholder": "Search by name, phone, email…",
+        "count": "{count} contacts",
+        "table": {
+          "contact": "Contact",
+          "links": "Contact info",
+          "deals": "Deals",
+          "source": "Source",
+          "activity": "Activity"
+        },
+        "activity": {
+          "active": "Active",
+          "warm": "Warm",
+          "cold": "Cold",
+          "inactive": "Inactive"
+        },
+        "source": {
+          "web_form": "Website",
+          "phone": "Phone",
+          "direct": "Direct",
+          "referral": "Referral",
+          "manual": "Manual"
+        },
+        "deals": {
+          "active": "{count} active",
+          "total": "{count} total",
+          "none": "—"
+        },
+        "form": {
+          "name": "Name *",
+          "phone": "Phone",
+          "email": "Email",
+          "source": "Source",
+          "notes": "Notes",
+          "create": "Create",
+          "save": "Save",
+          "saving": "Saving…",
+          "cancel": "Cancel"
+        },
+        "created": "Contact created",
+        "updated": "Contact updated",
+        "deleted": "Contact deleted"
+      },
+      "contact": {
+        "back": "All contacts",
+        "edit": "Edit",
+        "stats": {
+          "total": "Total deals",
+          "active": "Active",
+          "closed": "Closed"
+        },
+        "activeDeals": "Active deals",
+        "closedDeals": "Closed deals",
+        "newDeal": "New Deal",
+        "openDeal": "Open deal →",
+        "noDeals": "No deals yet"
+      },
+      "messages": {
+        "title": "Messages",
+        "description": "All deal conversations.",
+        "searchPlaceholder": "Search…",
+        "unread": "{count} unread",
+        "selectConversation": "Select a conversation",
+        "noConversations": "No conversations",
+        "openDeal": "Open deal →",
+        "loading": "Loading…",
+        "noMessages": "No messages yet",
+        "placeholder": "Write a message… (Enter to send)",
+        "send": "Send"
+      },
+      "stages": {
+        "lead": "New Lead",
+        "contacted": "Contacted",
+        "quoted": "Quote Sent",
+        "consulting": "Consulting",
+        "design": "Design",
+        "approved": "Approved",
+        "production": "Production",
+        "ready": "Ready",
+        "installation": "Installation",
+        "completed": "Completed",
+        "lost": "Lost",
+        "archived": "Archived"
       }
     }
   }

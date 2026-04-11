@@ -15,13 +15,10 @@ import {
   ExternalLink,
   FileText,
   GitMerge,
-  HeadphonesIcon,
   Heart,
   HelpCircle,
   LayoutDashboard,
-  Mail,
   MessageSquare,
-  Package,
   Package2,
   Search,
   Send,
@@ -60,58 +57,6 @@ type NavSection = {
   title?: string;
   items: NavItem[];
 };
-
-const NAV_SECTIONS: NavSection[] = [
-  {
-    items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    ],
-  },
-  {
-    title: "CRM",
-    items: [
-      { href: "/admin/messages",  label: "Повідомлення", icon: MessageSquare,  badgeKey: "unreadDealMessages" },
-      { href: "/admin/pipeline",  label: "Pipeline",     icon: GitMerge,       badgeKey: "newDeals" },
-      { href: "/admin/contacts",  label: "Контакти",     icon: Users },
-    ],
-  },
-  {
-    title: "Старе (legacy)",
-    items: [
-      { href: "/admin/inbox",     label: "Inbox",        icon: Mail,           badgeKey: "unreadMessages" },
-      { href: "/admin/inquiries", label: "Заявки",       icon: Mail,           badgeKey: "newInquiries"  },
-      { href: "/admin/orders",    label: "Замовлення",   icon: Package },
-      { href: "/admin/clients",   label: "Клієнти",      icon: Users },
-      { href: "/admin/support",   label: "Підтримка",    icon: HeadphonesIcon, badgeKey: "unreadSupport" },
-    ],
-  },
-  {
-    title: "Каталог",
-    items: [
-      { href: "/admin/products", label: "Продукти",       icon: Package2 },
-      { href: "/admin/services", label: "Послуги",         icon: Wrench },
-      { href: "/admin/pricing",  label: "Ціноутворення",  icon: Calculator },
-    ],
-  },
-  {
-    title: "Контент",
-    items: [
-      { href: "/admin/blog",         label: "Блог",        icon: FileText },
-      { href: "/admin/faq",          label: "FAQ",         icon: HelpCircle },
-      { href: "/admin/certificates", label: "Сертифікати", icon: Award },
-      { href: "/admin/company",      label: "Компанія",    icon: Building2 },
-    ],
-  },
-  {
-    title: "Система",
-    items: [
-      { href: "/admin/wishlist",   label: "Списки бажань", icon: Heart },
-      { href: "/admin/newsletter", label: "Розсилка",      icon: Send },
-      { href: "/admin/audit-log",  label: "Журнал",        icon: ClipboardList },
-      { href: "/admin/settings",   label: "Налаштування",  icon: Settings },
-    ],
-  },
-];
 
 function NavLink({
   item,
@@ -158,6 +103,49 @@ export function AdminSidebar({ collapsed, counts, onToggle, onOpenPalette }: Adm
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("admin");
+  const tc = useTranslations("admin.crm");
+
+  const NAV_SECTIONS: NavSection[] = [
+    {
+      items: [
+        { href: "/admin", label: t("nav.dashboard"), icon: LayoutDashboard },
+      ],
+    },
+    {
+      title: tc("sections.crm"),
+      items: [
+        { href: "/admin/messages",  label: t("nav.messages"),  icon: MessageSquare, badgeKey: "unreadDealMessages" },
+        { href: "/admin/pipeline",  label: t("nav.pipeline"),  icon: GitMerge,      badgeKey: "newDeals" },
+        { href: "/admin/contacts",  label: t("nav.contacts"),  icon: Users },
+      ],
+    },
+    {
+      title: tc("sections.catalog"),
+      items: [
+        { href: "/admin/products", label: t("nav.products"), icon: Package2 },
+        { href: "/admin/services", label: t("nav.services"), icon: Wrench },
+        { href: "/admin/pricing",  label: t("nav.pricing"),  icon: Calculator },
+      ],
+    },
+    {
+      title: tc("sections.content"),
+      items: [
+        { href: "/admin/blog",         label: t("nav.blog"),         icon: FileText },
+        { href: "/admin/faq",          label: t("nav.faq"),          icon: HelpCircle },
+        { href: "/admin/certificates", label: t("nav.certificates"), icon: Award },
+        { href: "/admin/company",      label: t("nav.company"),      icon: Building2 },
+      ],
+    },
+    {
+      title: tc("sections.system"),
+      items: [
+        { href: "/admin/wishlist",   label: t("nav.wishlist"),   icon: Heart },
+        { href: "/admin/newsletter", label: t("nav.newsletter"), icon: Send },
+        { href: "/admin/audit-log",  label: t("nav.auditLog"),   icon: ClipboardList },
+        { href: "/admin/settings",   label: t("nav.settings"),   icon: Settings },
+      ],
+    },
+  ];
 
   const onSignOut = async () => {
     const supabase = createSupabaseBrowserClient();

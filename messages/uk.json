@@ -397,6 +397,8 @@
     "nav": {
       "dashboard": "Панель",
       "messages": "Повідомлення",
+      "pipeline": "Pipeline",
+      "contacts": "Контакти",
       "inquiries": "Заявки",
       "orders": "Замовлення",
       "clients": "Клієнти",
@@ -562,6 +564,167 @@
       "newsletter": {
         "title": "Розсилка",
         "description": "Керування підписниками на розсилку."
+      }
+    },
+    "crm": {
+      "sections": {
+        "crm": "CRM",
+        "catalog": "Каталог",
+        "content": "Контент",
+        "system": "Система"
+      },
+      "pipeline": {
+        "title": "Pipeline",
+        "description": "Всі угоди від першого контакту до завершення.",
+        "newDeal": "Нова угода",
+        "unread": "{count} непрочитаних",
+        "searchPlaceholder": "Пошук по угодах, клієнтах, телефону…",
+        "showClosed": "Показати завершені та архівні ({count})",
+        "hideClosed": "Сховати завершені та архівні",
+        "preSale": "До продажу",
+        "production": "Виробництво",
+        "dragHere": "Перетягни сюди",
+        "noDeals": "Немає угод",
+        "dealValue": "{value} грн"
+      },
+      "deal": {
+        "title": "Угода",
+        "back": "Назад до pipeline",
+        "delete": "Видалити",
+        "confirmDelete": "Видалити угоду? Цю дію не можна скасувати.",
+        "urgent": "Терміново",
+        "send": "Надіслати",
+        "messagePlaceholder": "Написати нотатку або повідомлення… (Enter — надіслати)",
+        "noMessages": "Повідомлень ще немає",
+        "contact": "Контакт",
+        "openContact": "Картка контакту →",
+        "details": "Деталі",
+        "value": "Сума",
+        "deadline": "Дедлайн",
+        "created": "Створено",
+        "notes": "Нотатки",
+        "history": "Історія статусів",
+        "tab": {
+          "chat": "Чат",
+          "info": "Інфо",
+          "history": "Історія"
+        },
+        "stageChanged": "Статус оновлено",
+        "sent": "Надіслано",
+        "new": {
+          "title": "Нова угода",
+          "contactSection": "Контакт",
+          "existing": "Існуючий контакт",
+          "newContact": "Новий контакт",
+          "searchContact": "Пошук за ім'ям або телефоном…",
+          "noResults": "Не знайдено — створити новий",
+          "dealSection": "Деталі угоди",
+          "titleLabel": "Назва *",
+          "titlePlaceholder": "Напр. Міжкімнатні двері, 3 шт",
+          "serviceType": "Тип послуги",
+          "serviceNone": "Не вказано",
+          "stage": "Статус",
+          "priority": "Пріоритет",
+          "value": "Сума (грн)",
+          "expectedDate": "Очікувана дата",
+          "notes": "Внутрішні нотатки",
+          "contactName": "Ім'я *",
+          "contactPhone": "Телефон",
+          "contactEmail": "Email",
+          "contactSource": "Джерело",
+          "priorityNormal": "Звичайний",
+          "priorityUrgent": "Терміновий",
+          "submit": "Створити угоду",
+          "submitting": "Створення…",
+          "back": "Назад"
+        }
+      },
+      "contacts": {
+        "title": "Контакти",
+        "description": "Всі люди, що коли-небудь зверталися.",
+        "newContact": "Новий контакт",
+        "searchPlaceholder": "Пошук за ім'ям, телефоном, email…",
+        "count": "{count} контактів",
+        "table": {
+          "contact": "Контакт",
+          "links": "Зв'язок",
+          "deals": "Угоди",
+          "source": "Джерело",
+          "activity": "Активність"
+        },
+        "activity": {
+          "active": "Активний",
+          "warm": "Теплий",
+          "cold": "Холодний",
+          "inactive": "Неактивний"
+        },
+        "source": {
+          "web_form": "Сайт",
+          "phone": "Телефон",
+          "direct": "Прямий",
+          "referral": "Реферал",
+          "manual": "Вручну"
+        },
+        "deals": {
+          "active": "{count} активних",
+          "total": "{count} всього",
+          "none": "—"
+        },
+        "form": {
+          "name": "Ім'я *",
+          "phone": "Телефон",
+          "email": "Email",
+          "source": "Джерело",
+          "notes": "Нотатки",
+          "create": "Створити",
+          "save": "Зберегти",
+          "saving": "Збереження…",
+          "cancel": "Скасувати"
+        },
+        "created": "Контакт створено",
+        "updated": "Контакт оновлено",
+        "deleted": "Контакт видалено"
+      },
+      "contact": {
+        "back": "Всі контакти",
+        "edit": "Редагувати",
+        "stats": {
+          "total": "Всього угод",
+          "active": "Активних",
+          "closed": "Завершених"
+        },
+        "activeDeals": "Активні угоди",
+        "closedDeals": "Завершені угоди",
+        "newDeal": "Нова угода",
+        "openDeal": "Відкрити угоду →",
+        "noDeals": "Угод ще немає"
+      },
+      "messages": {
+        "title": "Повідомлення",
+        "description": "Вся переписка по угодах.",
+        "searchPlaceholder": "Пошук…",
+        "unread": "{count} непрочитаних",
+        "selectConversation": "Оберіть переписку",
+        "noConversations": "Немає переписок",
+        "openDeal": "Відкрити угоду →",
+        "loading": "Завантаження…",
+        "noMessages": "Повідомлень ще немає",
+        "placeholder": "Написати повідомлення… (Enter — надіслати)",
+        "send": "Надіслати"
+      },
+      "stages": {
+        "lead": "Новий лід",
+        "contacted": "Зв'язались",
+        "quoted": "КП надіслано",
+        "consulting": "Консультація",
+        "design": "Проект",
+        "approved": "Погоджено",
+        "production": "Виробництво",
+        "ready": "Готово",
+        "installation": "Монтаж",
+        "completed": "Завершено",
+        "lost": "Відмова",
+        "archived": "Архів"
       }
     }
   }

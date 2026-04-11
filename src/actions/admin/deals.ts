@@ -138,6 +138,66 @@ export async function deleteDealAction(formData: FormData) {
   return { ok: true, message: "Угоду видалено" };
 }
 
+export async function createDealWithContactAction(formData: FormData) {
+  await requireAdmin();
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, message: "DB unavailable" };
+
+  // 1. Resolve contact
+  let contactId = (formData.get("contact_id") as string) || null;
+
+  if (!contactId) {
+    const name = (formData.get("contact_name") as string)?.trim();
+    if (!name) return { ok: false, message: "Вкажіть ім'я контакту" };
+
+    const { data, error } = await supabase
+      .from("contacts")
+      .insert({
+        name,
+        phone: (formData.get("contact_phone") as string) || null,
+        email: (formData.get("contact_email") as string) || null,
+        source: (formData.get("contact_source") as string) || "manual",
+        last_activity_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) return { ok: false, message: error?.message ?? "Помилка створення контакту" };
+    contactId = data.id;
+  }
+
+  // 2. Create deal
+  const title = (formData.get("title") as string)?.trim();
+  if (!title) return { ok: false, message: "Вкажіть назву угоди" };
+
+  const parsed = dealSchema.safeParse({
+    contact_id: contactId,
+    title,
+    service_type: formData.get("service_type") || null,
+    stage: formData.get("stage") || "lead",
+    priority: formData.get("priority") || "normal",
+    value: formData.get("value") || null,
+    expected_date: formData.get("expected_date") || null,
+    internal_notes: formData.get("internal_notes") || null,
+  });
+
+  if (!parsed.success) return { ok: false, message: "Невалідні дані угоди" };
+
+  const { id: _, ...rest } = parsed.data;
+  const { data, error } = await supabase.from("deals").insert(rest).select("id").single();
+  if (error || !data) return { ok: false, message: error?.message ?? "Помилка створення угоди" };
+
+  await supabase
+    .from("contacts")
+    .update({ last_activity_at: new Date().toISOString() })
+    .eq("id", contactId);
+
+  revalidatePath("/admin/pipeline");
+  revalidatePath("/admin/contacts");
+  revalidateTag("admin-counts", "default");
+  return { ok: true, message: "Угоду створено", dealId: data.id };
+}
+
 export async function addDealMessageAction(formData: FormData) {
   await requireAdmin();
   const supabase = await getSupabase();
