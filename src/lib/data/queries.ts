@@ -1537,6 +1537,17 @@ export async function getAllCertificatesForAdmin(): Promise<Certificate[]> {
   return (data ?? []) as Certificate[];
 }
 
+export async function getCertificateByIdForAdmin(id: string): Promise<Certificate | null> {
+  const supabase = createSupabaseServiceClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("certificates")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return (data ?? null) as Certificate | null;
+}
+
 // ── NEWSLETTER ───────────────────────────────────────────
 
 export async function getNewsletterSubscribersForAdmin(

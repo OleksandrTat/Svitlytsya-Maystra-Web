@@ -163,17 +163,6 @@ export interface Order {
   updated_at: string;
 }
 
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  product_id: string;
-  quantity: number;
-  unit_price: number | null;
-  notes: string | null;
-  sort_order: number;
-  created_at: string;
-}
-
 export interface CompanyTeamMember {
   id: string;
   name: string;
@@ -393,9 +382,14 @@ export interface Certificate {
   created_at: string;
   updated_at: string;
   // i18n EN fields
-  title_en?: string | null;
-  description_en?: string | null;
-  issuer_en?: string | null;
+  title_en: string | null;
+  description_en: string | null;
+  issuer_en: string | null;
+  // SEO
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_title_en: string | null;
+  seo_description_en: string | null;
 }
 
 // ── CRM: CONTACTS + DEALS ────────────────────────────────

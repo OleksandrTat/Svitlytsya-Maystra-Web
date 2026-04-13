@@ -1,154 +1,236 @@
-import { NextResponse } from "next/server";
 import { env, hasOpenAi } from "@/lib/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
+type ChatMessage = { role: "user" | "assistant"; content: string };
 type ChatRequest = {
   messages: ChatMessage[];
   locale?: string;
+  pathname?: string;
 };
 
-type ContactSettings = {
-  phone?: string;
-  email?: string;
-  address?: string;
-  hours?: string;
-};
+// ─── Context fetcher ─────────────────────────────────────
 
 async function fetchSiteContext(locale: string) {
   const supabase = createSupabaseServiceClient();
   if (!supabase) return "";
 
   const isEn = locale === "en";
-
-  const [{ data: products }, { data: services }, { data: faq }, { data: settings }] =
-    await Promise.all([
-      supabase
-        .from("products")
-        .select("id, title, title_en, category, price_from, slug")
-        .eq("status", "active")
-        .limit(50),
-      supabase
-        .from("services")
-        .select("id, title, title_en, tagline, tagline_en, slug")
-        .eq("status", "active")
-        .limit(20),
-      supabase
-        .from("faq_items")
-        .select("question, question_en, answer, answer_en")
-        .eq("is_published", true)
-        .limit(30),
-      supabase
-        .from("site_settings")
-        .select("key, value")
-        .eq("key", "contacts")
-        .maybeSingle(),
-    ]);
-
-  const getField = (obj: Record<string, unknown>, field: string) => {
+  const get = (obj: Record<string, unknown>, field: string): string => {
     if (isEn && obj[`${field}_en`]) return String(obj[`${field}_en`]);
     return obj[field] ? String(obj[field]) : "";
   };
 
+  const [
+    { data: products },
+    { data: services },
+    { data: faq },
+    { data: certs },
+    { data: testimonials },
+    { data: company },
+    { data: blog },
+  ] = await Promise.all([
+    supabase
+      .from("products")
+      .select("title, title_en, short_description, short_description_en, category, materials, price_from, slug")
+      .eq("status", "active")
+      .order("sort_order")
+      .limit(60),
+    supabase
+      .from("services")
+      .select("title, title_en, tagline, tagline_en, short_description, short_description_en, price_from, price_unit, duration_days_from, duration_days_to, slug")
+      .eq("is_active", true)
+      .order("sort_order")
+      .limit(20),
+    supabase
+      .from("faq_items")
+      .select("question, question_en, answer, answer_en")
+      .eq("is_published", true)
+      .order("sort_order")
+      .limit(40),
+    supabase
+      .from("certificates")
+      .select("title, title_en, issuer, issuer_en, issued_year, description, description_en")
+      .eq("is_published", true)
+      .order("sort_order")
+      .limit(20),
+    supabase
+      .from("testimonials")
+      .select("author_name, author_location, content, content_en, rating")
+      .eq("is_visible", true)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("company_info")
+      .select("name, tagline, description, founded_year, email, phone, phone_secondary, address, city, working_hours")
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("blog_posts")
+      .select("title, title_en, excerpt, excerpt_en, slug, category")
+      .eq("is_published", true)
+      .order("published_at", { ascending: false })
+      .limit(10),
+  ]);
+
+  const companyBlock = company
+    ? [
+        `Назва: ${company.name}`,
+        company.tagline && `Слоган: ${company.tagline}`,
+        company.founded_year && `Рік заснування: ${company.founded_year}`,
+        company.description && `Про компанію: ${company.description}`,
+        company.phone && `Телефон: ${company.phone}`,
+        company.phone_secondary && `Телефон 2: ${company.phone_secondary}`,
+        company.email && `Email: ${company.email}`,
+        company.address && company.city && `Адреса: ${company.address}, ${company.city}`,
+        company.working_hours && `Графік роботи: ${company.working_hours}`,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : "";
+
   const productLines =
     products
       ?.map((p) => {
-        const title = getField(p as Record<string, unknown>, "title");
-        const price = p.price_from ? ` (від ${p.price_from} грн)` : "";
-        return `- ${title} [${p.category}]${price} → /products/${p.slug}`;
+        const r = p as Record<string, unknown>;
+        const title = get(r, "title");
+        const desc = get(r, "short_description");
+        const mats =
+          Array.isArray(p.materials) && p.materials.length
+            ? ` [${(p.materials as string[]).join(", ")}]`
+            : "";
+        const price = p.price_from ? ` · від ${p.price_from} грн` : "";
+        return `- **${title}**${mats}${price}${desc ? ` — ${desc}` : ""} → /products/${p.slug}`;
       })
       .join("\n") ?? "";
 
   const serviceLines =
     services
       ?.map((s) => {
-        const title = getField(s as Record<string, unknown>, "title");
-        const tagline = getField(s as Record<string, unknown>, "tagline");
-        return `- ${title}${tagline ? `: ${tagline}` : ""} → /services/${s.slug}`;
+        const r = s as Record<string, unknown>;
+        const title = get(r, "title");
+        const tagline = get(r, "tagline");
+        const desc = get(r, "short_description");
+        const price = s.price_from
+          ? ` · від ${s.price_from} ${s.price_unit ?? "грн"}`
+          : "";
+        const days =
+          s.duration_days_from && s.duration_days_to
+            ? ` · ${s.duration_days_from}–${s.duration_days_to} днів`
+            : "";
+        return `- **${title}**${tagline ? `: ${tagline}` : ""}${price}${days}${desc ? ` — ${desc}` : ""} → /services/${s.slug}`;
       })
       .join("\n") ?? "";
 
   const faqLines =
     faq
       ?.map((f) => {
-        const q = getField(f as Record<string, unknown>, "question");
-        const a = getField(f as Record<string, unknown>, "answer");
-        return `Q: ${q}\nA: ${a}`;
+        const r = f as Record<string, unknown>;
+        return `Q: ${get(r, "question")}\nA: ${get(r, "answer")}`;
       })
       .join("\n\n") ?? "";
 
-  const contacts = settings?.value as ContactSettings | undefined;
-  const contactLines = contacts
-    ? [
-        contacts.phone && `Телефон: ${contacts.phone}`,
-        contacts.email && `Email: ${contacts.email}`,
-        contacts.address && `Адреса: ${contacts.address}`,
-        contacts.hours && `Графік: ${contacts.hours}`,
-      ]
-        .filter(Boolean)
-        .join("\n")
-    : "";
+  const certLines =
+    certs
+      ?.map((c) => {
+        const r = c as Record<string, unknown>;
+        const title = get(r, "title");
+        const issuer = get(r, "issuer");
+        const desc = get(r, "description");
+        return `- ${title} (${issuer}${c.issued_year ? `, ${c.issued_year}` : ""})${desc ? ` — ${desc}` : ""}`;
+      })
+      .join("\n") ?? "";
+
+  const testimonialLines =
+    testimonials
+      ?.map((t) => {
+        const r = t as Record<string, unknown>;
+        const content = get(r, "content");
+        const stars = "★".repeat(t.rating ?? 5);
+        return `- ${stars} ${t.author_name}${t.author_location ? `, ${t.author_location}` : ""}: «${content}»`;
+      })
+      .join("\n") ?? "";
+
+  const blogLines =
+    blog
+      ?.map((b) => {
+        const r = b as Record<string, unknown>;
+        const title = get(r, "title");
+        const excerpt = get(r, "excerpt");
+        return `- ${title}${excerpt ? `: ${excerpt}` : ""} → /blog/${b.slug}`;
+      })
+      .join("\n") ?? "";
 
   return [
-    productLines && `## Продукти\n${productLines}`,
+    companyBlock && `## Про компанію\n${companyBlock}`,
     serviceLines && `## Послуги\n${serviceLines}`,
-    faqLines && `## FAQ\n${faqLines}`,
-    contactLines && `## Контакти\n${contactLines}`,
+    productLines && `## Продукти\n${productLines}`,
+    certLines && `## Сертифікати та нагороди\n${certLines}`,
+    testimonialLines && `## Відгуки клієнтів\n${testimonialLines}`,
+    faqLines && `## Часті питання (FAQ)\n${faqLines}`,
+    blogLines && `## Статті в блозі\n${blogLines}`,
+    `## Залишити заявку\n/contact`,
   ]
     .filter(Boolean)
     .join("\n\n");
 }
 
-function buildSystemPrompt(context: string, locale: string) {
+// ─── System prompt builder ────────────────────────────────
+
+function buildSystemPrompt(context: string, locale: string, pathname?: string) {
   const isUk = locale !== "en";
   const lang = isUk
-    ? "Відповідай ВИКЛЮЧНО українською мовою."
-    : "Always reply in English.";
+    ? "Відповідай ВИКЛЮЧНО українською мовою. Звертайся до клієнта на «ви»."
+    : "Always reply in English. Be friendly and professional.";
 
-  return `You are a helpful assistant for Svitlytsya Maystra — a family woodworking workshop with 26+ years of experience making custom furniture, doors, and windows from natural materials.
+  const ctaInstruction = isUk
+    ? 'Коли клієнт питає про ціну, строки або хоче замовити — в кінці відповіді додай: "👉 [Залишити заявку](/contact)"'
+    : 'When a customer asks about pricing, timelines or wants to order — end your reply with: "👉 [Get a quote](/contact)"';
 
-${lang}
+  const pageCtx = pathname && pathname !== "/"
+    ? isUk
+      ? `\nПоточна сторінка користувача: ${pathname}`
+      : `\nUser is currently viewing: ${pathname}`
+    : "";
 
-Your role: answer questions about our products, services, pricing, process, and contacts based ONLY on the information below. If something is not in the context, say you don't know and suggest contacting us directly.
+  return `You are a helpful sales assistant for Svitlytsya Maystra — a family woodworking workshop specializing in custom furniture, doors, and windows made from natural materials.
 
-Keep answers concise and friendly. When mentioning products or services, include a link like /products/slug.
+${lang}${pageCtx}
 
-Never make up prices or availability. If pricing is not listed, say it's calculated individually after consultation.
+Guidelines:
+- Be concise, warm, and professional
+- Base answers ONLY on the context below. If something is not there, say you don't have that info and suggest calling or writing us
+- Never make up prices, availability, or timelines — say it's calculated individually
+- When mentioning a product or service, include its link as a markdown link: [Name](/path)
+- Format lists with bullet points when listing multiple items
+- Use **bold** for product/service names
+- ${ctaInstruction}
 
 ---
 ${context}
----
-
-Contact page: /contact
-Quote form: /contact`;
+---`;
 }
 
-export async function POST(request: Request) {
-  if (!hasOpenAi) {
-    return NextResponse.json({ error: "Chat is not available." }, { status: 503 });
-  }
+// ─── SSE helper ───────────────────────────────────────────
 
-  const body = (await request.json().catch(() => null)) as ChatRequest | null;
-  if (!body?.messages?.length) {
-    return NextResponse.json({ error: "messages required" }, { status: 400 });
-  }
+function sseEvent(data: object): Uint8Array {
+  return new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`);
+}
 
-  const locale = body.locale ?? "uk";
+// ─── Suggestions fetcher ─────────────────────────────────
 
-  // Limit history to last 10 messages to save tokens
-  const history = body.messages.slice(-10);
+async function fetchSuggestions(
+  fullText: string,
+  locale: string,
+): Promise<{ suggestions: string[]; showForm: boolean }> {
+  const isUk = locale !== "en";
+  const prompt = isUk
+    ? `На основі відповіді асистента, запропонуй 2-3 дуже короткі уточнюючі питання українською (до 7 слів кожне). Якщо відповідь стосується цін, термінів або замовлення, встанови "showForm": true. Поверни тільки JSON: {"suggestions": ["q1", "q2"], "showForm": false}`
+    : `Based on the assistant's reply, suggest 2-3 very short follow-up questions in English (max 7 words each). If the reply discusses pricing, timelines, or ordering, set "showForm": true. Return only JSON: {"suggestions": ["q1", "q2"], "showForm": false}`;
 
-  const context = await fetchSiteContext(locale);
-  const systemPrompt = buildSystemPrompt(context, locale);
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -156,23 +238,144 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       model: "gpt-4o-mini",
-      temperature: 0.5,
-      max_tokens: 500,
+      temperature: 0.3,
+      max_tokens: 150,
+      response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: systemPrompt },
-        ...history,
+        { role: "system", content: prompt },
+        { role: "assistant", content: fullText },
       ],
     }),
   });
 
-  if (!response.ok) {
-    return NextResponse.json({ error: "AI service unavailable" }, { status: 502 });
-  }
+  if (!res.ok) return { suggestions: [], showForm: false };
 
-  const data = (await response.json()) as {
+  const data = (await res.json()) as {
     choices: Array<{ message: { content: string } }>;
   };
+  try {
+    const parsed = JSON.parse(data.choices[0]?.message?.content ?? "{}") as {
+      suggestions?: unknown;
+      showForm?: unknown;
+    };
+    return {
+      suggestions: Array.isArray(parsed.suggestions)
+        ? (parsed.suggestions as string[]).slice(0, 3)
+        : [],
+      showForm: Boolean(parsed.showForm),
+    };
+  } catch {
+    return { suggestions: [], showForm: false };
+  }
+}
 
-  const reply = data.choices[0]?.message?.content?.trim() ?? "";
-  return NextResponse.json({ reply });
+// ─── POST handler ─────────────────────────────────────────
+
+export async function POST(request: Request) {
+  if (!hasOpenAi) {
+    return new Response(
+      `data: ${JSON.stringify({ reply: "Чат-помічник наразі недоступний. Зателефонуйте нам або залиште заявку на /contact" })}\n\ndata: ${JSON.stringify({ done: true, suggestions: [], showForm: false })}\n\n`,
+      {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+        },
+      },
+    );
+  }
+
+  const body = (await request.json().catch(() => null)) as ChatRequest | null;
+  if (!body?.messages?.length) {
+    return new Response("messages required", { status: 400 });
+  }
+
+  const locale = body.locale ?? "uk";
+  const pathname = body.pathname;
+  const history = body.messages.slice(-12);
+
+  const context = await fetchSiteContext(locale);
+  const systemPrompt = buildSystemPrompt(context, locale, pathname);
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const openaiRes = await fetch(
+          "https://api.openai.com/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${env.openAiApiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              temperature: 0.4,
+              max_tokens: 600,
+              stream: true,
+              messages: [{ role: "system", content: systemPrompt }, ...history],
+            }),
+          },
+        );
+
+        if (!openaiRes.ok || !openaiRes.body) {
+          controller.enqueue(sseEvent({ error: "AI service unavailable" }));
+          controller.close();
+          return;
+        }
+
+        const reader = openaiRes.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let buf = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6).trim();
+            if (raw === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(raw) as {
+                choices?: Array<{ delta?: { content?: string } }>;
+              };
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) {
+                fullText += delta;
+                controller.enqueue(sseEvent({ c: delta }));
+              }
+            } catch {
+              // malformed chunk — ignore
+            }
+          }
+        }
+
+        // Secondary call for suggestions (non-blocking best-effort)
+        const { suggestions, showForm } = await fetchSuggestions(
+          fullText,
+          locale,
+        ).catch(() => ({ suggestions: [] as string[], showForm: false }));
+
+        controller.enqueue(sseEvent({ done: true, suggestions, showForm }));
+      } catch {
+        controller.enqueue(sseEvent({ error: "Unexpected error" }));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
