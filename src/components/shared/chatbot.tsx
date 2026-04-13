@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useTransition } from "react";
 import { useLocale } from "next-intl";
-import { usePathname } from "@/i18n/navigation";
-import { Link } from "@/i18n/navigation";
+import { usePathname, Link } from "@/i18n/navigation";
 import {
   MessageCircle,
   X,
@@ -14,17 +13,51 @@ import {
   RotateCcw,
   ChevronRight,
   Phone,
+  RefreshCw,
+  Package,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { submitChatInquiryAction } from "@/actions/chat-inquiry";
 
 // ─── Types ────────────────────────────────────────────────
 
-type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
+type Message = { id: string; role: "user" | "assistant"; content: string };
+type RelatedItem = { title: string; href: string; type: "product" | "service" };
+
+// ─── Static offline FAQ ───────────────────────────────────
+
+const STATIC_ANSWERS: Record<string, Array<{ kw: string[]; ans: string }>> = {
+  uk: [
+    { kw: ["ціна", "вартість", "скільки", "коштує", "коштують", "price"], ans: "Ціна розраховується індивідуально — залежить від матеріалів, розмірів та складності. Залиште заявку і ми зробимо безкоштовний розрахунок.\n\n👉 [Залишити заявку](/contact)" },
+    { kw: ["двер"],                ans: "Ми виготовляємо **двері** з натуральних матеріалів (дуб, ясен, сосна). Є міжкімнатні та вхідні варіанти.\n\n👉 [Залишити заявку](/contact)" },
+    { kw: ["меблі", "мебл", "стіл", "шафа", "ліжко"], ans: "Виготовляємо **меблі** на замовлення з натурального дерева — столи, шафи, ліжка, стелажі.\n\n👉 [Залишити заявку](/contact)" },
+    { kw: ["вікно", "вікна"],      ans: "Виготовляємо **дерев'яні вікна** зі склопакетами. Якісні та теплі.\n\n👉 [Залишити заявку](/contact)" },
+    { kw: ["термін", "скільки часу", "коли", "швидко", "строк"], ans: "Терміни залежать від складності: прості вироби — від 7 днів, складні — від 3 тижнів. Уточнюємо індивідуально." },
+    { kw: ["контакт", "телефон", "зв'яз"], ans: "Зв'яжіться з нами через сторінку контактів або залиште заявку і ми передзвонимо.\n\n👉 [Контакти](/contact)" },
+    { kw: ["замовити", "замовлення", "як"], ans: "Щоб замовити — залиште заявку або зателефонуйте. Ми узгодимо деталі та розрахуємо вартість.\n\n👉 [Залишити заявку](/contact)" },
+  ],
+  en: [
+    { kw: ["price", "cost", "how much", "expensive"], ans: "Pricing is calculated individually based on materials, size, and complexity.\n\n👉 [Get a quote](/contact)" },
+    { kw: ["door", "doors"],       ans: "We craft **custom doors** from natural wood (oak, ash, pine). Interior and exterior options available.\n\n👉 [Get a quote](/contact)" },
+    { kw: ["furniture", "table", "wardrobe", "bed"], ans: "We make **custom furniture** from natural wood — tables, wardrobes, beds, shelving.\n\n👉 [Get a quote](/contact)" },
+    { kw: ["window", "windows"],   ans: "We manufacture **wooden windows** with double-glazed units.\n\n👉 [Get a quote](/contact)" },
+    { kw: ["time", "timeline", "how long", "fast"], ans: "Timelines depend on complexity: simple items from 7 days, complex pieces from 3 weeks." },
+    { kw: ["contact", "phone", "call"], ans: "Contact us via the contact page or leave a request and we'll call you back.\n\n👉 [Contact](/contact)" },
+    { kw: ["order", "how to"],     ans: "To order — leave a request and we'll discuss details and calculate the price.\n\n👉 [Get a quote](/contact)" },
+  ],
 };
+
+function findStaticAnswer(query: string, locale: string): string {
+  const list = STATIC_ANSWERS[locale] ?? STATIC_ANSWERS.uk;
+  const q = query.toLowerCase();
+  for (const item of list) {
+    if (item.kw.some((k) => q.includes(k))) return item.ans;
+  }
+  return locale === "en"
+    ? "I'm temporarily offline. Please leave a request and we'll get back to you.\n\n👉 [Get a quote](/contact)"
+    : "Наразі я тимчасово недоступний. Залиште заявку і ми зв'яжемось з вами.\n\n👉 [Залишити заявку](/contact)";
+}
 
 // ─── i18n ─────────────────────────────────────────────────
 
@@ -33,10 +66,34 @@ const WELCOME: Record<string, string> = {
   en: "Hi! 👋 I'm the Svitlytsya workshop assistant. Ask me about our products, services, pricing, or process.",
 };
 
-const CHIPS: Record<string, string[]> = {
+const DEFAULT_CHIPS: Record<string, string[]> = {
   uk: ["Які послуги пропонуєте?", "Скільки коштують двері?", "Як замовити?", "Відгуки клієнтів"],
   en: ["What services do you offer?", "How much do doors cost?", "How to order?", "Customer reviews"],
 };
+
+const PAGE_CHIPS: Record<string, Record<string, string[]>> = {
+  uk: {
+    services: ["Яка орієнтовна ціна?", "Скільки часу займає?", "Який процес роботи?", "Є приклади робіт?"],
+    products: ["З яких матеріалів виготовляєте?", "Чи є нестандартні розміри?", "Яка ціна?", "Як замовити?"],
+    blog:     ["Які послуги надаєте?", "Як замовити?", "Є питання по матеріалах"],
+    contact:  ["Скільки часу займає?", "Які послуги пропонуєте?", "Чи є знижки?"],
+  },
+  en: {
+    services: ["What's the price range?", "How long does it take?", "Show me examples", "What's the process?"],
+    products: ["What materials do you use?", "Custom sizes available?", "How to order?", "Price?"],
+    blog:     ["What services do you offer?", "How to order?"],
+    contact:  ["How long does it take?", "What services do you offer?"],
+  },
+};
+
+function getChips(pathname: string, locale: string): string[] {
+  const loc = locale === "en" ? "en" : "uk";
+  if (pathname.includes("/services")) return PAGE_CHIPS[loc].services;
+  if (pathname.includes("/products")) return PAGE_CHIPS[loc].products;
+  if (pathname.includes("/blog"))     return PAGE_CHIPS[loc].blog;
+  if (pathname.includes("/contact"))  return PAGE_CHIPS[loc].contact;
+  return DEFAULT_CHIPS[loc] ?? DEFAULT_CHIPS.uk;
+}
 
 const UI = {
   uk: {
@@ -49,16 +106,19 @@ const UI = {
     error: "Щось пішло не так. Спробуйте ще раз.",
     cta: "Залишити заявку",
     poweredBy: "Відповідає на основі даних сайту",
+    offline: "⚡ Відповідь з локальної бази",
     formTitle: "Залишити заявку",
+    formNamePh: "Іван Петренко",
+    formPhonePh: "+380XXXXXXXXX",
+    formMsgPh: "Що вас цікавить?",
     formName: "Ваше ім'я *",
     formPhone: "Телефон",
-    formMessage: "Повідомлення",
+    formMsg: "Повідомлення",
     formSubmit: "Надіслати",
-    formSubmitting: "Надсилаємо…",
+    formSending: "Надсилаємо…",
     formCancel: "Скасувати",
-    formNamePlaceholder: "Іван Петренко",
-    formPhonePlaceholder: "+380XXXXXXXXX",
-    formMessagePlaceholder: "Що вас цікавить?",
+    regenerate: "Повторити",
+    related: "Можливо, вас зацікавить:",
   },
   en: {
     title: "Svitlytsya Assistant",
@@ -70,79 +130,66 @@ const UI = {
     error: "Something went wrong. Please try again.",
     cta: "Get a quote",
     poweredBy: "Answers based on site data",
+    offline: "⚡ Local knowledge base",
     formTitle: "Leave a request",
+    formNamePh: "John Smith",
+    formPhonePh: "+380XXXXXXXXX",
+    formMsgPh: "What are you interested in?",
     formName: "Your name *",
     formPhone: "Phone",
-    formMessage: "Message",
+    formMsg: "Message",
     formSubmit: "Send",
-    formSubmitting: "Sending…",
+    formSending: "Sending…",
     formCancel: "Cancel",
-    formNamePlaceholder: "John Smith",
-    formPhonePlaceholder: "+380XXXXXXXXX",
-    formMessagePlaceholder: "What are you interested in?",
+    regenerate: "Retry",
+    related: "You might also like:",
   },
-};
+} as const;
 
-const STORAGE_KEY = "svitlytsya_chat_v2";
+const STORAGE_KEY = "svitlytsya_chat_v3";
+
+// ─── Helpers ──────────────────────────────────────────────
+
+function extractRelated(text: string): RelatedItem[] {
+  const regex = /\[([^\]]+)\]\((\/(?:products|services)\/[^)]+)\)/g;
+  const seen = new Set<string>();
+  const items: RelatedItem[] = [];
+  let m;
+  while ((m = regex.exec(text)) !== null) {
+    const href = m[2];
+    if (seen.has(href)) continue;
+    seen.add(href);
+    items.push({
+      title: m[1].replace(/\*\*/g, ""),
+      href,
+      type: href.startsWith("/services") ? "service" : "product",
+    });
+  }
+  return items.slice(0, 3);
+}
 
 // ─── Markdown renderer ────────────────────────────────────
 
 function renderInline(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const regex =
-    /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)]+)\)|(\/(?:products|services|blog|contact|faq)[^\s,]*)/g;
+  const re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)]+)\)|(\/(?:products|services|blog|contact|faq)[^\s,]*)/g;
   let last = 0;
-  let match;
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) parts.push(text.slice(last, match.index));
-
-    if (match[1]) {
-      parts.push(
-        <strong key={match.index} className="font-semibold">
-          {match[1]}
-        </strong>,
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m[1]) {
+      parts.push(<strong key={m.index} className="font-semibold">{m[1]}</strong>);
+    } else if (m[2] && m[3]) {
+      const href = m[3];
+      parts.push(href.startsWith("/")
+        ? <Link key={m.index} href={href as "/contact"} className="underline underline-offset-2 hover:opacity-80 transition-opacity">{m[2]}</Link>
+        : <a key={m.index} href={href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:opacity-80 transition-opacity">{m[2]}</a>
       );
-    } else if (match[2] && match[3]) {
-      const href = match[3];
-      if (href.startsWith("/")) {
-        parts.push(
-          <Link
-            key={match.index}
-            href={href as "/contact"}
-            className="underline underline-offset-2 hover:opacity-80 transition-opacity"
-          >
-            {match[2]}
-          </Link>,
-        );
-      } else {
-        parts.push(
-          <a
-            key={match.index}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-2 hover:opacity-80 transition-opacity"
-          >
-            {match[2]}
-          </a>,
-        );
-      }
-    } else if (match[4]) {
-      parts.push(
-        <Link
-          key={match.index}
-          href={match[4] as "/contact"}
-          className="underline underline-offset-2 hover:opacity-80 transition-opacity"
-        >
-          {match[4]}
-        </Link>,
-      );
+    } else if (m[4]) {
+      parts.push(<Link key={m.index} href={m[4] as "/contact"} className="underline underline-offset-2 hover:opacity-80 transition-opacity">{m[4]}</Link>);
     }
-
-    last = match.index + match[0].length;
+    last = m.index + m[0].length;
   }
-
   if (last < text.length) parts.push(text.slice(last));
   return parts;
 }
@@ -150,30 +197,27 @@ function renderInline(text: string): React.ReactNode[] {
 function renderMarkdown(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   const lines = text.split("\n");
-
-  for (let li = 0; li < lines.length; li++) {
-    const line = lines[li];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const isBullet = /^[-•*]\s/.test(line);
     const content = isBullet ? line.replace(/^[-•*]\s/, "") : line;
-    const inlineNodes = renderInline(content);
-
+    const inline = renderInline(content);
     if (isBullet) {
       nodes.push(
-        <div key={li} className="flex gap-1.5 mt-0.5">
+        <div key={i} className="flex gap-1.5 mt-0.5">
           <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-50" />
-          <span>{inlineNodes}</span>
-        </div>,
+          <span>{inline}</span>
+        </div>
       );
     } else if (line.trim() === "") {
-      nodes.push(<div key={li} className="h-2" />);
+      nodes.push(<div key={i} className="h-2" />);
     } else {
-      nodes.push(<span key={li}>{inlineNodes}</span>);
-      if (li < lines.length - 1 && lines[li + 1]?.trim() !== "") {
-        nodes.push(<br key={`br-${li}`} />);
+      nodes.push(<span key={i}>{inline}</span>);
+      if (i < lines.length - 1 && lines[i + 1]?.trim() !== "") {
+        nodes.push(<br key={`br-${i}`} />);
       }
     }
   }
-
   return nodes;
 }
 
@@ -194,30 +238,42 @@ function TypingIndicator() {
   );
 }
 
-function MessageBubble({ msg }: { msg: Message }) {
+function MessageBubble({
+  msg,
+  isLast,
+  onRegenerate,
+}: {
+  msg: Message;
+  isLast: boolean;
+  onRegenerate?: () => void;
+}) {
   const isUser = msg.role === "user";
   return (
-    <div className={cn("flex min-w-0 gap-2.5", isUser ? "flex-row-reverse" : "flex-row")}>
-      <div
-        className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white",
-          isUser ? "bg-[var(--color-primary)]" : "bg-[var(--color-accent)]",
-        )}
-      >
+    <div className={cn("group flex min-w-0 gap-2.5", isUser ? "flex-row-reverse" : "flex-row")}>
+      <div className={cn(
+        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white",
+        isUser ? "bg-[var(--color-primary)]" : "bg-[var(--color-accent)]",
+      )}>
         {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
       </div>
-      <div
-        className={cn(
-          "max-w-[82%] min-w-0 break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+      <div className="flex flex-col gap-1 min-w-0 max-w-[82%]">
+        <div className={cn(
+          "min-w-0 break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
           isUser
             ? "rounded-tr-sm bg-[var(--color-primary)] text-white"
             : "rounded-tl-sm bg-[var(--color-surface)] text-[var(--color-text-primary)]",
-        )}
-      >
-        {isUser ? msg.content : renderMarkdown(msg.content)}
-        {/* Streaming cursor */}
-        {msg.content === "" && !isUser && (
-          <span className="inline-block h-3.5 w-0.5 animate-pulse bg-current opacity-70 ml-0.5" />
+        )}>
+          {isUser ? msg.content : renderMarkdown(msg.content)}
+        </div>
+        {/* Regenerate button on last assistant message */}
+        {!isUser && isLast && onRegenerate && (
+          <button
+            type="button"
+            onClick={onRegenerate}
+            className="flex items-center gap-1 self-start rounded-full px-2 py-1 text-[10px] text-[var(--color-text-muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--color-text-primary)]"
+          >
+            <RefreshCw className="h-2.5 w-2.5" />
+          </button>
         )}
       </div>
     </div>
@@ -237,14 +293,28 @@ function QuickChip({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-// ─── Inline contact form ───────────────────────────────────
+function RelatedCard({ item }: { item: RelatedItem }) {
+  const Icon = item.type === "service" ? Wrench : Package;
+  return (
+    <Link
+      href={item.href as "/contact"}
+      className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs transition hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5"
+    >
+      <Icon className="h-3 w-3 shrink-0 text-[var(--color-primary)]" />
+      <span className="truncate font-medium text-[var(--color-text-primary)]">{item.title}</span>
+      <ChevronRight className="ml-auto h-3 w-3 shrink-0 text-[var(--color-text-muted)]" />
+    </Link>
+  );
+}
 
 function ChatInlineForm({
   ui,
+  recentMessages,
   onClose,
   onSuccess,
 }: {
   ui: (typeof UI)[keyof typeof UI];
+  recentMessages: Message[];
   onClose: () => void;
   onSuccess: (msg: string) => void;
 }) {
@@ -255,57 +325,59 @@ function ChatInlineForm({
     e.preventDefault();
     setError("");
     const fd = new FormData(e.currentTarget);
+    // Attach chat context (last 3 non-welcome messages)
+    const ctx = recentMessages
+      .filter((m) => m.id !== "welcome")
+      .slice(-3)
+      .map((m) => `${m.role === "user" ? "Клієнт" : "Асистент"}: ${m.content}`)
+      .join("\n---\n");
+    if (ctx) fd.set("message", `${fd.get("message") ?? ""}\n\n[Контекст чату]\n${ctx}`.trim());
+
     startTransition(async () => {
-      const result = await submitChatInquiryAction(fd);
-      if (result.ok) {
-        onSuccess(result.message);
-      } else {
-        setError(result.message);
-      }
+      const res = await submitChatInquiryAction(fd);
+      if (res.ok) onSuccess(res.message);
+      else setError(res.message);
     });
   };
 
   return (
-    <div className="mx-2 mb-2 rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+    <div className="mx-3 mb-2 rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)]/10">
           <Phone className="h-3.5 w-3.5 text-[var(--color-primary)]" />
         </div>
         <p className="text-sm font-semibold text-[var(--color-text-primary)]">{ui.formTitle}</p>
       </div>
-
       <form onSubmit={handleSubmit} className="space-y-2">
         <input
           name="name"
           required
-          placeholder={ui.formNamePlaceholder}
+          placeholder={ui.formNamePh}
           aria-label={ui.formName}
-          className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 transition"
+          className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 transition"
         />
         <input
           name="phone"
           type="tel"
-          placeholder={ui.formPhonePlaceholder}
+          placeholder={ui.formPhonePh}
           aria-label={ui.formPhone}
-          className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 transition"
+          className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 transition"
         />
         <textarea
           name="message"
           rows={2}
-          placeholder={ui.formMessagePlaceholder}
-          aria-label={ui.formMessage}
-          className="w-full resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 transition"
+          placeholder={ui.formMsgPh}
+          aria-label={ui.formMsg}
+          className="w-full resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/20 transition"
         />
-
         {error && <p className="text-xs text-red-600">{error}</p>}
-
         <div className="flex gap-2 pt-1">
           <button
             type="submit"
             disabled={isPending}
             className="flex-1 rounded-lg bg-[var(--color-primary)] py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-60"
           >
-            {isPending ? ui.formSubmitting : ui.formSubmit}
+            {isPending ? ui.formSending : ui.formSubmit}
           </button>
           <button
             type="button"
@@ -327,7 +399,6 @@ export function Chatbot() {
   const pathname = usePathname();
   const ui = UI[locale as keyof typeof UI] ?? UI.uk;
   const welcome = WELCOME[locale] ?? WELCOME.uk;
-  const chips = CHIPS[locale] ?? CHIPS.uk;
 
   const welcomeMsg: Message = { id: "welcome", role: "assistant", content: welcome };
 
@@ -335,41 +406,51 @@ export function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([welcomeMsg]);
   const [chipsUsed, setChipsUsed] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [related, setRelated] = useState<RelatedItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [streamingId, setStreamingId] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const streamContentRef = useRef("");    // accumulates streamed text
+  const assistantCountRef = useRef(0);    // total completed assistant replies
+  const lastFormAtRef = useRef(-999);     // assistantCount when form last shown
+
+  // ── Chips based on current page ───────────────────────
+  const chips = getChips(pathname, locale);
 
   // ── LocalStorage persistence ──────────────────────────
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as { messages: Message[]; chipsUsed: boolean };
+        const parsed = JSON.parse(stored) as { messages: Message[]; chipsUsed: boolean; count: number };
         if (parsed.messages?.length) {
           setMessages(parsed.messages);
           setChipsUsed(parsed.chipsUsed ?? false);
+          assistantCountRef.current = parsed.count ?? 0;
         }
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, chipsUsed }));
-    } catch {
-      // ignore
-    }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        messages,
+        chipsUsed,
+        count: assistantCountRef.current,
+      }));
+    } catch { /* ignore */ }
   }, [messages, chipsUsed]);
 
-  // ── Scroll to bottom ─────────────────────────────────
+  // ── Scroll ────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, suggestions, showForm]);
+  }, [messages, loading, suggestions, related, showForm]);
 
   // ── Focus on open ─────────────────────────────────────
   useEffect(() => {
@@ -387,110 +468,168 @@ export function Chatbot() {
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   };
 
-  // ── Send (with streaming) ─────────────────────────────
-  const send = useCallback(
-    async (text?: string) => {
-      const content = (text ?? input).trim();
-      if (!content || loading) return;
+  // ── Core send (with streaming + offline fallback) ─────
+  const send = useCallback(async (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || loading) return;
 
-      const userMsg: Message = { id: Date.now().toString(), role: "user", content };
-      setMessages((prev) => [...prev, userMsg]);
-      setInput("");
-      setChipsUsed(true);
-      setSuggestions([]);
-      setShowForm(false);
-      if (inputRef.current) inputRef.current.style.height = "auto";
-      setLoading(true);
+    const userMsg: Message = { id: Date.now().toString(), role: "user", content };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setChipsUsed(true);
+    setSuggestions([]);
+    setRelated([]);
+    setShowForm(false);
+    streamContentRef.current = "";
+    if (inputRef.current) inputRef.current.style.height = "auto";
+    setLoading(true);
 
-      // Add streaming placeholder
-      const streamId = `stream-${Date.now()}`;
-      setMessages((prev) => [
-        ...prev,
-        { id: streamId, role: "assistant", content: "" },
-      ]);
+    // Typing delay — TypingIndicator shows for at least ~500ms
+    await new Promise((r) => setTimeout(r, 500));
 
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            locale,
-            pathname,
-            messages: [...messages, userMsg]
-              .filter((m) => m.id !== "welcome")
-              .map(({ role, content: c }) => ({ role, content: c })),
-          }),
-        });
+    const streamId = `stream-${Date.now()}`;
+    let firstChunk = true;
 
-        if (!res.ok || !res.body) throw new Error("network error");
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locale,
+          pathname,
+          messages: [...messages, userMsg]
+            .filter((m) => m.id !== "welcome")
+            .map(({ role, content: c }) => ({ role, content: c })),
+        }),
+      });
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = "";
+      if (!res.ok || !res.body) throw new Error("network");
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
 
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split("\n");
-          buf = lines.pop() ?? "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const raw = line.slice(6).trim();
-            try {
-              const event = JSON.parse(raw) as {
-                c?: string;
-                error?: string;
-                done?: boolean;
-                suggestions?: string[];
-                showForm?: boolean;
-                reply?: string;
-              };
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
 
-              if (event.c) {
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          try {
+            const ev = JSON.parse(raw) as {
+              c?: string;
+              reply?: string;
+              error?: string;
+              done?: boolean;
+              suggestions?: string[];
+              showForm?: boolean;
+            };
+
+            // ── text chunk ──
+            if (ev.c) {
+              streamContentRef.current += ev.c;
+              if (firstChunk) {
+                firstChunk = false;
+                setStreamingId(streamId);
+                setMessages((prev) => [
+                  ...prev,
+                  { id: streamId, role: "assistant", content: ev.c! },
+                ]);
+              } else {
                 setMessages((prev) =>
                   prev.map((m) =>
-                    m.id === streamId ? { ...m, content: m.content + event.c } : m,
+                    m.id === streamId ? { ...m, content: m.content + ev.c } : m,
                   ),
                 );
-              } else if (event.reply) {
-                // Non-streaming fallback (no OpenAI)
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === streamId ? { ...m, content: event.reply! } : m,
-                  ),
-                );
-              } else if (event.error) {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === streamId ? { ...m, content: ui.error } : m,
-                  ),
-                );
-              } else if (event.done) {
-                setSuggestions(event.suggestions ?? []);
-                setShowForm(event.showForm ?? false);
               }
-            } catch {
-              // malformed SSE chunk — ignore
             }
-          }
-        }
 
-        if (!open) setUnread((n) => n + 1);
-      } catch {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === streamId ? { ...m, content: ui.error } : m,
-          ),
-        );
-      } finally {
-        setLoading(false);
+            // ── non-streaming fallback (no OpenAI key) ──
+            else if (ev.reply) {
+              streamContentRef.current = ev.reply;
+              firstChunk = false;
+              setStreamingId(streamId);
+              setMessages((prev) => [
+                ...prev,
+                { id: streamId, role: "assistant", content: ev.reply! },
+              ]);
+            }
+
+            // ── error chunk ──
+            else if (ev.error && firstChunk) {
+              firstChunk = false;
+              const offline = findStaticAnswer(content, locale);
+              setMessages((prev) => [
+                ...prev,
+                { id: streamId, role: "assistant", content: offline },
+              ]);
+            }
+
+            // ── done event ──
+            else if (ev.done) {
+              const relItems = extractRelated(streamContentRef.current);
+              setRelated(relItems);
+              setSuggestions(ev.suggestions ?? []);
+
+              // Form frequency: show when AI says so, OR every 3rd reply
+              assistantCountRef.current++;
+              const ac = assistantCountRef.current;
+              const wantsForm = ev.showForm ?? false;
+              const intervalHit = ac % 3 === 0;
+              const cooldownOk = (ac - lastFormAtRef.current) >= 2;
+              if ((wantsForm || intervalHit) && cooldownOk) {
+                setShowForm(true);
+                lastFormAtRef.current = ac;
+              }
+            }
+          } catch { /* malformed SSE line */ }
+        }
       }
-    },
-    [input, loading, locale, pathname, messages, open, ui.error],
-  );
+
+      if (!open) setUnread((n) => n + 1);
+    } catch {
+      // Full network failure → offline static answer
+      const offline = findStaticAnswer(content, locale);
+      if (firstChunk) {
+        setMessages((prev) => [
+          ...prev,
+          { id: streamId, role: "assistant", content: offline },
+        ]);
+      } else {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === streamId ? { ...m, content: m.content || offline } : m)),
+        );
+      }
+      assistantCountRef.current++;
+    } finally {
+      setLoading(false);
+      setStreamingId(null);
+    }
+  }, [input, loading, locale, pathname, messages, open]);
+
+  // ── Regenerate last assistant reply ──────────────────
+  const handleRegenerate = useCallback(() => {
+    if (loading) return;
+    // Find last user message
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUser) return;
+    // Remove last assistant message
+    setMessages((prev) => {
+      const idx = [...prev].reverse().findIndex((m) => m.role === "assistant" && m.id !== "welcome");
+      if (idx === -1) return prev;
+      const realIdx = prev.length - 1 - idx;
+      return prev.filter((_, i) => i !== realIdx);
+    });
+    setSuggestions([]);
+    setRelated([]);
+    setShowForm(false);
+    void send(lastUser.content);
+  }, [loading, messages, send]);
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -503,8 +642,11 @@ export function Chatbot() {
     setMessages([welcomeMsg]);
     setChipsUsed(false);
     setSuggestions([]);
+    setRelated([]);
     setShowForm(false);
     setInput("");
+    assistantCountRef.current = 0;
+    lastFormAtRef.current = -999;
     localStorage.removeItem(STORAGE_KEY);
     if (inputRef.current) inputRef.current.style.height = "auto";
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -512,14 +654,14 @@ export function Chatbot() {
 
   const handleFormSuccess = (msg: string) => {
     setShowForm(false);
-    setSuggestions([]);
     setMessages((prev) => [
       ...prev,
-      { id: `form-success-${Date.now()}`, role: "assistant", content: msg },
+      { id: `form-ok-${Date.now()}`, role: "assistant", content: msg },
     ]);
   };
 
   const isOnlyWelcome = messages.length === 1 && messages[0]?.id === "welcome";
+  const lastMsg = messages[messages.length - 1];
 
   return (
     <>
@@ -531,7 +673,7 @@ export function Chatbot() {
             ? "translate-y-0 opacity-100 pointer-events-auto"
             : "translate-y-4 opacity-0 pointer-events-none",
         )}
-        style={{ height: "min(560px, calc(100dvh - 120px))" }}
+        style={{ height: "min(580px, calc(100dvh - 120px))" }}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-primary)] px-4 py-3">
@@ -565,9 +707,18 @@ export function Chatbot() {
 
         {/* Messages */}
         <div className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-4 py-4">
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} msg={msg} />
-          ))}
+          {messages.map((msg, i) => {
+            const isLast = i === messages.length - 1;
+            const canRegen = isLast && !loading && msg.role === "assistant" && msg.id !== "welcome" && msg.id !== streamingId;
+            return (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                isLast={isLast}
+                onRegenerate={canRegen ? handleRegenerate : undefined}
+              />
+            );
+          })}
 
           {/* Initial quick chips */}
           {isOnlyWelcome && !chipsUsed && (
@@ -578,7 +729,20 @@ export function Chatbot() {
             </div>
           )}
 
-          {loading && <TypingIndicator />}
+          {/* Typing indicator — only when loading and no streaming message yet */}
+          {loading && !streamingId && <TypingIndicator />}
+
+          {/* Related items */}
+          {!loading && related.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wide px-0.5">
+                {ui.related}
+              </p>
+              {related.map((item) => (
+                <RelatedCard key={item.href} item={item} />
+              ))}
+            </div>
+          )}
 
           {/* Suggested follow-ups */}
           {!loading && suggestions.length > 0 && (
@@ -599,10 +763,11 @@ export function Chatbot() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Inline form */}
+        {/* Inline contact form */}
         {showForm && !loading && (
           <ChatInlineForm
             ui={ui}
+            recentMessages={messages}
             onClose={() => setShowForm(false)}
             onSuccess={handleFormSuccess}
           />
@@ -642,11 +807,7 @@ export function Chatbot() {
               className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-40"
               aria-label={ui.send}
             >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             </button>
           </div>
           <p className="mt-1.5 text-center text-[10px] text-[var(--color-text-muted)]">
