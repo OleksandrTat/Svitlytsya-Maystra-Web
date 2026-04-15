@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 export async function submitChatInquiryAction(
   formData: FormData,
@@ -11,9 +12,6 @@ export async function submitChatInquiryAction(
 
   if (!name || name.length < 2) {
     return { ok: false, message: "Вкажіть ваше ім'я (мінімум 2 символи)." };
-  }
-  if (!phone && !message) {
-    return { ok: false, message: "Вкажіть телефон або повідомлення." };
   }
 
   const supabase = createSupabaseServiceClient();
@@ -32,8 +30,9 @@ export async function submitChatInquiryAction(
   });
 
   if (error) {
+    logger.error("[chat-inquiry] Supabase insert error", `${error.message} ${error.details ?? ""}`);
     return { ok: false, message: "Помилка збереження. Спробуйте ще раз." };
   }
 
-  return { ok: true, message: "Дякуємо! Ми зв'яжемось найближчим часом." };
+  return { ok: true, message: "Дякуємо! Ми зв'яжемось найближчим часом. 🙏" };
 }

@@ -12,7 +12,6 @@ import { ProductsGridClient } from "@/components/products/products-grid-client";
 import { ProductsPagination } from "@/components/products/products-pagination";
 import { ProductsSortSelect } from "@/components/products/products-sort-select";
 import { ProductsViewToggle } from "@/components/products/products-view-toggle";
-import { SimilarProductsSearch } from "@/components/products/similar-products-search";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import {
@@ -21,7 +20,6 @@ import {
   getProducts,
   parseProductFilters,
 } from "@/lib/data/queries";
-import { hasOpenAi } from "@/lib/env";
 import { localizeProduct } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
@@ -124,7 +122,6 @@ export default async function ProductsPage({
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
             {/* Sidebar filters */}
             <div className="space-y-4">
-              {hasOpenAi ? <SimilarProductsSearch /> : null}
               <Suspense fallback={<ProductFiltersFallback />}>
                 <ProductFiltersPanel
                   filters={filters}

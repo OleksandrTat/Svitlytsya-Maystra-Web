@@ -11,6 +11,20 @@ type ChatRequest = {
   pathname?: string;
 };
 
+// ─── Language detection ───────────────────────────────────
+// Used ONLY to pick which DB translation to load (uk fields vs _en fields).
+// The AI will mirror whatever language the user actually wrote in.
+
+function detectDbLang(message: string): "uk" | "en" {
+  const clean = message
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/https?:\/\/\S+/g, "");
+  const cyrillic = (clean.match(/[\u0400-\u04FF]/g) ?? []).length;
+  const latin    = (clean.match(/[a-zA-Z]/g) ?? []).length;
+  if (cyrillic === 0 && latin === 0) return "uk";
+  return latin > cyrillic ? "en" : "uk";
+}
+
 // ─── Context fetcher ─────────────────────────────────────
 
 async function fetchSiteContext(locale: string) {
@@ -179,34 +193,27 @@ async function fetchSiteContext(locale: string) {
 
 // ─── System prompt builder ────────────────────────────────
 
-function buildSystemPrompt(context: string, locale: string, pathname?: string) {
-  const isUk = locale !== "en";
-  const lang = isUk
-    ? "Відповідай ВИКЛЮЧНО українською мовою. Звертайся до клієнта на «ви»."
-    : "Always reply in English. Be friendly and professional.";
-
-  const ctaInstruction = isUk
-    ? 'Коли клієнт питає про ціну, строки або хоче замовити — в кінці відповіді додай: "👉 [Залишити заявку](/contact)"'
-    : 'When a customer asks about pricing, timelines or wants to order — end your reply with: "👉 [Get a quote](/contact)"';
-
+function buildSystemPrompt(
+  context: string,
+  pathname?: string,
+) {
   const pageCtx = pathname && pathname !== "/"
-    ? isUk
-      ? `\nПоточна сторінка користувача: ${pathname}`
-      : `\nUser is currently viewing: ${pathname}`
+    ? `\nThe user is currently viewing: ${pathname}`
     : "";
 
   return `You are a helpful sales assistant for Svitlytsya Maystra — a family woodworking workshop specializing in custom furniture, doors, and windows made from natural materials.
 
-${lang}${pageCtx}
+LANGUAGE RULE: Always reply in the EXACT same language the user wrote their last message in. If they write in Ukrainian — reply in Ukrainian. If in English — reply in English. If in Polish, German, French, or any other language — reply in that same language. Never switch languages unless the user does first.${pageCtx}
 
 Guidelines:
 - Be concise, warm, and professional
+- Address the customer formally (e.g. "ви" in Ukrainian, "Sie" in German, "vous" in French)
 - Base answers ONLY on the context below. If something is not there, say you don't have that info and suggest calling or writing us
 - Never make up prices, availability, or timelines — say it's calculated individually
-- When mentioning a product or service, include its link as a markdown link: [Name](/path)
+- When mentioning a product or service, include its link as a markdown link using the ACTUAL name as label, e.g. [Дубові двері](/products/oak-door) — NEVER use generic labels like "Детальніше", "тут", "here", "more"
 - Format lists with bullet points when listing multiple items
 - Use **bold** for product/service names
-- ${ctaInstruction}
+- When the customer asks about pricing, timelines or wants to order — end your reply with a call-to-action link to /contact in their language (e.g. "👉 [Залишити заявку](/contact)" or "👉 [Get a quote](/contact)" etc.)
 
 ---
 ${context}
@@ -223,12 +230,9 @@ function sseEvent(data: object): Uint8Array {
 
 async function fetchSuggestions(
   fullText: string,
-  locale: string,
+  lastUserMsg: string,
 ): Promise<{ suggestions: string[]; showForm: boolean }> {
-  const isUk = locale !== "en";
-  const prompt = isUk
-    ? `На основі відповіді асистента, запропонуй 2-3 дуже короткі уточнюючі питання українською (до 7 слів кожне). Якщо відповідь стосується цін, термінів або замовлення, встанови "showForm": true. Поверни тільки JSON: {"suggestions": ["q1", "q2"], "showForm": false}`
-    : `Based on the assistant's reply, suggest 2-3 very short follow-up questions in English (max 7 words each). If the reply discusses pricing, timelines, or ordering, set "showForm": true. Return only JSON: {"suggestions": ["q1", "q2"], "showForm": false}`;
+  const prompt = `Based on the assistant's reply below, suggest 2-3 very short follow-up questions (max 7 words each). Write the questions in the SAME language as this user message: "${lastUserMsg.slice(0, 80)}". If the reply discusses pricing, timelines, or ordering, set "showForm": true. Return only JSON: {"suggestions": ["q1", "q2"], "showForm": false}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -273,8 +277,14 @@ async function fetchSuggestions(
 
 export async function POST(request: Request) {
   if (!hasOpenAi) {
+    const body0 = (await request.json().catch(() => null)) as ChatRequest | null;
+    const lastUser0 = body0?.messages?.findLast?.((m) => m.role === "user");
+    const lang0: "uk" | "en" = lastUser0 ? detectDbLang(lastUser0.content) : "uk";
+    const msg0 = lang0 === "en"
+      ? "The chat assistant is currently unavailable. Please call us or leave a request at /contact"
+      : "Чат-помічник наразі недоступний. Зателефонуйте нам або залиште заявку на /contact";
     return new Response(
-      `data: ${JSON.stringify({ reply: "Чат-помічник наразі недоступний. Зателефонуйте нам або залиште заявку на /contact" })}\n\ndata: ${JSON.stringify({ done: true, suggestions: [], showForm: false })}\n\n`,
+      `data: ${JSON.stringify({ reply: msg0 })}\n\ndata: ${JSON.stringify({ done: true, suggestions: [], showForm: false })}\n\n`,
       {
         headers: {
           "Content-Type": "text/event-stream",
@@ -293,8 +303,12 @@ export async function POST(request: Request) {
   const pathname = body.pathname;
   const history = body.messages.slice(-12);
 
-  const context = await fetchSiteContext(locale);
-  const systemPrompt = buildSystemPrompt(context, locale, pathname);
+  // Use detectDbLang only to decide which DB locale to load (uk fields vs _en fields)
+  const lastUserMsg = [...history].reverse().find((m) => m.role === "user");
+  const dbLang = lastUserMsg ? detectDbLang(lastUserMsg.content) : (locale === "en" ? "en" : "uk");
+  const context = await fetchSiteContext(dbLang);
+
+  const systemPrompt = buildSystemPrompt(context, pathname);
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -355,10 +369,10 @@ export async function POST(request: Request) {
           }
         }
 
-        // Secondary call for suggestions (non-blocking best-effort)
+        // Secondary call for suggestions — mirrors user's exact language
         const { suggestions, showForm } = await fetchSuggestions(
           fullText,
-          locale,
+          lastUserMsg?.content ?? "",
         ).catch(() => ({ suggestions: [] as string[], showForm: false }));
 
         controller.enqueue(sseEvent({ done: true, suggestions, showForm }));

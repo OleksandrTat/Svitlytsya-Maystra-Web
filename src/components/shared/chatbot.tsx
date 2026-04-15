@@ -150,6 +150,21 @@ const STORAGE_KEY = "svitlytsya_chat_v3";
 
 // ─── Helpers ──────────────────────────────────────────────
 
+// Generic link labels the AI sometimes uses instead of product names
+const GENERIC_LABELS = new Set([
+  "детальніше", "дізнатись більше", "дізнатися більше", "тут", "тут →", "посилання",
+  "more", "learn more", "details", "here", "link", "click here", "view",
+  "перейти", "відкрити", "подивитись", "подивитися",
+]);
+
+function slugToTitle(slug: string): string {
+  return slug
+    .split("/")
+    .pop()!
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function extractRelated(text: string): RelatedItem[] {
   const regex = /\[([^\]]+)\]\((\/(?:products|services)\/[^)]+)\)/g;
   const seen = new Set<string>();
@@ -159,8 +174,13 @@ function extractRelated(text: string): RelatedItem[] {
     const href = m[2];
     if (seen.has(href)) continue;
     seen.add(href);
+    const rawTitle = m[1].replace(/\*\*/g, "").trim();
+    // If AI used a generic label, derive title from slug instead
+    const title = GENERIC_LABELS.has(rawTitle.toLowerCase())
+      ? slugToTitle(href)
+      : rawTitle;
     items.push({
-      title: m[1].replace(/\*\*/g, ""),
+      title,
       href,
       type: href.startsWith("/services") ? "service" : "product",
     });
