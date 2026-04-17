@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { href: "/profile", label: "Мій профіль", icon: User },
   { href: "/profile/orders", label: "Замовлення", icon: Package },
   { href: "/profile/support", label: "Підтримка", icon: MessageSquare },
-  { href: "/profile/wishlist", label: "Бажане", icon: Heart },
+  { href: "/products?wishlist=1", label: "Вподобані", icon: Heart },
   { href: "/profile/data", label: "Мої дані", icon: FileText },
 ];
 

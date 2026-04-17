@@ -66,6 +66,8 @@ export type ProductFilters = {
   sort: "default" | "price_asc" | "price_desc" | "newest";
   page: number;
   pageSize: number;
+  wishlist?: boolean;      // ?wishlist=1 in URL
+  wishlistIds?: string[];  // resolved server-side from wishlist_items table
 };
 
 const PRODUCT_SORT_VALUES = ["default", "price_asc", "price_desc", "newest"] as const;
@@ -93,6 +95,8 @@ export function parseProductFilters(
   const viewParam = typeof searchParams.view === "string" ? searchParams.view : "grid";
   const view = viewParam === "list" ? "list" : "grid";
 
+  const wishlist = searchParams.wishlist === "1";
+
   return {
     category,
     status: status as ProductStatus | undefined,
@@ -106,14 +110,55 @@ export function parseProductFilters(
     sort,
     page: page > 0 ? page : 1,
     pageSize: 12,
+    wishlist: wishlist || undefined,
   };
 }
 
 export type CategoryOption = { value: string; count: number };
+export type AttributeOption = { value: string; count: number };
+
+// Case-insensitive aggregator — merges "Дуб" + "дуб" into one, picks the most
+// "proper" display form (prefers capitalized), and counts actual product usage.
+function aggregateAttribute(
+  products: Array<{ materials?: unknown; style?: unknown }>,
+  field: "materials" | "style",
+): AttributeOption[] {
+  const map = new Map<string, { display: string; count: number }>();
+
+  for (const product of products) {
+    const raw = product[field];
+    if (!Array.isArray(raw)) continue;
+
+    for (const entry of raw) {
+      if (typeof entry !== "string") continue;
+      const value = entry.trim();
+      if (!value) continue;
+
+      const key = value.toLowerCase();
+      const existing = map.get(key);
+
+      if (existing) {
+        existing.count += 1;
+        // Prefer the form that starts with an uppercase letter for display
+        const currentIsCapitalized = /^[\p{Lu}]/u.test(existing.display);
+        const candidateIsCapitalized = /^[\p{Lu}]/u.test(value);
+        if (!currentIsCapitalized && candidateIsCapitalized) {
+          existing.display = value;
+        }
+      } else {
+        map.set(key, { display: value, count: 1 });
+      }
+    }
+  }
+
+  return Array.from(map.values())
+    .map((v) => ({ value: v.display, count: v.count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, "uk"));
+}
 
 export async function getProductFilterOptions(): Promise<{
-  styles: string[];
-  materials: string[];
+  styles: AttributeOption[];
+  materials: AttributeOption[];
   categories: CategoryOption[];
 }> {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
@@ -121,48 +166,29 @@ export async function getProductFilterOptions(): Promise<{
     return { styles: [], materials: [], categories: [] };
   }
 
-  const [stylesResult, materialsResult, productsResult] = await Promise.all([
-    supabase
-      .from("product_attributes")
-      .select("value")
-      .eq("type", "style")
-      .order("usage_count", { ascending: false }),
-    supabase
-      .from("product_attributes")
-      .select("value")
-      .eq("type", "material")
-      .order("usage_count", { ascending: false }),
-    supabase
-      .from("products")
-      .select("category")
-      .eq("status", "active")
-      .order("sort_order", { ascending: true }),
-  ]);
+  const { data: products } = await supabase
+    .from("products")
+    .select("category, materials, style")
+    .eq("status", "active");
+
+  const rows = products ?? [];
 
   const categoryCounts = new Map<string, number>();
-  for (const product of productsResult.data ?? []) {
+  for (const product of rows) {
     const cat = typeof product.category === "string" ? product.category.trim() : "";
     if (cat) {
       categoryCounts.set(cat, (categoryCounts.get(cat) ?? 0) + 1);
     }
   }
 
+  const materialsShaped = rows.map((r) => ({ materials: r.materials, style: r.style }));
+
   return {
-    styles: Array.from(
-      new Set(
-        (stylesResult.data ?? [])
-          .map((row) => (typeof row.value === "string" ? row.value.trim() : ""))
-          .filter(Boolean),
-      ),
-    ),
-    materials: Array.from(
-      new Set(
-        (materialsResult.data ?? [])
-          .map((row) => (typeof row.value === "string" ? row.value.trim() : ""))
-          .filter(Boolean),
-      ),
-    ),
-    categories: Array.from(categoryCounts.entries()).map(([value, count]) => ({ value, count })),
+    styles: aggregateAttribute(materialsShaped, "style"),
+    materials: aggregateAttribute(materialsShaped, "materials"),
+    categories: Array.from(categoryCounts.entries())
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, "uk")),
   };
 }
 
@@ -356,9 +382,15 @@ export async function getProducts(
     return { items: [], total: 0 };
   }
 
+  // When materials/styles are selected we filter in-memory for case-insensitive
+  // matching (handles "Дуб" / "дуб" duplicates gracefully). For the rest of the
+  // filter set we stick to server-side pagination.
+  const needsInMemoryAttrFilter =
+    filters.materials.length > 0 || filters.styles.length > 0;
+
   let query = supabase
     .from("products")
-    .select("*", { count: "exact" })
+    .select("*", needsInMemoryAttrFilter ? undefined : { count: "exact" })
     .eq("status", filters.status ?? "active");
 
   switch (filters.sort) {
@@ -380,14 +412,6 @@ export async function getProducts(
     query = query.eq("category", filters.category);
   }
 
-  if (filters.materials.length > 0) {
-    query = query.contains("materials", filters.materials);
-  }
-
-  if (filters.styles.length > 0) {
-    query = query.contains("style", filters.styles);
-  }
-
   if (filters.featured) {
     query = query.eq("is_featured", true);
   }
@@ -402,6 +426,46 @@ export async function getProducts(
 
   if (filters.priceMax) {
     query = query.lte("price_from", filters.priceMax);
+  }
+
+  if (filters.wishlistIds !== undefined) {
+    if (filters.wishlistIds.length === 0) return { items: [], total: 0 };
+    query = query.in("id", filters.wishlistIds);
+  }
+
+  if (needsInMemoryAttrFilter) {
+    // Fetch everything that matches the other filters, then apply
+    // case-insensitive materials/styles + paginate in memory.
+    const { data, error } = await query;
+    if (error || !data) {
+      return { items: [], total: 0 };
+    }
+
+    const normalizedMaterials = filters.materials.map((m) => m.toLowerCase());
+    const normalizedStyles = filters.styles.map((s) => s.toLowerCase());
+
+    const filtered = (data as Product[]).filter((product) => {
+      if (normalizedMaterials.length > 0) {
+        const pm = (Array.isArray(product.materials) ? product.materials : [])
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.toLowerCase());
+        if (!normalizedMaterials.every((m) => pm.includes(m))) return false;
+      }
+
+      if (normalizedStyles.length > 0) {
+        const ps = (Array.isArray(product.style) ? product.style : [])
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.toLowerCase());
+        if (!normalizedStyles.every((s) => ps.includes(s))) return false;
+      }
+
+      return true;
+    });
+
+    const total = filtered.length;
+    const start = (filters.page - 1) * filters.pageSize;
+    const items = filtered.slice(start, start + filters.pageSize);
+    return { items, total };
   }
 
   const start = (filters.page - 1) * filters.pageSize;

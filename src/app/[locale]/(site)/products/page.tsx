@@ -20,9 +20,10 @@ import {
   getProducts,
   parseProductFilters,
 } from "@/lib/data/queries";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { localizeProduct } from "@/lib/i18n/content";
 
-export const revalidate = 3600;
+export const revalidate = 0; // dynamic — wishlist depends on session
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("productsPage");
@@ -39,19 +40,13 @@ function ProductFiltersFallback() {
       <div className="h-5 w-24 animate-pulse rounded-full bg-[var(--color-border)]" />
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-8 w-20 animate-pulse rounded-full bg-[var(--color-border)]"
-          />
+          <div key={index} className="h-8 w-20 animate-pulse rounded-full bg-[var(--color-border)]" />
         ))}
       </div>
       <div className="h-5 w-20 animate-pulse rounded-full bg-[var(--color-border)]" />
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-8 w-24 animate-pulse rounded-full bg-[var(--color-border)]"
-          />
+          <div key={index} className="h-8 w-24 animate-pulse rounded-full bg-[var(--color-border)]" />
         ))}
       </div>
     </aside>
@@ -65,15 +60,44 @@ export default async function ProductsPage({
 }) {
   const params = await searchParams;
   const filters = parseProductFilters(params);
-  const [{ items: rawItems, total }, filterOptions, rawComparisonProducts, locale, t, tCommon, tNav] = await Promise.all([
-    getProducts(filters),
-    getProductFilterOptions(),
-    getAllActiveProducts(),
-    getLocale(),
-    getTranslations("productsPage"),
-    getTranslations("common"),
-    getTranslations("nav"),
-  ]);
+
+  // Resolve user + wishlist server-side
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = supabase
+    ? await supabase.auth.getUser()
+    : { data: { user: null } };
+
+  let wishlistIds: string[] | undefined;
+  let wishlistCount: number | null = null; // null = not logged in
+
+  if (user && supabase) {
+    const { data: wishlistRows } = await supabase
+      .from("wishlist_items")
+      .select("product_id")
+      .eq("user_id", user.id);
+    const ids = wishlistRows?.map((r) => r.product_id as string) ?? [];
+    wishlistCount = ids.length;
+
+    if (filters.wishlist) {
+      wishlistIds = ids;
+    }
+  }
+
+  const filtersResolved = wishlistIds !== undefined
+    ? { ...filters, wishlistIds }
+    : filters;
+
+  const [{ items: rawItems, total }, filterOptions, rawComparisonProducts, locale, t, tCommon, tNav] =
+    await Promise.all([
+      getProducts(filtersResolved),
+      getProductFilterOptions(),
+      getAllActiveProducts(),
+      getLocale(),
+      getTranslations("productsPage"),
+      getTranslations("common"),
+      getTranslations("nav"),
+    ]);
+
   const items = rawItems.map((p) => localizeProduct(p, locale as "uk" | "en"));
   const comparisonProducts = rawComparisonProducts.map((p) => localizeProduct(p, locale as "uk" | "en"));
   const totalPages = Math.ceil(total / filters.pageSize);
@@ -91,10 +115,7 @@ export default async function ProductsPage({
         />
         <div
           className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to right, rgba(26,10,10,0.92) 40%, rgba(92,26,26,0.60) 100%)",
-          }}
+          style={{ background: "linear-gradient(to right, rgba(26,10,10,0.92) 40%, rgba(92,26,26,0.60) 100%)" }}
         />
         <Container className="relative z-10 pb-10">
           <Breadcrumbs
@@ -105,7 +126,7 @@ export default async function ProductsPage({
             className="text-white/60 [&_a]:text-white/60 [&_a:hover]:text-white [&_span]:text-white/80"
           />
           <h1 className="mt-3 font-display text-4xl font-bold text-white md:text-5xl">
-            {t("heroTitle")}
+            {filters.wishlist ? "Вподобані товари" : t("heroTitle")}
           </h1>
           <p className="mt-2 max-w-xl text-base text-white/75">
             {t("heroSubtitle")}
@@ -128,13 +149,13 @@ export default async function ProductsPage({
                   categoryOptions={filterOptions.categories}
                   styleOptions={filterOptions.styles}
                   materialOptions={filterOptions.materials}
+                  wishlistCount={wishlistCount}
                 />
               </Suspense>
             </div>
 
             {/* Products area */}
             <div>
-              {/* Top bar */}
               <div className="mb-5 flex items-center justify-between">
                 <p className="text-sm text-[var(--color-text-muted)]">
                   {t("itemsFound", { count: total })}
@@ -145,35 +166,32 @@ export default async function ProductsPage({
                 </div>
               </div>
 
-              {/* Product grid */}
               {items.length > 0 ? (
                 <ProductsGridClient view={filters.view}>
-                  {items.map((product, i) => (
+                  {items.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </ProductsGridClient>
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--color-border)] py-20">
-                  <PackageSearch
-                    size={48}
-                    className="text-[var(--color-border)]"
-                  />
+                  <PackageSearch size={48} className="text-[var(--color-border)]" />
                   <h3 className="mt-4 font-display text-xl font-semibold text-[var(--color-text-primary)]">
-                    {t("noResults")}
+                    {filters.wishlist ? "Немає вподобаних товарів" : t("noResults")}
                   </h3>
                   <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                    {t("noResultsHint")}
+                    {filters.wishlist
+                      ? "Додайте товари до вподобаних, натиснувши ♡ на картці товару"
+                      : t("noResultsHint")}
                   </p>
                   <Link
                     href="/products"
                     className="mt-4 rounded-full border border-[var(--color-primary)] px-5 py-2 text-sm font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
                   >
-                    {t("resetFilters")}
+                    {filters.wishlist ? "Всі товари" : t("resetFilters")}
                   </Link>
                 </div>
               )}
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="mt-8">
                   <ProductsPagination
@@ -194,6 +212,7 @@ export default async function ProductsPage({
           categoryOptions={filterOptions.categories}
           styleOptions={filterOptions.styles}
           materialOptions={filterOptions.materials}
+          wishlistCount={wishlistCount}
         />
       </Suspense>
 
