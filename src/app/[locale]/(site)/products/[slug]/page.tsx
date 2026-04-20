@@ -9,6 +9,7 @@ import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductPriceCalculator } from "@/components/products/product-price-calculator";
 import { ProductTestimonials } from "@/components/products/product-testimonials";
 import { RelatedProducts } from "@/components/products/related-products";
+import { ProductViewTracker } from "@/components/products/product-view-tracker";
 import { FinalCtaSection } from "@/components/sections/final-cta";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
@@ -162,6 +163,12 @@ export default async function ProductPage({
 
   return (
     <>
+      <ProductViewTracker
+        productId={product.id}
+        title={localizedProduct.title}
+        category={product.category}
+        price={product.price_from ?? undefined}
+      />
       <PageHero
         title={localizedProduct.title}
         breadcrumbs={[

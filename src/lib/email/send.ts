@@ -14,14 +14,12 @@ type SendEmailResult =
   | { ok: true; id: string }
   | { ok: false; error: string };
 
-function getSafeFromEmail() {
-  const configured = env.resendFromEmail?.trim();
-
-  if (!configured) {
-    return "onboarding@resend.dev";
-  }
-
-  return configured;
+// Accepts either a plain address or "Display Name <addr@example.com>" format.
+// Falls back to onboarding@resend.dev when nothing is configured.
+function getFromEmail(): string {
+  const raw = env.resendFromEmail?.trim();
+  if (raw) return raw;
+  return "onboarding@resend.dev";
 }
 
 function escapeHtml(value: string) {
@@ -39,19 +37,19 @@ function renderTextAsHtml(text: string) {
 
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   if (!hasEmailService) {
-    logger.warn("Пропущено надсилання email: RESEND_API_KEY не налаштовано.");
+    logger.warn("[email] RESEND_API_KEY not set — skipping send.");
     return { ok: false, error: "Email service not configured" };
   }
 
   const html = params.html ?? (params.text ? renderTextAsHtml(params.text) : "");
 
   if (!html && !params.text) {
-    logger.warn("Пропущено надсилання email: порожній вміст листа.");
+    logger.warn("[email] Empty content — skipping send.");
     return { ok: false, error: "Email content is empty" };
   }
 
-  const resend = new Resend(env.resendApiKey!);
-  const from = getSafeFromEmail();
+  const resend = new Resend(env.resendApiKey);
+  const from = getFromEmail();
 
   try {
     const { data, error } = await resend.emails.send({
@@ -64,14 +62,15 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     });
 
     if (error) {
-      logger.error("Помилка Resend під час надсилання email.", error);
+      logger.error("[email] Resend API error.", `${error.message} (from: ${from}, to: ${String(params.to)})`);
       return { ok: false, error: error.message };
     }
 
+    logger.info(`[email] Sent "${params.subject}" → ${String(params.to)} (id: ${data?.id ?? "?"})`);
     return { ok: true, id: data?.id ?? "unknown" };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error("Неочікувана помилка під час надсилання email.", error);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error("[email] Unexpected error.", message);
     return { ok: false, error: message };
   }
 }
@@ -83,15 +82,12 @@ export async function sendAdminEmail(params: {
   replyTo?: string | string[];
 }): Promise<SendEmailResult> {
   if (!hasAdminEmail) {
-    logger.warn("ADMIN_EMAIL не налаштовано, адміністративний лист пропущено.");
+    logger.warn("[email] ADMIN_EMAIL not set — skipping admin send.");
     return { ok: false, error: "ADMIN_EMAIL not configured" };
   }
 
   return sendEmail({
     to: env.adminEmail!,
-    subject: params.subject,
-    html: params.html,
-    text: params.text,
-    replyTo: params.replyTo,
+    ...params,
   });
 }

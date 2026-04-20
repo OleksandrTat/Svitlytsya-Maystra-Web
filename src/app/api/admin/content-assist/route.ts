@@ -4,7 +4,7 @@ import { env, hasOpenAi } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_CONTENT_CHARS = 12_000;
-const MIN_CONTENT_CHARS = 120;
+const MIN_CONTENT_CHARS = 20;
 const EXCERPT_LIMIT = 220;
 const SEO_TITLE_LIMIT = 60;
 const SEO_DESCRIPTION_LIMIT = 160;
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
 
   if (plainContent.length < MIN_CONTENT_CHARS) {
     return NextResponse.json(
-      { ok: false, message: "Add more content before using AI generation." },
+      { ok: false, message: "Додайте більше контенту перед генерацією SEO." },
       { status: 400 },
     );
   }

@@ -27,6 +27,8 @@ const envSchema = z.object({
   SUPABASE_DB_PASSWORD: z.string().optional(),
   SUPABASE_DB_URL: z.string().optional(),
   SUPABASE_DB_POOLER_HOST: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
 });
 
 const rawEnv = {
@@ -53,6 +55,8 @@ const rawEnv = {
   SUPABASE_DB_PASSWORD: process.env.SUPABASE_DB_PASSWORD,
   SUPABASE_DB_URL: process.env.SUPABASE_DB_URL,
   SUPABASE_DB_POOLER_HOST: process.env.SUPABASE_DB_POOLER_HOST,
+  NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+  NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
 };
 
 const parsedEnv = envSchema.safeParse(rawEnv);
@@ -115,7 +119,11 @@ export const env = {
   backupS3Prefix: pickString("BACKUP_S3_PREFIX"),
   backupNotifyEmail: pickString("BACKUP_NOTIFY_EMAIL"),
   siteUrl: getSiteUrl(),
+  posthogKey: pickString("NEXT_PUBLIC_POSTHOG_KEY"),
+  posthogHost: pickString("NEXT_PUBLIC_POSTHOG_HOST"),
 };
+
+export const hasPostHog = Boolean(env.posthogKey);
 
 export const hasSupabaseEnv = Boolean(env.supabaseUrl) && Boolean(env.supabaseAnonKey);
 

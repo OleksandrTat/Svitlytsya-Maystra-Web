@@ -15,7 +15,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co https://api.openai.com https://*.posthog.com https://challenges.cloudflare.com",
+      "connect-src 'self' https://*.supabase.co https://api.openai.com https://*.posthog.com https://us.i.posthog.com https://challenges.cloudflare.com",
       "frame-src 'self' https://challenges.cloudflare.com https://www.google.com https://maps.google.com",
       "base-uri 'self'",
       "form-action 'self'",
@@ -24,6 +24,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Required for PostHog ingest proxy to work correctly.
+  skipTrailingSlashRedirect: true,
   images: {
     remotePatterns: [
       {
@@ -57,6 +59,20 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+    ];
+  },
+  // PostHog proxy — routes /ingest/* through Next.js server so ad-blockers
+  // cannot block posthog.com directly.
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/ingest/:path*",
+        destination: "https://us.i.posthog.com/:path*",
       },
     ];
   },

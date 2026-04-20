@@ -490,6 +490,43 @@ export function adminSupportReplyEmail(params: {
   return { subject: t.subject, html: layout(content, lang) };
 }
 
+export function adminOrderMessageEmail(params: {
+  displayName: string | null;
+  orderNumber: string;
+  content: string;
+  orderUrl: string;
+  lang?: EmailLang;
+}): EmailMessage {
+  const lang = params.lang ?? "uk";
+  const name = params.displayName ? sanitizeInlineText(params.displayName) : "";
+  const orderNumber = sanitizeInlineText(params.orderNumber);
+  const contentText = sanitizeText(params.content);
+
+  const t =
+    lang === "en"
+      ? {
+          subject: `New message on order ${orderNumber}`,
+          greeting: `Hello${name ? `, ${name}` : ""}!`,
+          intro: `You have a new message regarding order <strong>${escapeHtml(orderNumber)}</strong>.`,
+          cta: "View Message",
+        }
+      : {
+          subject: `Нове повідомлення до замовлення ${orderNumber}`,
+          greeting: `Вітаємо${name ? `, ${name}` : ""}!`,
+          intro: `Ви отримали нове повідомлення стосовно замовлення <strong>${escapeHtml(orderNumber)}</strong>.`,
+          cta: "Переглянути повідомлення",
+        };
+
+  const content = [
+    heading(t.greeting),
+    paragraphHtml(t.intro),
+    quote(truncateText(contentText, 500)),
+    button(t.cta, params.orderUrl),
+  ].join("");
+
+  return { subject: t.subject, html: layout(content, lang) };
+}
+
 export function adminNewCommentEmail(params: {
   authorEmail: string;
   content: string;

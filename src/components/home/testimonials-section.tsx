@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/ui/container";
 import { Stars } from "@/components/ui/stars";
 import { craftFadeUp, craftStagger } from "@/lib/animation/variants";
@@ -11,6 +12,8 @@ type Props = {
 };
 
 export function TestimonialsSection({ testimonials }: Props) {
+  const t = useTranslations("home.testimonials");
+
   if (testimonials.length === 0) {
     return null;
   }
@@ -20,10 +23,10 @@ export function TestimonialsSection({ testimonials }: Props) {
       <Container>
         <div className="text-center">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">
-            Відгуки
+            {t("eyebrow")}
           </p>
           <h2 className="heading-h1 text-[var(--color-text-primary)]">
-            Що кажуть клієнти
+            {t("title")}
           </h2>
         </div>
 
@@ -57,7 +60,7 @@ export function TestimonialsSection({ testimonials }: Props) {
                   {item.author_name}
                 </p>
                 <p className="text-xs text-[var(--color-text-secondary)]">
-                  {item.author_location ?? "Україна"}
+                  {item.author_location ?? t("defaultLocation")}
                 </p>
               </footer>
             </motion.article>

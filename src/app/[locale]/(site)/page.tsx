@@ -10,7 +10,7 @@ import { AboutWorkshop } from "@/components/home/about-workshop";
 import { CertificatesSection } from "@/components/home/certificates-section";
 import { TestimonialsSection } from "@/components/home/testimonials-section";
 import { FinalCtaSection } from "@/components/sections/final-cta";
-import { localizeCertificate } from "@/lib/i18n/content";
+import { localizeCertificate, localizeTestimonial } from "@/lib/i18n/content";
 
 export const revalidate = 3600;
 
@@ -29,9 +29,9 @@ export default async function HomePage() {
     getLocale(),
   ]);
 
-  const localizedCertificates = certificates.map((c) =>
-    localizeCertificate(c, locale as "uk" | "en"),
-  );
+  const loc = locale as "uk" | "en";
+  const localizedCertificates = certificates.map((c) => localizeCertificate(c, loc));
+  const localizedTestimonials = testimonials.map((t) => localizeTestimonial(t, loc));
 
   return (
     <>
@@ -42,7 +42,7 @@ export default async function HomePage() {
       <ProcessTimeline />
       <AboutWorkshop />
       <CertificatesSection certificates={localizedCertificates} />
-      <TestimonialsSection testimonials={testimonials} />
+      <TestimonialsSection testimonials={localizedTestimonials} />
       <FinalCtaSection />
     </>
   );

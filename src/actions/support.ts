@@ -141,7 +141,7 @@ export async function sendSupportMessageAction(formData: FormData): Promise<Acti
 
   const { data: chat } = await supabase
     .from("support_chats")
-    .select("id, status")
+    .select("id, status, subject")
     .eq("id", chatId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -166,6 +166,19 @@ export async function sendSupportMessageAction(formData: FormData): Promise<Acti
   if (error) {
     return { ok: false, message: error.message };
   }
+
+  // Notify admin about the follow-up message.
+  const adminEmail = adminNewSupportMessageEmail({
+    clientEmail: user.email ?? user.id,
+    subject: chat.subject ?? null,
+    content,
+    chatUrl: `${env.siteUrl}/admin/support?chat=${chatId}`,
+  });
+
+  await sendAdminEmail({
+    subject: adminEmail.subject,
+    html: adminEmail.html,
+  });
 
   revalidatePath("/profile/support");
   revalidatePath(`/profile/support/${chatId}`);

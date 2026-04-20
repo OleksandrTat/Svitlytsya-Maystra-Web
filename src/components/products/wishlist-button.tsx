@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 
 export function WishlistButton({
   productId,
+  productTitle,
   className,
 }: {
   productId: string;
+  productTitle?: string;
   className?: string;
 }) {
   const t = useTranslations("products");
@@ -22,7 +24,7 @@ export function WishlistButton({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        toggle(productId);
+        toggle(productId, productTitle);
       }}
       className={cn(
         "flex items-center justify-center rounded-full p-1.5 transition-all",

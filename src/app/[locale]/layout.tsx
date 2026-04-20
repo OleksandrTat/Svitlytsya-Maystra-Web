@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { PostHogProvider, PostHogPageview } from "@/components/providers/posthog-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://svitlytsya.ua"),
@@ -43,8 +45,13 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <NextIntlClientProvider messages={messages}>
-      {children}
-    </NextIntlClientProvider>
+    <PostHogProvider>
+      <NextIntlClientProvider messages={messages}>
+        <Suspense fallback={null}>
+          <PostHogPageview />
+        </Suspense>
+        {children}
+      </NextIntlClientProvider>
+    </PostHogProvider>
   );
 }

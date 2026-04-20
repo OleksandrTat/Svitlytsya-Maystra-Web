@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, type BaseSyntheticEvent } from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Script from "next/script";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +33,7 @@ export function InquiryForm({
   className,
   compact = false,
 }: Props) {
+  const t = useTranslations("inquiry");
   const pathname = usePathname();
   const [state, submit, isPending] = useActionState(submitInquiryAction, initialState);
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -101,33 +103,33 @@ export function InquiryForm({
     <form onSubmit={onSubmit} className={cn("space-y-4", className)} noValidate>
       <div className={compact ? "grid gap-4" : "grid gap-4 md:grid-cols-2"}>
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">Ім'я *</span>
-          <Input {...register("name")} placeholder="Ваше ім'я" />
+          <span className="text-sm text-[var(--color-text-secondary)]">{t("name")} *</span>
+          <Input {...register("name")} placeholder={t("namePlaceholder")} />
           {errors.name ? <p className="text-xs text-red-600">{errors.name.message}</p> : null}
         </label>
 
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">Телефон</span>
+          <span className="text-sm text-[var(--color-text-secondary)]">{t("phone")}</span>
           <Input {...register("phone")} type="tel" placeholder="+380XXXXXXXXX" />
           {errors.phone ? <p className="text-xs text-red-600">{errors.phone.message}</p> : null}
         </label>
 
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">Email</span>
+          <span className="text-sm text-[var(--color-text-secondary)]">{t("email")}</span>
           <Input {...register("email")} type="email" placeholder="name@email.com" />
           {errors.email ? <p className="text-xs text-red-600">{errors.email.message}</p> : null}
         </label>
 
         <p className="text-xs text-[var(--color-text-secondary)] md:col-span-2">
-          Вкажіть телефон або email
+          {t("contactHint")}
         </p>
 
         <label className="space-y-2">
-          <span className="text-sm text-[var(--color-text-secondary)]">Тип послуги *</span>
+          <span className="text-sm text-[var(--color-text-secondary)]">{t("serviceTypeLabel")} *</span>
           <Select {...register("service_type")}>
             {SERVICE_TYPES.map((type) => (
               <option key={type} value={type}>
-                {type}
+                {t(`serviceTypes.${type}` as Parameters<typeof t>[0])}
               </option>
             ))}
           </Select>
@@ -138,8 +140,8 @@ export function InquiryForm({
       </div>
 
       <label className="space-y-2">
-        <span className="text-sm text-[var(--color-text-secondary)]">Повідомлення</span>
-        <Textarea {...register("message")} rows={4} placeholder="Коротко опишіть задачу" />
+        <span className="text-sm text-[var(--color-text-secondary)]">{t("message")}</span>
+        <Textarea {...register("message")} rows={4} placeholder={t("messagePlaceholder")} />
         {errors.message ? <p className="text-xs text-red-600">{errors.message.message}</p> : null}
       </label>
 
@@ -169,7 +171,7 @@ export function InquiryForm({
       ) : null}
 
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Надсилаємо..." : "Відправити"}
+        {isPending ? t("submitting") : t("submit")}
       </Button>
     </form>
   );

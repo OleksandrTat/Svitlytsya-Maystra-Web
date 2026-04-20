@@ -7,6 +7,7 @@ import {
   syncWishlistFromLocalStorage,
 } from "@/actions/wishlist";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { posthog } from "@/lib/posthog/client";
 
 const STORAGE_KEY = "product_wishlist";
 const WISHLIST_EVENT = "product-wishlist:change";
@@ -103,7 +104,7 @@ export function useWishlist() {
   }, []);
 
   const toggle = useCallback(
-    (id: string) => {
+    (id: string, title?: string) => {
       setIds((current) => {
         const exists = current.includes(id);
         const next = exists
@@ -111,6 +112,14 @@ export function useWishlist() {
           : [...current, id];
 
         writeWishlistIds(next);
+
+        // Analytics
+        try {
+          posthog.capture(exists ? "wishlist_remove" : "wishlist_add", {
+            product_id: id,
+            ...(title ? { title } : {}),
+          });
+        } catch {}
 
         if (userId) {
           if (exists) {

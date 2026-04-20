@@ -50,6 +50,7 @@ export function ProductCard({ product, showStatus = false }: Props) {
         {/* Wishlist button */}
         <WishlistButton
           productId={product.id}
+          productTitle={product.title}
           className="absolute left-3 top-3 z-20"
         />
 

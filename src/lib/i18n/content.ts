@@ -1,4 +1,4 @@
-import type { Product, Service, BlogPost, FaqItem, Certificate } from "@/lib/types";
+import type { Product, Service, BlogPost, FaqItem, Certificate, Testimonial } from "@/lib/types";
 
 type Locale = "uk" | "en";
 
@@ -64,6 +64,14 @@ export function localizeFaqItem(item: FaqItem, locale: Locale): FaqItem {
     ...item,
     question: localizeField(item.question, item.question_en, locale),
     answer: localizeField(item.answer, item.answer_en, locale),
+  };
+}
+
+export function localizeTestimonial(testimonial: Testimonial, locale: Locale): Testimonial {
+  if (locale === "uk") return testimonial;
+  return {
+    ...testimonial,
+    content: localizeField(testimonial.content, testimonial.content_en, locale),
   };
 }
 

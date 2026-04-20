@@ -49,6 +49,11 @@
       "all": "All",
       "viewAll": "View all work"
     },
+    "testimonials": {
+      "eyebrow": "Testimonials",
+      "title": "What our clients say",
+      "defaultLocation": "Ukraine"
+    },
     "about": {
       "badge": "26+ years of experience",
       "title": "A family workshop with 26 years of tradition",
@@ -160,13 +165,24 @@
   "inquiry": {
     "title": "Get a quote",
     "name": "Name",
+    "namePlaceholder": "Your name",
     "phone": "Phone",
     "email": "Email",
-    "message": "Describe your request",
-    "submit": "Submit request",
-    "submitting": "Submitting...",
+    "contactHint": "Please provide phone or email",
+    "serviceTypeLabel": "Service type",
+    "message": "Message",
+    "messagePlaceholder": "Briefly describe your task",
+    "submit": "Send",
+    "submitting": "Sending...",
     "success": "Request submitted!",
-    "successDesc": "We'll get back to you as soon as possible."
+    "successDesc": "We'll get back to you as soon as possible.",
+    "serviceTypes": {
+      "Двері": "Doors",
+      "Меблі": "Furniture",
+      "Вікна": "Windows",
+      "Реставрація": "Restoration",
+      "Інше": "Other"
+    }
   },
   "auth": {
     "login": "Sign in",

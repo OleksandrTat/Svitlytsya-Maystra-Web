@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   Eye,
+  Languages,
   Link2,
   Loader2,
   Plus,
@@ -64,7 +65,7 @@ type FormState = {
   seo_description_en: string;
 };
 
-type Tab = "main" | "features" | "en" | "seo";
+type Tab = "uk" | "en";
 
 function makeInitialState(s?: Service | null): FormState {
   const srv = s as (Service & { title_en?: string | null; tagline_en?: string | null; short_description_en?: string | null; description_en?: string | null; seo_title_en?: string | null; seo_description_en?: string | null }) | null | undefined;
@@ -173,6 +174,16 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
   );
 }
 
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="h-px flex-1 bg-zinc-100" />
+      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">{label}</span>
+      <div className="h-px flex-1 bg-zinc-100" />
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function ServiceForm({ initialData, allCategories = [], categoryLabels }: Props) {
   const router = useRouter();
@@ -182,10 +193,11 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
 
   const [form, setForm] = useState<FormState>(makeInitialState(initialData));
   const [slugManual, setSlugManual] = useState(isEdit);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSeoLoading, setAiSeoLoading] = useState(false);
+  const [aiTranslating, setAiTranslating] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("main");
+  const [activeTab, setActiveTab] = useState<Tab>("uk");
 
   const markDirty = useCallback(() => setIsDirty(true), []);
 
@@ -227,12 +239,13 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
     markDirty();
   };
 
-  // ── AI SEO ────────────────────────────────────────────────────────────────
+  // ── AI SEO (UK) ───────────────────────────────────────────────────────────
   const generateSeo = async () => {
     if (!form.title.trim()) { toast.error("Вкажіть назву сервісу"); return; }
-    setAiLoading(true);
+    setAiSeoLoading(true);
     try {
-      const result = await requestContentAssist({ title: form.title, content: form.description || form.short_description });
+      const content = [form.description, form.short_description, form.tagline].filter(Boolean).join(" ");
+      const result = await requestContentAssist({ title: form.title, content });
       setForm(curr => ({
         ...curr,
         short_description: curr.short_description || result.excerpt,
@@ -240,12 +253,52 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
         seo_description: result.seoDescription,
       }));
       markDirty();
-      setActiveTab("seo");
       toast.success("SEO поля згенеровано");
-    } catch {
-      toast.error("Не вдалося звернутися до AI");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Не вдалося звернутися до AI");
     } finally {
-      setAiLoading(false);
+      setAiSeoLoading(false);
+    }
+  };
+
+  // ── AI Full Translation (EN) ───────────────────────────────────────────────
+  const translateAll = async () => {
+    if (!form.id) { toast.error("Спочатку збережіть сервіс, щоб отримати ID"); return; }
+    if (!form.title.trim()) { toast.error("Немає контенту для перекладу"); return; }
+
+    setAiTranslating(true);
+    try {
+      const fields: Record<string, string> = {};
+      if (form.title.trim()) fields.title = form.title;
+      if (form.tagline.trim()) fields.tagline = form.tagline;
+      if (form.short_description.trim()) fields.short_description = form.short_description;
+      if (form.description.trim()) fields.description = form.description;
+      if (form.seo_title.trim()) fields.seo_title = form.seo_title;
+      if (form.seo_description.trim()) fields.seo_description = form.seo_description;
+
+      const res = await fetch("/api/admin/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table: "services", id: form.id, fields }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string; translations?: Record<string, string> };
+      if (!res.ok || !data.ok) throw new Error(data.error ?? "Translation failed");
+
+      const tr = data.translations ?? {};
+      setForm(curr => ({
+        ...curr,
+        title_en: tr.title_en ?? curr.title_en,
+        tagline_en: tr.tagline_en ?? curr.tagline_en,
+        short_description_en: tr.short_description_en ?? curr.short_description_en,
+        description_en: tr.description_en ?? curr.description_en,
+        seo_title_en: tr.seo_title_en ?? curr.seo_title_en,
+        seo_description_en: tr.seo_description_en ?? curr.seo_description_en,
+      }));
+      toast.success("Повний переклад виконано");
+    } catch {
+      toast.error("Помилка перекладу. Перевірте налаштування OpenAI.");
+    } finally {
+      setAiTranslating(false);
     }
   };
 
@@ -294,7 +347,7 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
       }
       router.refresh();
     });
-  }, [form, isEdit, router]);
+  }, [form, isEdit, router, catLabels]);
 
   // ── Delete ────────────────────────────────────────────────────────────────
   const handleDelete = () => {
@@ -323,12 +376,7 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
     return () => window.removeEventListener("beforeunload", h);
   }, [isDirty]);
 
-  const TABS = [
-    { id: "main" as Tab, label: "Основне" },
-    { id: "features" as Tab, label: `Переваги ${form.features.length > 0 ? `(${form.features.length})` : ""}`, badge: form.features.length > 0 },
-    { id: "en" as Tab, label: "🇬🇧 EN", badge: !!(form.title_en) },
-    { id: "seo" as Tab, label: "SEO", badge: !!(form.seo_title || form.seo_description) },
-  ];
+  const hasEnContent = !!(form.title_en);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f7f5]">
@@ -404,30 +452,23 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
 
               {/* Tab bar */}
               <div className="flex items-center gap-1 border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
-                {TABS.map(tab => (
-                  <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
-                    className={cn("flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
-                      activeTab === tab.id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800")}>
-                    {tab.label}
-                    {tab.badge && <span className="rounded-full bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-700">✓</span>}
-                  </button>
-                ))}
-
-                <div className="ml-auto">
-                  <button type="button" onClick={() => void generateSeo()} disabled={aiLoading || !form.title.trim()}
-                    className={cn("flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all",
-                      aiLoading || !form.title.trim()
-                        ? "cursor-not-allowed text-zinc-300"
-                        : "bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-sm hover:opacity-90")}>
-                    {aiLoading ? <Loader2 size={11} className="animate-spin" /> : <Zap size={11} />}
-                    AI SEO
-                  </button>
-                </div>
+                <button type="button" onClick={() => setActiveTab("uk")}
+                  className={cn("flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                    activeTab === "uk" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800")}>
+                  🇺🇦 Українська
+                </button>
+                <button type="button" onClick={() => setActiveTab("en")}
+                  className={cn("flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                    activeTab === "en" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800")}>
+                  🇬🇧 English
+                  {hasEnContent && <span className="rounded-full bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-700">✓</span>}
+                </button>
               </div>
 
-              {/* ── Основне tab ── */}
-              {activeTab === "main" && (
+              {/* ── 🇺🇦 Ukrainian tab ── */}
+              {activeTab === "uk" && (
                 <div className="space-y-6 p-6">
+
                   {/* Title */}
                   <div>
                     <FieldLabel required>Назва</FieldLabel>
@@ -489,143 +530,197 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
                       folder="services"
                     />
                   </div>
-                </div>
-              )}
 
-              {/* ── Переваги tab ── */}
-              {activeTab === "features" && (
-                <div className="space-y-5 p-6">
+                  <SectionDivider label="Переваги та процес" />
+
                   {/* Features */}
                   <div>
                     <div className="mb-3 flex items-center justify-between">
-                      <FieldLabel>Переваги сервісу</FieldLabel>
+                      <FieldLabel>Переваги сервісу {form.features.length > 0 && `(${form.features.length})`}</FieldLabel>
                       <button type="button" onClick={addFeature}
                         className="flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200">
                         <Plus size={11} /> Додати
                       </button>
                     </div>
-                    {form.features.length === 0 && (
-                      <div className="rounded-xl border-2 border-dashed border-zinc-200 py-8 text-center">
+                    {form.features.length === 0 ? (
+                      <div className="rounded-xl border-2 border-dashed border-zinc-200 py-6 text-center">
                         <p className="text-sm text-zinc-400">Немає переваг. Натисніть «Додати».</p>
                       </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {form.features.map((f, i) => (
+                          <div key={i} className="grid items-center gap-2 sm:grid-cols-[1fr_1.5fr_auto]">
+                            <FormInput value={f.title} onChange={e => updateFeature(i, { title: e.target.value })} placeholder="Назва переваги" />
+                            <FormInput value={f.description} onChange={e => updateFeature(i, { description: e.target.value })} placeholder="Пояснення" />
+                            <button type="button" onClick={() => removeFeature(i)}
+                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    <div className="space-y-3">
-                      {form.features.map((f, i) => (
-                        <div key={i} className="grid items-center gap-2 sm:grid-cols-[1fr_1.5fr_auto]">
-                          <FormInput value={f.title} onChange={e => updateFeature(i, { title: e.target.value })} placeholder="Назва переваги" />
-                          <FormInput value={f.description} onChange={e => updateFeature(i, { description: e.target.value })} placeholder="Пояснення" />
-                          <button type="button" onClick={() => removeFeature(i)}
-                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Process steps */}
                   <div>
                     <div className="mb-3 flex items-center justify-between">
-                      <FieldLabel>Етапи роботи</FieldLabel>
+                      <FieldLabel>Етапи роботи {form.process_steps.length > 0 && `(${form.process_steps.length})`}</FieldLabel>
                       <button type="button" onClick={addStep}
                         className="flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200">
                         <Plus size={11} /> Додати
                       </button>
                     </div>
-                    {form.process_steps.length === 0 && (
-                      <div className="rounded-xl border-2 border-dashed border-zinc-200 py-8 text-center">
+                    {form.process_steps.length === 0 ? (
+                      <div className="rounded-xl border-2 border-dashed border-zinc-200 py-6 text-center">
                         <p className="text-sm text-zinc-400">Немає етапів. Натисніть «Додати».</p>
                       </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {form.process_steps.map((s, i) => (
+                          <div key={i} className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+                            <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2">
+                              <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Крок {i + 1}</span>
+                              <button type="button" onClick={() => removeStep(i)}
+                                className="flex h-6 w-6 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-red-50 hover:text-red-500">
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                            <div className="grid gap-3 p-3 sm:grid-cols-2">
+                              <FormInput value={s.title} onChange={e => updateStep(i, { title: e.target.value })} placeholder="Назва етапу" />
+                              <FormInput value={s.description} onChange={e => updateStep(i, { description: e.target.value })} placeholder="Пояснення" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    <div className="space-y-3">
-                      {form.process_steps.map((s, i) => (
-                        <div key={i} className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
-                          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2">
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Крок {i + 1}</span>
-                            <button type="button" onClick={() => removeStep(i)}
-                              className="flex h-6 w-6 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-red-50 hover:text-red-500">
-                              <Trash2 size={11} />
-                            </button>
-                          </div>
-                          <div className="grid gap-3 p-3 sm:grid-cols-2">
-                            <FormInput value={s.title} onChange={e => updateStep(i, { title: e.target.value })} placeholder="Назва етапу" />
-                            <FormInput value={s.description} onChange={e => updateStep(i, { description: e.target.value })} placeholder="Пояснення" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* ── EN tab ── */}
-              {activeTab === "en" && (
-                <div className="space-y-5 p-6">
-                  <div className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
-                    <span className="text-sm">🇬🇧</span>
-                    <p className="text-xs font-semibold text-indigo-700">Переклад для англомовних користувачів</p>
-                  </div>
-                  <div>
-                    <FieldLabel>Назва (EN)</FieldLabel>
-                    <FormInput value={form.title_en} onChange={e => setField("title_en", e.target.value)} placeholder="Service name in English" />
-                  </div>
-                  <div>
-                    <FieldLabel>Слоган (EN)</FieldLabel>
-                    <FormInput value={form.tagline_en} onChange={e => setField("tagline_en", e.target.value)} placeholder="Short tagline in English" />
-                  </div>
-                  <div>
-                    <FieldLabel>Короткий опис (EN)</FieldLabel>
-                    <FormTextarea value={form.short_description_en} onChange={e => setField("short_description_en", e.target.value)} rows={3} placeholder="Short description in English…" />
-                  </div>
-                  <div>
-                    <FieldLabel>Повний опис (EN)</FieldLabel>
-                    <FormTextarea value={form.description_en} onChange={e => setField("description_en", e.target.value)} rows={6} placeholder="Full description in English…" />
-                  </div>
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-4 space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">SEO (EN)</p>
-                    <div>
-                      <FieldLabel>SEO Title EN</FieldLabel>
-                      <FormInput value={form.seo_title_en} onChange={e => setField("seo_title_en", e.target.value)} maxLength={60} placeholder="SEO title in English…" />
-                      <CharBar value={form.seo_title_en.length} max={60} warnAt={50} />
-                    </div>
-                    <div>
-                      <FieldLabel>SEO Description EN</FieldLabel>
-                      <FormTextarea value={form.seo_description_en} onChange={e => setField("seo_description_en", e.target.value)} rows={2} maxLength={160} placeholder="SEO description in English…" />
-                      <CharBar value={form.seo_description_en.length} max={160} warnAt={140} />
-                    </div>
-                  </div>
-                </div>
-              )}
+                  <SectionDivider label="SEO" />
 
-              {/* ── SEO tab ── */}
-              {activeTab === "seo" && (
-                <div className="space-y-5 p-6">
-                  <button type="button" onClick={() => void generateSeo()} disabled={aiLoading || !form.title.trim()}
-                    className={cn("flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold shadow-sm transition-all",
-                      aiLoading || !form.title.trim()
+                  {/* AI SEO button */}
+                  <button type="button" onClick={() => void generateSeo()} disabled={aiSeoLoading || !form.title.trim()}
+                    className={cn("flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold shadow-sm transition-all",
+                      aiSeoLoading || !form.title.trim()
                         ? "cursor-not-allowed bg-zinc-100 text-zinc-300"
                         : "bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:opacity-90 hover:shadow-md")}>
-                    {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {aiSeoLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                     Згенерувати SEO з AI
                   </button>
 
+                  {/* SEO Title */}
                   <div>
                     <FieldLabel>SEO Title</FieldLabel>
                     <FormInput value={form.seo_title} onChange={e => setField("seo_title", e.target.value)} maxLength={60} placeholder="Заголовок для пошуку…" />
                     <CharBar value={form.seo_title.length} max={60} warnAt={50} />
                   </div>
+
+                  {/* SEO Description */}
                   <div>
                     <FieldLabel>SEO Description</FieldLabel>
-                    <FormTextarea value={form.seo_description} onChange={e => setField("seo_description", e.target.value)} rows={4} maxLength={160} placeholder="Короткий опис для пошуку…" />
+                    <FormTextarea value={form.seo_description} onChange={e => setField("seo_description", e.target.value)} rows={3} maxLength={160} placeholder="Короткий опис для пошуку…" />
                     <CharBar value={form.seo_description.length} max={160} warnAt={140} />
                   </div>
 
+                  {/* Google preview */}
                   {(form.seo_title || form.title) && (
                     <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
-                      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400"><Search size={9} /> Прев'ю в Google</p>
+                      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        <Search size={9} /> Прев'ю в Google
+                      </p>
                       <div className="text-[11px] text-emerald-700">svitlytsya-maystra.com/services/{form.slug || "…"}</div>
                       <div className="mt-0.5 text-sm font-medium text-blue-700 line-clamp-1">{(form.seo_title || form.title).slice(0, 60)}</div>
                       <div className="mt-0.5 text-xs text-zinc-500 line-clamp-2">{(form.seo_description || form.short_description).slice(0, 160)}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── 🇬🇧 English tab ── */}
+              {activeTab === "en" && (
+                <div className="space-y-5 p-6">
+
+                  {/* AI Translate button */}
+                  {form.id ? (
+                    <button
+                      type="button"
+                      onClick={() => void translateAll()}
+                      disabled={aiTranslating || !form.title.trim()}
+                      className={cn(
+                        "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold shadow-sm transition-all",
+                        aiTranslating || !form.title.trim()
+                          ? "cursor-not-allowed bg-zinc-100 text-zinc-300"
+                          : "bg-gradient-to-r from-sky-500 to-indigo-500 text-white hover:opacity-90 hover:shadow-md",
+                      )}>
+                      {aiTranslating ? <Loader2 size={15} className="animate-spin" /> : <Languages size={15} />}
+                      {aiTranslating ? "Перекладаємо…" : "Повний переклад з AI (UK → EN)"}
+                    </button>
+                  ) : (
+                    <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                      <span className="mt-0.5 text-amber-400">⚠</span>
+                      <p className="text-xs text-amber-700">
+                        Збережіть сервіс спочатку, щоб активувати AI-переклад.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Title EN */}
+                  <div>
+                    <FieldLabel>Назва (EN)</FieldLabel>
+                    <input
+                      value={form.title_en}
+                      onChange={e => setField("title_en", e.target.value)}
+                      placeholder="Service name in English"
+                      className={cn(
+                        "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 font-[Cormorant,serif] text-3xl font-bold text-zinc-900 outline-none transition-all",
+                        "placeholder:text-zinc-300 focus:border-[var(--color-primary-300)] focus:ring-2 focus:ring-[var(--color-primary-100)]",
+                      )}
+                    />
+                  </div>
+
+                  {/* Tagline EN */}
+                  <div>
+                    <FieldLabel>Слоган (EN)</FieldLabel>
+                    <FormInput value={form.tagline_en} onChange={e => setField("tagline_en", e.target.value)} placeholder="Short tagline in English" />
+                  </div>
+
+                  {/* Short description EN */}
+                  <div>
+                    <FieldLabel>Короткий опис (EN)</FieldLabel>
+                    <FormTextarea value={form.short_description_en} onChange={e => setField("short_description_en", e.target.value)} rows={3} placeholder="Short description in English…" />
+                  </div>
+
+                  {/* Description EN */}
+                  <div>
+                    <FieldLabel>Повний опис (EN)</FieldLabel>
+                    <FormTextarea value={form.description_en} onChange={e => setField("description_en", e.target.value)} rows={6} placeholder="Full description in English…" />
+                  </div>
+
+                  <SectionDivider label="SEO (EN)" />
+
+                  {/* SEO Title EN */}
+                  <div>
+                    <FieldLabel>SEO Title (EN)</FieldLabel>
+                    <FormInput value={form.seo_title_en} onChange={e => setField("seo_title_en", e.target.value)} maxLength={60} placeholder="SEO title in English…" />
+                    <CharBar value={form.seo_title_en.length} max={60} warnAt={50} />
+                  </div>
+
+                  {/* SEO Description EN */}
+                  <div>
+                    <FieldLabel>SEO Description (EN)</FieldLabel>
+                    <FormTextarea value={form.seo_description_en} onChange={e => setField("seo_description_en", e.target.value)} rows={3} maxLength={160} placeholder="SEO description in English…" />
+                    <CharBar value={form.seo_description_en.length} max={160} warnAt={140} />
+                  </div>
+
+                  {/* Google preview EN */}
+                  {(form.seo_title_en || form.title_en) && (
+                    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+                      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        <Search size={9} /> Google Preview (EN)
+                      </p>
+                      <div className="text-[11px] text-emerald-700">svitlytsya-maystra.com/en/services/{form.slug || "…"}</div>
+                      <div className="mt-0.5 text-sm font-medium text-blue-700 line-clamp-1">{(form.seo_title_en || form.title_en).slice(0, 60)}</div>
+                      <div className="mt-0.5 text-xs text-zinc-500 line-clamp-2">{(form.seo_description_en || form.short_description_en).slice(0, 160)}</div>
                     </div>
                   )}
                 </div>
