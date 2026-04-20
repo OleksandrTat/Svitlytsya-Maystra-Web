@@ -48,31 +48,25 @@ export async function upsertFaqItemAction(formData: FormData) {
     });
   }
 
+  // Ensure the category row exists before we reference it via FK.
+  await supabase
+    .from("faq_categories")
+    .upsert({ slug: parsed.data.category, label_uk: parsed.data.category }, { onConflict: "slug" });
+
   const { error } = await supabase.from("faq_items").upsert(payload);
   if (error) return { ok: false, message: error.message };
 
-  // Save category labels to site_settings if provided
+  // Persist admin-provided category label overrides on the lookup row.
   const labelUk = String(formData.get("category_label_uk") ?? "").trim();
   const labelEn = String(formData.get("category_label_en") ?? "").trim();
-  const category = parsed.data.category;
-
   if (labelUk || labelEn) {
-    const { data: existing } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "faq_category_labels")
-      .maybeSingle();
-
-    const current = (existing?.value ?? {}) as Record<string, { uk?: string; en?: string }>;
-    current[category] = {
-      ...current[category],
-      ...(labelUk ? { uk: labelUk } : {}),
-      ...(labelEn ? { en: labelEn } : {}),
-    };
-
+    const update: { label_uk?: string; label_en?: string | null } = {};
+    if (labelUk) update.label_uk = labelUk;
+    if (labelEn) update.label_en = labelEn;
     await supabase
-      .from("site_settings")
-      .upsert({ key: "faq_category_labels", value: current });
+      .from("faq_categories")
+      .update(update)
+      .eq("slug", parsed.data.category);
   }
 
   revalidatePath("/faq");
@@ -101,9 +95,25 @@ export async function updateFaqCategoryOrderAction(order: string[]) {
   const supabase = createSupabaseServiceClient();
   if (!supabase) return { ok: false, message: "Service client не налаштований." };
 
-  await supabase
-    .from("site_settings")
-    .upsert({ key: "faq_category_order", value: order });
+  // Ensure each slug exists so the UPDATE below has something to update.
+  if (order.length) {
+    await supabase
+      .from("faq_categories")
+      .upsert(
+        order.map((slug) => ({ slug, label_uk: slug })),
+        { onConflict: "slug" },
+      );
+  }
+
+  // Assign sort_order by array position so the UI order survives.
+  await Promise.all(
+    order.map((slug, idx) =>
+      supabase
+        .from("faq_categories")
+        .update({ sort_order: idx })
+        .eq("slug", slug),
+    ),
+  );
 
   revalidatePath("/faq");
   revalidatePath("/admin/faq");

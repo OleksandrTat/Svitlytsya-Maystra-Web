@@ -69,26 +69,72 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
         Relationships: [];
       };
-      product_attributes: {
+      materials: {
         Row: {
-          id: string;
-          category: string;
-          type: "style" | "material";
-          value: string;
-          usage_count: number;
+          slug: string;
+          label_uk: string;
+          label_en: string | null;
+          sort_order: number;
+          is_active: boolean;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          category: string;
-          type: "style" | "material";
-          value: string;
-          usage_count?: number;
+          slug: string;
+          label_uk: string;
+          label_en?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["product_attributes"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["materials"]["Insert"]>;
+        Relationships: [];
+      };
+      styles: {
+        Row: {
+          slug: string;
+          label_uk: string;
+          label_en: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          label_uk: string;
+          label_en?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["styles"]["Insert"]>;
+        Relationships: [];
+      };
+      product_materials: {
+        Row: {
+          product_id: string;
+          material_slug: string;
+        };
+        Insert: {
+          product_id: string;
+          material_slug: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_materials"]["Insert"]>;
+        Relationships: [];
+      };
+      product_styles: {
+        Row: {
+          product_id: string;
+          style_slug: string;
+        };
+        Insert: {
+          product_id: string;
+          style_slug: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_styles"]["Insert"]>;
         Relationships: [];
       };
       saved_configurations: {
@@ -381,6 +427,7 @@ rate_limit_events: {
             | "in_progress"
             | "done"
             | "archived";
+          contact_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -402,6 +449,7 @@ rate_limit_events: {
             | "in_progress"
             | "done"
             | "archived";
+          contact_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["inquiries"]["Insert"]>;

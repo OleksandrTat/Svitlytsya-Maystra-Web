@@ -10,27 +10,40 @@ import {
 async function getProductAttributes() {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   const categoryLabels = await getProductCategoryLabels();
-  if (!supabase) return { allStyles: [], allMaterials: [], allCategories: Object.keys(categoryLabels), categoryLabels, styleTranslations: {}, materialTranslations: {} };
+  if (!supabase) {
+    return {
+      allStyles: [] as string[],
+      allMaterials: [] as string[],
+      allCategories: Object.keys(categoryLabels),
+      categoryLabels,
+      styleTranslations: {} as Record<string, string>,
+      materialTranslations: {} as Record<string, string>,
+    };
+  }
 
-  const [attrRes, catRes, settingsRes] = await Promise.all([
-    supabase.from("product_attributes").select("type, value").order("usage_count", { ascending: false }),
+  const [matRes, styleRes, catRes] = await Promise.all([
+    supabase.from("materials").select("slug, label_en").eq("is_active", true).order("sort_order", { ascending: true }),
+    supabase.from("styles").select("slug, label_en").eq("is_active", true).order("sort_order", { ascending: true }),
     supabase.from("products").select("category").not("category", "is", null),
-    supabase.from("site_settings").select("key, value").in("key", ["style_translations", "material_translations"]),
   ]);
 
-  const allStyles = [...new Set((attrRes.data ?? []).filter(r => r.type === "style").map(r => r.value))];
-  const allMaterials = [...new Set((attrRes.data ?? []).filter(r => r.type === "material").map(r => r.value))];
-  const allCategories = [...new Set((catRes.data ?? []).map(r => r.category).filter(Boolean))];
+  const allMaterials = (matRes.data ?? []).map((r) => r.slug);
+  const allStyles = (styleRes.data ?? []).map((r) => r.slug);
+  const allCategories = [...new Set((catRes.data ?? []).map((r) => r.category).filter(Boolean))];
   for (const slug of Object.keys(categoryLabels)) {
     if (!allCategories.includes(slug)) allCategories.push(slug);
   }
-  const settingsMap = Object.fromEntries((settingsRes.data ?? []).map(r => [r.key, r.value]));
 
-  return {
-    allStyles, allMaterials, allCategories, categoryLabels,
-    styleTranslations: (settingsMap["style_translations"] ?? {}) as Record<string, string>,
-    materialTranslations: (settingsMap["material_translations"] ?? {}) as Record<string, string>,
-  };
+  const materialTranslations: Record<string, string> = {};
+  for (const r of matRes.data ?? []) {
+    if (r.label_en) materialTranslations[r.slug] = r.label_en;
+  }
+  const styleTranslations: Record<string, string> = {};
+  for (const r of styleRes.data ?? []) {
+    if (r.label_en) styleTranslations[r.slug] = r.label_en;
+  }
+
+  return { allStyles, allMaterials, allCategories, categoryLabels, styleTranslations, materialTranslations };
 }
 
 export default async function AdminProductNewPage() {

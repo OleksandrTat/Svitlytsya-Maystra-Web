@@ -126,20 +126,43 @@ export async function upsertProductAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: error.message };
   }
 
-  // Save translations to site_settings
-  const mergeToSettings = async (key: string, raw: FormDataEntryValue | null) => {
+  // Merge admin-provided label/translation hints directly into the
+  // canonical lookup tables (product_categories, materials, styles).
+  // The DB trigger already auto-seeds missing slugs from the arrays,
+  // so this block only refines label_uk / label_en when the admin
+  // typed them in.
+  const mergeLabelsIntoTable = async (
+    table: "product_categories" | "materials" | "styles",
+    raw: FormDataEntryValue | null,
+    shape: "labels" | "translations",
+  ) => {
     if (!raw) return;
     let parsed: Record<string, unknown>;
     try { parsed = JSON.parse(String(raw)); } catch { return; }
-    if (!Object.keys(parsed).length) return;
-    const { data: existing } = await supabase.from("site_settings").select("value").eq("key", key).maybeSingle();
-    const merged = { ...(existing?.value as Record<string, unknown> ?? {}), ...parsed };
-    await supabase.from("site_settings").upsert({ key, value: merged });
+    const entries = Object.entries(parsed);
+    if (!entries.length) return;
+
+    for (const [slug, value] of entries) {
+      if (!slug) continue;
+      const row: { slug: string; label_uk?: string; label_en?: string | null } = { slug };
+      if (shape === "labels" && value && typeof value === "object") {
+        const v = value as { uk?: string; en?: string };
+        if (v.uk) row.label_uk = v.uk;
+        if (v.en !== undefined) row.label_en = v.en || null;
+      } else if (shape === "translations" && typeof value === "string") {
+        row.label_en = value || null;
+      }
+      // Upsert by slug; if label_uk is absent we can't create a new row
+      // (NOT NULL), so fall back to the slug itself.
+      if (!row.label_uk) row.label_uk = slug;
+      await supabase.from(table).upsert(row, { onConflict: "slug" });
+    }
   };
+
   await Promise.all([
-    mergeToSettings("product_category_labels", formData.get("category_labels")),
-    mergeToSettings("style_translations", formData.get("style_translations")),
-    mergeToSettings("material_translations", formData.get("material_translations")),
+    mergeLabelsIntoTable("product_categories", formData.get("category_labels"), "labels"),
+    mergeLabelsIntoTable("styles",             formData.get("style_translations"), "translations"),
+    mergeLabelsIntoTable("materials",          formData.get("material_translations"), "translations"),
   ]);
 
   revalidatePath("/products");

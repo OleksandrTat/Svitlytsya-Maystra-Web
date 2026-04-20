@@ -140,20 +140,27 @@ export async function upsertBlogPostAction(
   const { error } = await supabase.from("blog_posts").upsert(payload);
   if (error) return { ok: false, message: error.message };
 
-  // Save labels/translations to site_settings
-  const mergeToSettings = async (key: string, raw: FormDataEntryValue | null) => {
-    if (!raw) return;
-    let parsed: Record<string, unknown>;
-    try { parsed = JSON.parse(String(raw)); } catch { return; }
-    if (!Object.keys(parsed).length) return;
-    const { data: existing } = await supabase.from("site_settings").select("value").eq("key", key).maybeSingle();
-    const merged = { ...(existing?.value as Record<string, unknown> ?? {}), ...parsed };
-    await supabase.from("site_settings").upsert({ key, value: merged });
-  };
-  await Promise.all([
-    mergeToSettings("blog_category_labels", formData.get("category_labels")),
-    mergeToSettings("blog_tag_translations", formData.get("tag_translations")),
-  ]);
+  // Merge admin-provided category labels straight into blog_categories.
+  // Tag translations now live on blog_tags (future) — drop the legacy
+  // site_settings write-through path. Tag i18n will come back in its
+  // own lookup table when we migrate tags; for now tags stay as a free
+  // text[] on blog_posts.
+  const rawCategoryLabels = formData.get("category_labels");
+  if (rawCategoryLabels) {
+    let parsed: Record<string, { uk?: string; en?: string }> | null = null;
+    try { parsed = JSON.parse(String(rawCategoryLabels)); } catch { /* ignore */ }
+    if (parsed) {
+      for (const [slug, labels] of Object.entries(parsed)) {
+        if (!slug || !labels) continue;
+        const row: { slug: string; label_uk: string; label_en?: string | null } = {
+          slug,
+          label_uk: labels.uk || slug,
+        };
+        if (labels.en !== undefined) row.label_en = labels.en || null;
+        await supabase.from("blog_categories").upsert(row, { onConflict: "slug" });
+      }
+    }
+  }
 
   revalidatePath("/blog");
   revalidatePath(`/blog/${payload.slug}`);

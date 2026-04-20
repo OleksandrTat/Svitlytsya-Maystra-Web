@@ -26,16 +26,19 @@ export default async function AdminBlogEditPage({
     getAllProductsForAdmin(),
     (async () => {
       if (!supabase) return;
-      const [catsRes, tagsRes, settingsRes] = await Promise.all([
+      const [catsRes, tagsRes, catLabelsRes] = await Promise.all([
         supabase.from("blog_posts").select("category").not("category", "is", null),
         supabase.from("blog_posts").select("tags").not("tags", "is", null),
-        supabase.from("site_settings").select("key, value").in("key", ["blog_category_labels", "blog_tag_translations"]),
+        supabase.from("blog_categories").select("slug, label_uk, label_en").eq("is_active", true),
       ]);
       allCategories = [...new Set((catsRes.data ?? []).map(r => r.category).filter(Boolean))];
       allTags = [...new Set((tagsRes.data ?? []).flatMap(r => Array.isArray(r.tags) ? r.tags as string[] : []))];
-      const settingsMap = Object.fromEntries((settingsRes.data ?? []).map(r => [r.key, r.value]));
-      categoryLabels = (settingsMap["blog_category_labels"] ?? {}) as Record<string, { uk?: string; en?: string }>;
-      tagTranslations = (settingsMap["blog_tag_translations"] ?? {}) as Record<string, string>;
+      categoryLabels = Object.fromEntries(
+        (catLabelsRes.data ?? []).map((r) => [r.slug, { uk: r.label_uk, en: r.label_en ?? undefined }]),
+      );
+      // tag translations now come from a dedicated tags lookup (future);
+      // the legacy site_settings["blog_tag_translations"] key has been dropped.
+      tagTranslations = {};
     })(),
   ]);
 
