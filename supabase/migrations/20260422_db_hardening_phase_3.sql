@@ -124,74 +124,57 @@ END $$;
 
 -- Seed materials/styles lookup from:
 --   1. distinct values in products.materials / products.style
---   2. site_settings.material_translations / style_translations (for label_en)
---   3. fallback product_attributes table if it still exists (type='material' or 'style')
+--   2. fallback product_attributes table if it still exists (type='material' or 'style')
+-- label_en is backfilled separately below from site_settings.material_translations /
+-- style_translations so we never mix PL/pgSQL variables into the INSERT ... SELECT
+-- (which the parser can mis-resolve as a relation in some Postgres builds).
+
+INSERT INTO public.materials (slug, label_uk)
+SELECT DISTINCT m, m
+FROM public.products p, LATERAL unnest(COALESCE(p.materials, ARRAY[]::text[])) AS m
+WHERE m IS NOT NULL AND m <> ''
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO public.styles (slug, label_uk)
+SELECT DISTINCT s, s
+FROM public.products p, LATERAL unnest(COALESCE(p.style, ARRAY[]::text[])) AS s
+WHERE s IS NOT NULL AND s <> ''
+ON CONFLICT (slug) DO NOTHING;
 
 DO $$
-DECLARE
-  material_translations jsonb;
-  style_translations    jsonb;
 BEGIN
-  SELECT value INTO material_translations FROM public.site_settings WHERE key = 'material_translations';
-  SELECT value INTO style_translations    FROM public.site_settings WHERE key = 'style_translations';
-
-  -- Materials from product arrays
-  INSERT INTO public.materials (slug, label_uk, label_en)
-  SELECT DISTINCT
-    m,
-    m AS label_uk,
-    CASE
-      WHEN material_translations IS NOT NULL AND jsonb_typeof(material_translations) = 'object'
-        THEN NULLIF(material_translations->>m, '')
-      ELSE NULL
-    END AS label_en
-  FROM public.products, LATERAL unnest(COALESCE(materials, ARRAY[]::text[])) AS m
-  WHERE m IS NOT NULL AND m <> ''
-  ON CONFLICT (slug) DO NOTHING;
-
-  -- Styles from product arrays
-  INSERT INTO public.styles (slug, label_uk, label_en)
-  SELECT DISTINCT
-    s,
-    s AS label_uk,
-    CASE
-      WHEN style_translations IS NOT NULL AND jsonb_typeof(style_translations) = 'object'
-        THEN NULLIF(style_translations->>s, '')
-      ELSE NULL
-    END AS label_en
-  FROM public.products, LATERAL unnest(COALESCE(style, ARRAY[]::text[])) AS s
-  WHERE s IS NOT NULL AND s <> ''
-  ON CONFLICT (slug) DO NOTHING;
-
-  -- Extra values from product_attributes (if it still exists)
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'product_attributes') THEN
-    INSERT INTO public.materials (slug, label_uk, label_en)
-    SELECT DISTINCT
-      value,
-      value,
-      CASE
-        WHEN material_translations IS NOT NULL AND jsonb_typeof(material_translations) = 'object'
-          THEN NULLIF(material_translations->>value, '')
-        ELSE NULL
-      END
-    FROM public.product_attributes
-    WHERE type = 'material' AND value IS NOT NULL AND value <> ''
+    INSERT INTO public.materials (slug, label_uk)
+    SELECT DISTINCT pa.value, pa.value
+    FROM public.product_attributes pa
+    WHERE pa.type = 'material' AND pa.value IS NOT NULL AND pa.value <> ''
     ON CONFLICT (slug) DO NOTHING;
 
-    INSERT INTO public.styles (slug, label_uk, label_en)
-    SELECT DISTINCT
-      value,
-      value,
-      CASE
-        WHEN style_translations IS NOT NULL AND jsonb_typeof(style_translations) = 'object'
-          THEN NULLIF(style_translations->>value, '')
-        ELSE NULL
-      END
-    FROM public.product_attributes
-    WHERE type = 'style' AND value IS NOT NULL AND value <> ''
+    INSERT INTO public.styles (slug, label_uk)
+    SELECT DISTINCT pa.value, pa.value
+    FROM public.product_attributes pa
+    WHERE pa.type = 'style' AND pa.value IS NOT NULL AND pa.value <> ''
     ON CONFLICT (slug) DO NOTHING;
   END IF;
 END $$;
+
+-- Backfill label_en from the legacy site_settings translation maps, if any.
+-- The subquery returns NULL if the key is absent, which short-circuits the UPDATE.
+UPDATE public.materials mat
+SET label_en = NULLIF(ss.value ->> mat.slug, '')
+FROM public.site_settings ss
+WHERE ss.key = 'material_translations'
+  AND ss.value ->> mat.slug IS NOT NULL
+  AND ss.value ->> mat.slug <> ''
+  AND mat.label_en IS NULL;
+
+UPDATE public.styles st
+SET label_en = NULLIF(ss.value ->> st.slug, '')
+FROM public.site_settings ss
+WHERE ss.key = 'style_translations'
+  AND ss.value ->> st.slug IS NOT NULL
+  AND ss.value ->> st.slug <> ''
+  AND st.label_en IS NULL;
 
 -- Junction tables
 CREATE TABLE IF NOT EXISTS public.product_materials (
