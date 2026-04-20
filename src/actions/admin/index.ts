@@ -148,6 +148,8 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     description_en: String(formData.get("description_en") ?? ""),
     seo_title_en: String(formData.get("seo_title_en") ?? ""),
     seo_description_en: String(formData.get("seo_description_en") ?? ""),
+    features_en: formData.get("features_en") || undefined,
+    process_steps_en: formData.get("process_steps_en") || undefined,
   });
 
   if (!parsed.success) {
@@ -190,6 +192,8 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     description_en: parsed.data.description_en || null,
     seo_title_en: parsed.data.seo_title_en || null,
     seo_description_en: parsed.data.seo_description_en || null,
+    features_en: parseJsonArray(formData.get("features_en")) as Json || null,
+    process_steps_en: parseJsonArray(formData.get("process_steps_en")) as Json || null,
   };
 
   const { error } = await supabase.from("services").upsert(payload);
@@ -198,15 +202,21 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: "Не вдалося зберегти послугу." };
   }
 
-  // Save category labels to site_settings
+  // Persist admin-provided category label overrides directly on the
+  // service_categories lookup. Missing rows are auto-created with the
+  // slug as a fallback label_uk.
   const rawCatLabels = formData.get("category_labels");
   if (rawCatLabels) {
     try {
-      const parsed2 = JSON.parse(String(rawCatLabels)) as Record<string, unknown>;
-      if (Object.keys(parsed2).length) {
-        const { data: existing2 } = await supabase.from("site_settings").select("value").eq("key", "service_category_labels").maybeSingle();
-        const merged = { ...(existing2?.value as Record<string, unknown> ?? {}), ...parsed2 };
-        await supabase.from("site_settings").upsert({ key: "service_category_labels", value: merged });
+      const labels = JSON.parse(String(rawCatLabels)) as Record<string, { uk?: string; en?: string }>;
+      for (const [slug, v] of Object.entries(labels)) {
+        if (!slug || !v) continue;
+        const row: { slug: string; label_uk: string; label_en?: string | null } = {
+          slug,
+          label_uk: v.uk || slug,
+        };
+        if (v.en !== undefined) row.label_en = v.en || null;
+        await supabase.from("service_categories").upsert(row, { onConflict: "slug" });
       }
     } catch { /* ignore */ }
   }
