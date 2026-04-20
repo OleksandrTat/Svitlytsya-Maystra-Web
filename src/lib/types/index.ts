@@ -107,6 +107,8 @@ export interface Service {
   description_en?: string | null;
   seo_title_en?: string | null;
   seo_description_en?: string | null;
+  features_en?: ServiceFeature[] | null;
+  process_steps_en?: ServiceProcessStep[] | null;
 }
 
 export interface SavedConfiguration {

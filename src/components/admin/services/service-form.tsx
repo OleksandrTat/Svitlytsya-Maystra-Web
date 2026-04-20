@@ -63,6 +63,8 @@ type FormState = {
   description_en: string;
   seo_title_en: string;
   seo_description_en: string;
+  features_en: ServiceFeature[];
+  process_steps_en: ServiceProcessStep[];
 };
 
 type Tab = "uk" | "en";
@@ -95,6 +97,8 @@ function makeInitialState(s?: Service | null): FormState {
     description_en: srv?.description_en ?? "",
     seo_title_en: srv?.seo_title_en ?? "",
     seo_description_en: srv?.seo_description_en ?? "",
+    features_en: srv?.features_en ?? [],
+    process_steps_en: srv?.process_steps_en ?? [],
   };
 }
 
@@ -239,6 +243,35 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
     markDirty();
   };
 
+  const updateFeatureEn = (i: number, patch: Partial<ServiceFeature>) => {
+    setForm(curr => ({ ...curr, features_en: curr.features_en.map((f, idx) => idx === i ? { ...f, ...patch } : f) }));
+    markDirty();
+  };
+  const removeFeatureEn = (i: number) => {
+    setForm(curr => ({ ...curr, features_en: curr.features_en.filter((_, idx) => idx !== i) }));
+    markDirty();
+  };
+  const addFeatureEn = () => {
+    setForm(curr => ({ ...curr, features_en: [...curr.features_en, { title: "", description: "" }] }));
+    markDirty();
+  };
+
+  const updateStepEn = (i: number, patch: Partial<ServiceProcessStep>) => {
+    setForm(curr => ({ ...curr, process_steps_en: curr.process_steps_en.map((s, idx) => idx === i ? { ...s, ...patch } : s) }));
+    markDirty();
+  };
+  const removeStepEn = (i: number) => {
+    setForm(curr => ({
+      ...curr,
+      process_steps_en: curr.process_steps_en.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, step: idx + 1 })),
+    }));
+    markDirty();
+  };
+  const addStepEn = () => {
+    setForm(curr => ({ ...curr, process_steps_en: [...curr.process_steps_en, { step: curr.process_steps_en.length + 1, title: "", description: "" }] }));
+    markDirty();
+  };
+
   // ── AI SEO (UK) ───────────────────────────────────────────────────────────
   const generateSeo = async () => {
     if (!form.title.trim()) { toast.error("Вкажіть назву сервісу"); return; }
@@ -275,24 +308,28 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
       if (form.description.trim()) fields.description = form.description;
       if (form.seo_title.trim()) fields.seo_title = form.seo_title;
       if (form.seo_description.trim()) fields.seo_description = form.seo_description;
+      if (form.features.length) fields.features = JSON.stringify(form.features);
+      if (form.process_steps.length) fields.process_steps = JSON.stringify(form.process_steps);
 
       const res = await fetch("/api/admin/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ table: "services", id: form.id, fields }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; translations?: Record<string, string> };
+      const data = (await res.json()) as { ok?: boolean; error?: string; translations?: Record<string, unknown> };
       if (!res.ok || !data.ok) throw new Error(data.error ?? "Translation failed");
 
       const tr = data.translations ?? {};
       setForm(curr => ({
         ...curr,
-        title_en: tr.title_en ?? curr.title_en,
-        tagline_en: tr.tagline_en ?? curr.tagline_en,
-        short_description_en: tr.short_description_en ?? curr.short_description_en,
-        description_en: tr.description_en ?? curr.description_en,
-        seo_title_en: tr.seo_title_en ?? curr.seo_title_en,
-        seo_description_en: tr.seo_description_en ?? curr.seo_description_en,
+        title_en: (tr.title_en as string) ?? curr.title_en,
+        tagline_en: (tr.tagline_en as string) ?? curr.tagline_en,
+        short_description_en: (tr.short_description_en as string) ?? curr.short_description_en,
+        description_en: (tr.description_en as string) ?? curr.description_en,
+        seo_title_en: (tr.seo_title_en as string) ?? curr.seo_title_en,
+        seo_description_en: (tr.seo_description_en as string) ?? curr.seo_description_en,
+        features_en: Array.isArray(tr.features_en) ? (tr.features_en as ServiceFeature[]) : curr.features_en,
+        process_steps_en: Array.isArray(tr.process_steps_en) ? (tr.process_steps_en as ServiceProcessStep[]) : curr.process_steps_en,
       }));
       toast.success("Повний переклад виконано");
     } catch {
@@ -324,6 +361,10 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
       fd.set("features", JSON.stringify(form.features.filter(f => f.title.trim())));
       fd.set("process_steps", JSON.stringify(
         form.process_steps.filter(s => s.title.trim()).map((s, i) => ({ step: i + 1, title: s.title.trim(), description: s.description.trim() }))
+      ));
+      fd.set("features_en", JSON.stringify(form.features_en.filter(f => f.title.trim())));
+      fd.set("process_steps_en", JSON.stringify(
+        form.process_steps_en.filter(s => s.title.trim()).map((s, i) => ({ step: i + 1, title: s.title.trim(), description: s.description.trim() }))
       ));
       fd.set("price_from", form.price_from.trim());
       fd.set("price_unit", form.price_unit.trim());
@@ -694,6 +735,88 @@ export function ServiceForm({ initialData, allCategories = [], categoryLabels }:
                   <div>
                     <FieldLabel>Повний опис (EN)</FieldLabel>
                     <FormTextarea value={form.description_en} onChange={e => setField("description_en", e.target.value)} rows={6} placeholder="Full description in English…" />
+                  </div>
+
+                  <SectionDivider label="Features & Process (EN)" />
+
+                  {/* Features EN */}
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <FieldLabel>Features (EN) {form.features_en.length > 0 && `(${form.features_en.length})`}</FieldLabel>
+                      <button type="button" onClick={addFeatureEn}
+                        className="flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200">
+                        <Plus size={11} /> Add
+                      </button>
+                    </div>
+                    {form.features.length > 0 && form.features_en.length === 0 && (
+                      <p className="mb-2 text-[11px] text-zinc-400">
+                        UK originals: {form.features.map(f => f.title).join(" · ")}
+                      </p>
+                    )}
+                    {form.features_en.length === 0 ? (
+                      <div className="rounded-xl border-2 border-dashed border-zinc-200 py-4 text-center">
+                        <p className="text-xs text-zinc-400">Use AI Translate or add manually.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {form.features_en.map((f, i) => (
+                          <div key={i} className="grid items-start gap-2 sm:grid-cols-[1fr_1.5fr_auto]">
+                            <div>
+                              <FormInput value={f.title} onChange={e => updateFeatureEn(i, { title: e.target.value })} placeholder="Feature title" />
+                              {form.features[i] && <p className="mt-0.5 truncate pl-1 text-[10px] text-zinc-300">UK: {form.features[i].title}</p>}
+                            </div>
+                            <div>
+                              <FormInput value={f.description} onChange={e => updateFeatureEn(i, { description: e.target.value })} placeholder="Description" />
+                              {form.features[i] && <p className="mt-0.5 truncate pl-1 text-[10px] text-zinc-300">UK: {form.features[i].description}</p>}
+                            </div>
+                            <button type="button" onClick={() => removeFeatureEn(i)}
+                              className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Process steps EN */}
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <FieldLabel>Process Steps (EN) {form.process_steps_en.length > 0 && `(${form.process_steps_en.length})`}</FieldLabel>
+                      <button type="button" onClick={addStepEn}
+                        className="flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200">
+                        <Plus size={11} /> Add
+                      </button>
+                    </div>
+                    {form.process_steps_en.length === 0 ? (
+                      <div className="rounded-xl border-2 border-dashed border-zinc-200 py-4 text-center">
+                        <p className="text-xs text-zinc-400">Use AI Translate or add manually.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {form.process_steps_en.map((s, i) => (
+                          <div key={i} className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+                            <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2">
+                              <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Step {i + 1}</span>
+                              <button type="button" onClick={() => removeStepEn(i)}
+                                className="flex h-6 w-6 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-red-50 hover:text-red-500">
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                            <div className="grid gap-3 p-3 sm:grid-cols-2">
+                              <div>
+                                <FormInput value={s.title} onChange={e => updateStepEn(i, { title: e.target.value })} placeholder="Step title" />
+                                {form.process_steps[i] && <p className="mt-0.5 truncate pl-1 text-[10px] text-zinc-300">UK: {form.process_steps[i].title}</p>}
+                              </div>
+                              <div>
+                                <FormInput value={s.description} onChange={e => updateStepEn(i, { description: e.target.value })} placeholder="Description" />
+                                {form.process_steps[i] && <p className="mt-0.5 truncate pl-1 text-[10px] text-zinc-300">UK: {form.process_steps[i].description}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <SectionDivider label="SEO (EN)" />

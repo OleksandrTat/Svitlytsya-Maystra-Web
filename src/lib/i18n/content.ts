@@ -43,6 +43,8 @@ export function localizeService(service: Service, locale: Locale): Service {
     description: localizeField(service.description, service.description_en, locale),
     seo_title: localizeFieldNullable(service.seo_title, service.seo_title_en, locale),
     seo_description: localizeFieldNullable(service.seo_description, service.seo_description_en, locale),
+    features: (service.features_en?.length ? service.features_en : service.features),
+    process_steps: (service.process_steps_en?.length ? service.process_steps_en : service.process_steps),
   };
 }
 

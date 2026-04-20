@@ -115,6 +115,8 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     description_en: String(formData.get("description_en") ?? ""),
     seo_title_en: String(formData.get("seo_title_en") ?? ""),
     seo_description_en: String(formData.get("seo_description_en") ?? ""),
+    features_en: formData.get("features_en") || undefined,
+    process_steps_en: formData.get("process_steps_en") || undefined,
   });
 
   if (!parsed.success) {
@@ -157,6 +159,8 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     description_en: parsed.data.description_en || null,
     seo_title_en: parsed.data.seo_title_en || null,
     seo_description_en: parsed.data.seo_description_en || null,
+    features_en: parseJsonArray(formData.get("features_en")) as Json || null,
+    process_steps_en: parseJsonArray(formData.get("process_steps_en")) as Json || null,
   };
 
   const { error } = await supabase.from("services").upsert(payload);

@@ -27,6 +27,8 @@ export const serviceFormSchema = z.object({
   description_en: z.string().optional(),
   seo_title_en: z.string().optional(),
   seo_description_en: z.string().optional(),
+  features_en: z.string().optional(),
+  process_steps_en: z.string().optional(),
 });
 
 export const testimonialFormSchema = z.object({
