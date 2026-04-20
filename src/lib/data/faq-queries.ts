@@ -1,5 +1,9 @@
 import { cache } from "react";
 import { createSupabaseServiceClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  getFaqCategoryLabelsWithFallback,
+  getFaqCategoryOrderWithFallback,
+} from "@/lib/data/categories";
 import type { FaqItem } from "@/lib/types";
 
 async function getSupabase() {
@@ -50,23 +54,9 @@ export type FaqCategoryLabels = Record<string, { uk?: string; en?: string }>;
 export type FaqCategoryOrder = string[];
 
 export async function getFaqCategoryOrder(): Promise<FaqCategoryOrder> {
-  const supabase = createSupabaseServiceClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "faq_category_order")
-    .maybeSingle();
-  return Array.isArray(data?.value) ? (data.value as string[]) : [];
+  return getFaqCategoryOrderWithFallback();
 }
 
 export async function getFaqCategoryLabels(): Promise<FaqCategoryLabels> {
-  const supabase = createSupabaseServiceClient();
-  if (!supabase) return {};
-  const { data } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "faq_category_labels")
-    .maybeSingle();
-  return ((data?.value ?? {}) as FaqCategoryLabels);
+  return getFaqCategoryLabelsWithFallback();
 }

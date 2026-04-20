@@ -1,4 +1,5 @@
 import { ServiceForm } from "@/components/admin/services/service-form";
+import { getServiceCategoryLabels } from "@/lib/data/categories";
 import {
   createSupabaseServiceClient,
   createSupabaseServerClient,
@@ -7,14 +8,13 @@ import {
 export default async function AdminServiceNewPage() {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   let allCategories: string[] = [];
-  let categoryLabels: Record<string, { uk?: string; en?: string }> = {};
+  const categoryLabels = await getServiceCategoryLabels();
   if (supabase) {
-    const [catsRes, settingsRes] = await Promise.all([
-      supabase.from("services").select("category").not("category", "is", null),
-      supabase.from("site_settings").select("key, value").eq("key", "service_category_labels").maybeSingle(),
-    ]);
+    const catsRes = await supabase.from("services").select("category").not("category", "is", null);
     allCategories = [...new Set((catsRes.data ?? []).map(r => r.category).filter(Boolean))];
-    categoryLabels = (settingsRes.data?.value ?? {}) as Record<string, { uk?: string; en?: string }>;
+  }
+  for (const slug of Object.keys(categoryLabels)) {
+    if (!allCategories.includes(slug)) allCategories.push(slug);
   }
 
   return <ServiceForm allCategories={allCategories} categoryLabels={categoryLabels} />;

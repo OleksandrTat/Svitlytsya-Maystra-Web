@@ -114,7 +114,6 @@ export function FormulaBuilderPopup({
 }: Props) {
   const initialInputs = getFormulaUserInputs({
     user_inputs: initialData?.user_inputs ?? [],
-    input_schema: initialData?.input_schema ?? [],
   });
 
   const [name, setName] = useState(initialData?.name ?? "");
@@ -236,7 +235,6 @@ export function FormulaBuilderPopup({
     formData.set("description", description.trim());
     formData.set("is_active", isActive ? "true" : "false");
     formData.set("user_inputs", JSON.stringify(userInputs));
-    formData.set("input_schema", JSON.stringify(userInputs));
     formData.set(
       "components",
       JSON.stringify(

@@ -77,7 +77,7 @@ export default async function AdminTestimonialsPage() {
         </h2>
         <div className="mt-4 space-y-3">
           {testimonials.map((item) => {
-            const linkedProduct = item.project_id ? productMap.get(item.project_id) : null;
+            const linkedProduct = item.product_id ? productMap.get(item.product_id) : null;
 
             return (
               <article

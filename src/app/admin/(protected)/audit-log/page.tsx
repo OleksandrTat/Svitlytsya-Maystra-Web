@@ -1,14 +1,13 @@
 ﻿import { getTranslations } from "next-intl/server";
 import { AdminCard } from "@/components/admin/admin-card";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { getActivityLogsForAdmin, getAuditLogForAdmin } from "@/lib/data/queries";
+import { getAuditLogForAdmin } from "@/lib/data/queries";
 import { formatInquiryDate } from "@/lib/utils";
 
 export default async function AdminAuditLogPage() {
-  const [t, auditRecords, activityLogs] = await Promise.all([
+  const [t, auditRecords] = await Promise.all([
     getTranslations("admin.pages.auditLog"),
-    getAuditLogForAdmin(300),
-    getActivityLogsForAdmin(100),
+    getAuditLogForAdmin(500),
   ]);
 
   type UnifiedRow = {
@@ -18,31 +17,18 @@ export default async function AdminAuditLogPage() {
     actor: string;
     record_id: string | null;
     created_at: string;
-    source: "audit" | "activity";
+    source: "audit";
   };
 
-  const unified: UnifiedRow[] = [
-    ...auditRecords.map((record) => ({
-      id: record.id,
-      action: record.action,
-      table_name: record.table_name,
-      actor: record.actor_type,
-      record_id: record.record_id ?? null,
-      created_at: record.created_at,
-      source: "audit" as const,
-    })),
-    ...activityLogs.map((record) => ({
-      id: record.id,
-      action: record.action,
-      table_name: record.entity,
-      actor: "admin",
-      record_id: record.entity_id ?? null,
-      created_at: record.created_at,
-      source: "activity" as const,
-    })),
-  ]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 500);
+  const unified: UnifiedRow[] = auditRecords.map((record) => ({
+    id: record.id,
+    action: record.action,
+    table_name: record.table_name,
+    actor: record.actor_type,
+    record_id: record.record_id ?? null,
+    created_at: record.created_at,
+    source: "audit" as const,
+  }));
 
   return (
     <AdminShell title={t("title")} description={t("description")}>

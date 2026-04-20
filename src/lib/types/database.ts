@@ -165,18 +165,106 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["support_messages"]["Insert"]>;
         Relationships: [];
       };
-      rate_limit_store: {
+rate_limit_events: {
         Row: {
+          id: string;
           key: string;
-          timestamps: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rate_limit_events"]["Insert"]>;
+        Relationships: [];
+      };
+      service_categories: {
+        Row: {
+          slug: string;
+          label_uk: string;
+          label_en: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
           updated_at: string;
         };
         Insert: {
-          key: string;
-          timestamps?: string[];
+          slug: string;
+          label_uk: string;
+          label_en?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["rate_limit_store"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["service_categories"]["Insert"]>;
+        Relationships: [];
+      };
+      product_categories: {
+        Row: {
+          slug: string;
+          label_uk: string;
+          label_en: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          label_uk: string;
+          label_en?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_categories"]["Insert"]>;
+        Relationships: [];
+      };
+      blog_categories: {
+        Row: {
+          slug: string;
+          label_uk: string;
+          label_en: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          label_uk: string;
+          label_en?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["blog_categories"]["Insert"]>;
+        Relationships: [];
+      };
+      faq_categories: {
+        Row: {
+          slug: string;
+          label_uk: string;
+          label_en: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          label_uk: string;
+          label_en?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["faq_categories"]["Insert"]>;
         Relationships: [];
       };
       services: {
@@ -252,9 +340,10 @@ export interface Database {
           author_location: string | null;
           content: string;
           rating: number;
-          project_id: string | null;
+          product_id: string | null;
           is_visible: boolean;
           created_at: string;
+          author_location_en: string | null;
           content_en: string | null;
         };
         Insert: {
@@ -263,9 +352,10 @@ export interface Database {
           author_location?: string | null;
           content: string;
           rating?: number;
-          project_id?: string | null;
+          product_id?: string | null;
           is_visible?: boolean;
           created_at?: string;
+          author_location_en?: string | null;
           content_en?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["testimonials"]["Insert"]>;
@@ -281,7 +371,6 @@ export interface Database {
           message: string | null;
           source_page: string | null;
           configuration: Json | null;
-          chat_session_id: string | null;
           channel: "web_form" | "phone" | "direct" | "referral";
           status:
             | "new"
@@ -303,7 +392,6 @@ export interface Database {
           message?: string | null;
           source_page?: string | null;
           configuration?: Json | null;
-          chat_session_id?: string | null;
           channel?: "web_form" | "phone" | "direct" | "referral";
           status?:
             | "new"
@@ -324,7 +412,7 @@ export interface Database {
           id: string;
           inquiry_id: string | null;
           email: string;
-          token: string;
+          token_hash: string;
           status: string;
           invited_by: string | null;
           created_at: string;
@@ -335,7 +423,7 @@ export interface Database {
           id?: string;
           inquiry_id?: string | null;
           email: string;
-          token?: string;
+          token_hash: string;
           status?: string;
           invited_by?: string | null;
           created_at?: string;
@@ -374,7 +462,6 @@ export interface Database {
           inquiry_id: string | null;
           user_id: string | null;
           product_id: string | null;
-          project_id: string | null;
           status:
             | "new"
             | "consulting"
@@ -398,7 +485,6 @@ export interface Database {
           inquiry_id?: string | null;
           user_id?: string | null;
           product_id?: string | null;
-          project_id?: string | null;
           status?:
             | "new"
             | "consulting"
@@ -619,7 +705,6 @@ export interface Database {
           name: string;
           product_type: "door" | "furniture" | "window" | "restoration";
           description: string | null;
-          input_schema: Json;
           user_inputs: Json;
           is_active: boolean;
           created_at: string;
@@ -630,7 +715,6 @@ export interface Database {
           name: string;
           product_type: "door" | "furniture" | "window" | "restoration";
           description?: string | null;
-          input_schema?: Json;
           user_inputs?: Json;
           is_active?: boolean;
           created_at?: string;
@@ -761,8 +845,6 @@ export interface Database {
           social_instagram: string | null;
           social_youtube: string | null;
           social_tiktok: string | null;
-          team_members: Json;
-          certificates: Json;
           updated_at: string;
         };
         Insert: {
@@ -784,34 +866,12 @@ export interface Database {
           social_instagram?: string | null;
           social_youtube?: string | null;
           social_tiktok?: string | null;
-          team_members?: Json;
-          certificates?: Json;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["company_info"]["Insert"]>;
         Relationships: [];
       };
-      activity_logs: {
-        Row: {
-          id: string;
-          action: string;
-          entity: string;
-          entity_id: string | null;
-          payload: Json | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          action: string;
-          entity: string;
-          entity_id?: string | null;
-          payload?: Json | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["activity_logs"]["Insert"]>;
-        Relationships: [];
-      };
-      faq_items: {
+faq_items: {
         Row: {
           id: string;
           question: string;

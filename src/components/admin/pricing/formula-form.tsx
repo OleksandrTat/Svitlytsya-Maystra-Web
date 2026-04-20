@@ -103,7 +103,6 @@ export function FormulaForm({ initialData, initialComponents = [], presets }: Pr
 
   const initialInputs = getFormulaUserInputs({
     user_inputs: initialData?.user_inputs ?? [],
-    input_schema: initialData?.input_schema ?? [],
   });
 
   const [name, setName] = useState(initialData?.name ?? "");
@@ -190,7 +189,6 @@ export function FormulaForm({ initialData, initialComponents = [], presets }: Pr
     fd.set("description", description.trim());
     fd.set("is_active", isActive ? "true" : "false");
     fd.set("user_inputs", JSON.stringify(userInputs));
-    fd.set("input_schema", JSON.stringify(userInputs));
     fd.set("components", JSON.stringify(
       components.map((c, i) => ({ ...c, sort_order: i, condition: c.condition.trim(), notes: c.notes.trim() })),
     ));
