@@ -2,7 +2,6 @@
 import { unstable_cache } from "next/cache";
 import { mockInquiries, mockServices, mockSiteSettings, mockTestimonials } from "@/lib/data/mock";
 import type {
-  ActivityLog,
   AuditLogRecord,
   Certificate,
   CompanyInfo,
@@ -283,45 +282,6 @@ function parseStringArray(value: unknown): string[] {
   return value
     .map((item) => (typeof item === "string" ? item.trim() : ""))
     .filter(Boolean);
-}
-
-function parseCompanyTeamMembers(value: unknown): CompanyTeamMember[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => {
-      if (!item || typeof item !== "object" || Array.isArray(item)) {
-        return null;
-      }
-
-      const teamMember = item as Record<string, unknown>;
-      const id = typeof teamMember.id === "string" ? teamMember.id : null;
-      const name = typeof teamMember.name === "string" ? teamMember.name : null;
-      const role = typeof teamMember.role === "string" ? teamMember.role : null;
-      const photoUrl = typeof teamMember.photo_url === "string" ? teamMember.photo_url : null;
-
-      if (!id || !name || !role) {
-        return null;
-      }
-
-      return {
-        id,
-        name,
-        role,
-        photo_url: photoUrl,
-      };
-    })
-    .filter((item): item is CompanyTeamMember => item !== null);
-}
-
-function parseUnknownList(value: unknown): unknown[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value;
 }
 
 function normalizeSlugValue(value: string) {
@@ -726,7 +686,7 @@ export async function getTestimonialsForProduct(
     .from("testimonials")
     .select("*")
     .eq("is_visible", true)
-    .eq("project_id", productId)
+    .eq("product_id", productId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -738,7 +698,7 @@ export async function getTestimonialsForProduct(
     .from("testimonials")
     .select("*")
     .eq("is_visible", true)
-    .is("project_id", null)
+    .is("product_id", null)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -1000,26 +960,6 @@ export async function getContactSettings() {
   };
 }
 
-
-export async function getActivityLogsForAdmin(limit = 100): Promise<ActivityLog[]> {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("activity_logs")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data as ActivityLog[];
-}
 
 // ── SUPPORT CHAT ──────────────────────────────────────────
 
@@ -1521,21 +1461,33 @@ export async function getCompanyInfoForAdmin(): Promise<CompanyInfo | null> {
     return null;
   }
 
-  const { data, error } = await supabase
-    .from("company_info")
-    .select("*")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [companyRes, teamRes] = await Promise.all([
+    supabase
+      .from("company_info")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("team_members")
+      .select("id, name, role, photo_url, sort_order, is_visible")
+      .order("sort_order", { ascending: true }),
+  ]);
 
-  if (error || !data) {
+  if (companyRes.error || !companyRes.data) {
     return null;
   }
 
+  const teamMembers: CompanyTeamMember[] = (teamRes.data ?? []).map((member) => ({
+    id: member.id,
+    name: member.name,
+    role: member.role ?? "",
+    photo_url: member.photo_url,
+  }));
+
   return {
-    ...data,
-    team_members: parseCompanyTeamMembers(data.team_members),
-    certificates: parseUnknownList(data.certificates),
+    ...companyRes.data,
+    team_members: teamMembers,
   } as CompanyInfo;
 }
 

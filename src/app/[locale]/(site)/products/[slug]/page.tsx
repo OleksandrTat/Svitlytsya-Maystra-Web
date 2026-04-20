@@ -156,7 +156,7 @@ export default async function ProductPage({
     ]);
 
   const linkedTestimonialsCount = testimonials.filter(
-    (testimonial) => testimonial.project_id === product.id,
+    (testimonial) => testimonial.product_id === product.id,
   ).length;
   const model3dUrl = product.model_3d_url?.trim() || null;
   const arPlacement = product.category === "windows" ? "wall" : "floor";

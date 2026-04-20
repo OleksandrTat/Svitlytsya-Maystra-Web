@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { randomUUID } from "crypto";
-import { createSupabaseServiceClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import {
   serviceFormSchema,
@@ -18,8 +18,24 @@ type ActionResult<T = undefined> = {
   data?: T;
 };
 
+const ENTITY_TABLE_MAP: Record<string, string> = {
+  service: "services",
+  testimonial: "testimonials",
+  inquiry: "inquiries",
+  company_info: "company_info",
+  site_setting: "site_settings",
+};
+
+const ACTION_ENUM_MAP = {
+  create: "INSERT",
+  update: "UPDATE",
+  delete: "DELETE",
+} as const;
+
+type ActivityAction = keyof typeof ACTION_ENUM_MAP;
+
 async function logActivity(
-  action: string,
+  action: ActivityAction,
   entity: string,
   entityId: string | null,
   payload: Record<string, unknown> | null,
@@ -29,11 +45,28 @@ async function logActivity(
     return;
   }
 
-  await supabase.from("activity_logs").insert({
-    action,
-    entity,
-    entity_id: entityId,
-    payload: payload as Json,
+  let actorId: string | null = null;
+  try {
+    const serverClient = await createSupabaseServerClient();
+    if (serverClient) {
+      const { data } = await serverClient.auth.getUser();
+      actorId = data.user?.id ?? null;
+    }
+  } catch {
+    actorId = null;
+  }
+
+  const tableName = ENTITY_TABLE_MAP[entity] ?? entity;
+  const recordId = entityId && /^[0-9a-f-]{36}$/i.test(entityId) ? entityId : null;
+
+  await supabase.from("audit_log").insert({
+    actor_id: actorId,
+    actor_type: "admin",
+    action: ACTION_ENUM_MAP[action],
+    table_name: tableName,
+    record_id: recordId,
+    new_value: action === "delete" ? null : (payload as Json | null),
+    old_value: action === "delete" ? (payload as Json | null) : null,
   });
 }
 
@@ -318,7 +351,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
     author_location: formData.get("author_location") || undefined,
     content: formData.get("content"),
     rating: formData.get("rating"),
-    project_id: formData.get("product_id") || undefined,
+    product_id: formData.get("product_id") || undefined,
     is_visible: parseFormBoolean(formData.get("is_visible")),
   });
 
@@ -332,7 +365,7 @@ export async function upsertTestimonialAction(formData: FormData): Promise<Actio
     author_location: parsed.data.author_location || null,
     content: parsed.data.content,
     rating: parsed.data.rating,
-    project_id: parsed.data.project_id || null,
+    product_id: parsed.data.product_id || null,
     is_visible: parsed.data.is_visible,
   };
 

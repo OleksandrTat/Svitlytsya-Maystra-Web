@@ -125,10 +125,11 @@ export interface Testimonial {
   author_location: string | null;
   content: string;
   rating: number;
-  project_id: string | null;
+  product_id: string | null;
   is_visible: boolean;
   created_at: string;
   // i18n EN fields
+  author_location_en?: string | null;
   content_en?: string | null;
 }
 
@@ -141,7 +142,6 @@ export interface Inquiry {
   message: string | null;
   source_page: string | null;
   configuration: Record<string, unknown> | null;
-  chat_session_id: string | null;
   channel: InquiryChannel;
   status: InquiryStatus;
   created_at: string;
@@ -153,7 +153,6 @@ export interface Order {
   inquiry_id: string | null;
   user_id: string | null;
   product_id: string | null;
-  project_id: string | null;
   status: OrderStatus;
   expected_date: string | null;
   actual_date: string | null;
@@ -190,7 +189,6 @@ export interface CompanyInfo {
   social_youtube: string | null;
   social_tiktok: string | null;
   team_members: CompanyTeamMember[];
-  certificates: unknown[];
   updated_at: string;
 }
 
@@ -258,7 +256,6 @@ export interface PriceFormula {
   name: string;
   product_type: PricingProductType;
   description: string | null;
-  input_schema: unknown;
   user_inputs: unknown;
   is_active: boolean;
   created_at: string;
@@ -298,15 +295,6 @@ export interface SiteSetting {
   key: string;
   value: unknown;
   description: string | null;
-}
-
-export interface ActivityLog {
-  id: string;
-  action: string;
-  entity: string;
-  entity_id: string | null;
-  payload: Record<string, unknown> | null;
-  created_at: string;
 }
 
 // ── BLOG ──────────────────────────────────────────────────

@@ -1,11 +1,18 @@
 ﻿"use server";
 
+import { createHash, randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { clientInvitationEmail } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/send";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
+
+function generateInvitationToken() {
+  const plaintext = randomBytes(32).toString("base64url");
+  const hash = createHash("sha256").update(plaintext, "utf8").digest("hex");
+  return { plaintext, hash };
+}
 
 type ActionResult = { ok: boolean; message: string };
 
@@ -43,6 +50,8 @@ export async function createClientAccountFromInquiryAction(
     return { ok: true, message: "Замовлення прив'язано до існуючого акаунту." };
   }
 
+  const { plaintext: plaintextToken, hash: tokenHash } = generateInvitationToken();
+
   const { data: invitation, error: invitationError } = await supabase
     .from("client_invitations")
     .insert({
@@ -50,15 +59,16 @@ export async function createClientAccountFromInquiryAction(
       email,
       status: "pending",
       invited_by: null,
+      token_hash: tokenHash,
     })
-    .select("id, token")
+    .select("id")
     .single();
 
   if (invitationError || !invitation) {
     return { ok: false, message: invitationError?.message ?? "Не вдалося створити запрошення." };
   }
 
-  const inviteUrl = `${env.siteUrl}/auth/register?invite=${invitation.token}&email=${encodeURIComponent(email)}`;
+  const inviteUrl = `${env.siteUrl}/auth/register?invite=${plaintextToken}&email=${encodeURIComponent(email)}`;
   const invitationEmail = clientInvitationEmail({
     displayName: displayName || null,
     email,
@@ -77,7 +87,7 @@ export async function createClientAccountFromInquiryAction(
     ok: true,
     message: emailResult.ok
       ? `Запрошення надіслано на ${email}.`
-      : `Запрошення створено. Email не надіслано (Resend не налаштований). Токен: ${invitation.token}`,
+      : `Запрошення створено. Email не надіслано (Resend не налаштований). Токен: ${plaintextToken}`,
   };
 }
 

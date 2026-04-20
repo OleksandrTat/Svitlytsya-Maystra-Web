@@ -1,9 +1,10 @@
-﻿import { NextResponse } from "next/server";
+﻿import { createHash } from "crypto";
+import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   const { token } = await request.json().catch(() => ({ token: null }));
-  if (!token) {
+  if (!token || typeof token !== "string") {
     return NextResponse.json({ ok: false });
   }
 
@@ -12,10 +13,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false });
   }
 
+  const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
+
   const { data: invitation } = await supabase
     .from("client_invitations")
     .select("id, status, expires_at")
-    .eq("token", token)
+    .eq("token_hash", tokenHash)
     .maybeSingle();
 
   if (

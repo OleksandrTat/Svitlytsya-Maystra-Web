@@ -102,21 +102,17 @@ function normalizeInputDefinition(value: unknown): PricingInputDefinition | null
 }
 
 function getFormulaInputSource(
-  formula: Pick<PriceFormula, "user_inputs" | "input_schema"> | null | undefined,
+  formula: Pick<PriceFormula, "user_inputs"> | null | undefined,
 ) {
   if (Array.isArray(formula?.user_inputs)) {
     return formula.user_inputs;
-  }
-
-  if (Array.isArray(formula?.input_schema)) {
-    return formula.input_schema;
   }
 
   return [];
 }
 
 export function getFormulaUserInputs(
-  formula: Pick<PriceFormula, "user_inputs" | "input_schema"> | null | undefined,
+  formula: Pick<PriceFormula, "user_inputs"> | null | undefined,
 ): PricingInputDefinition[] {
   return getFormulaInputSource(formula)
     .map((item) => normalizeInputDefinition(item))

@@ -223,7 +223,7 @@ export async function upsertPriceFormulaAction(
   const name = String(formData.get("name") || "").trim();
   const productType = String(formData.get("product_type") || "door") as PricingProductType;
   const description = String(formData.get("description") || "").trim();
-  const inputSchemaRaw = String(formData.get("input_schema") || formData.get("user_inputs") || "[]");
+  const inputSchemaRaw = String(formData.get("user_inputs") || formData.get("input_schema") || "[]");
   const hasComponents = formData.has("components");
   const componentsRaw = String(formData.get("components") || "[]");
   const isActive = String(formData.get("is_active") || "true") !== "false";
@@ -252,7 +252,6 @@ export async function upsertPriceFormulaAction(
     name,
     product_type: productType,
     description: description || null,
-    input_schema: inputSchema,
     user_inputs: inputSchema,
     is_active: isActive,
   };
