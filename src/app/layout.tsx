@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Inter, Cormorant_Garamond } from "next/font/google";
 import { getLocale } from "next-intl/server";
 import "./globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({
   variable: "--font-inter",
