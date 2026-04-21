@@ -1,14 +1,17 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { FormEvent, Suspense, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthLayout } from "@/components/layout/auth-layout";
+import { Link, useRouter } from "@/i18n/navigation";
 import { isAdminUser } from "@/lib/auth/is-admin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function LoginPageContent() {
+  const t = useTranslations("auth.loginPage");
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -21,6 +24,7 @@ function LoginPageContent() {
   const nextParam = searchParams.get("next");
   const safeNext = nextParam && nextParam.startsWith("/") ? nextParam : null;
   const justReset = searchParams.get("reset") === "success";
+  const callbackError = searchParams.get("error") === "auth_callback";
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -35,21 +39,31 @@ function LoginPageContent() {
       });
 
       if (signInError) {
-        setError("Невірний email або пароль.");
+        setError(t("errorInvalidCredentials"));
         return;
       }
 
       const isAdmin = isAdminUser(data.user);
-      let target = isAdmin ? "/admin" : "/profile";
+      let target: string = isAdmin ? "/admin" : "/profile";
 
       if (safeNext) {
         target = safeNext.startsWith("/admin") && !isAdmin ? "/profile" : safeNext;
       }
 
-      router.replace(target);
-      router.refresh();
+      // For `/admin` the locale prefix is not used (admin is locale-less).
+      // For everything else (including /profile) we rely on `useRouter` from
+      // `@/i18n/navigation` which auto-prepends the active locale.
+      if (target.startsWith("/admin")) {
+        window.location.assign(target);
+      } else {
+        // `next` may already contain a locale prefix (e.g. /uk/profile)
+        // — strip it so next-intl's router doesn't double-prefix it.
+        const unlocalised = target.replace(/^\/(uk|en)(?=\/|$)/, "") || "/";
+        router.replace(unlocalised);
+        router.refresh();
+      }
     } catch {
-      setError("Не вдалося виконати вхід. Спробуйте ще раз.");
+      setError(t("errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -59,47 +73,57 @@ function LoginPageContent() {
     <AuthLayout>
       <div>
         <h1 className="font-display text-[32px] font-semibold text-[var(--color-text-primary)]">
-          Вхід до кабінету
+          {t("title")}
         </h1>
         <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-          Ще немає акаунту?{" "}
+          {t("noAccountQuestion")}{" "}
           <Link
             href="/auth/register"
             className="font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
           >
-            Зареєструватись &rarr;
+            {t("goToRegister")}
           </Link>
         </p>
       </div>
 
       {justReset && (
         <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Пароль оновлено. Увійдіть з новим паролем.
+          {t("passwordResetSuccess")}
+        </div>
+      )}
+
+      {callbackError && (
+        <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          {t("errorCallback")}
         </div>
       )}
 
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
         <label className="block">
-          <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Email</span>
+          <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+            {tAuth("email")}
+          </span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="your@email.com"
+            placeholder={t("emailPlaceholder")}
             className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
           />
         </label>
 
         <label className="block">
-          <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Пароль</span>
+          <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+            {tAuth("password")}
+          </span>
           <div className="relative mt-1.5">
             <input
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="••••••••"
+              placeholder={t("passwordPlaceholder")}
               className="block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 pr-11 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
             />
             <button
@@ -118,7 +142,7 @@ function LoginPageContent() {
             href="/auth/forgot-password"
             className="text-[13px] font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
           >
-            Забули пароль?
+            {tAuth("forgotPassword")}
           </Link>
         </div>
 
@@ -133,7 +157,7 @@ function LoginPageContent() {
           disabled={loading}
           className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)] disabled:opacity-60"
         >
-          {loading ? "Вхід..." : "Увійти"}
+          {loading ? t("submitting") : t("submit")}
         </button>
       </form>
     </AuthLayout>

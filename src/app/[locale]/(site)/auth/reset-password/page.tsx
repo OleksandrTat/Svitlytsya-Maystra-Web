@@ -1,13 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { FormEvent, useState } from "react";
 import { Eye, EyeOff, KeyRound } from "lucide-react";
 import { Container } from "@/components/ui/container";
+import { Link, useRouter } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
+  const t = useTranslations("auth.resetPasswordPage");
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,12 +21,12 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (password.length < 8) {
-      setError("Новий пароль має містити щонайменше 8 символів.");
+      setError(t("errorPasswordTooShort"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Паролі не збігаються.");
+      setError(t("errorPasswordsMismatch"));
       return;
     }
 
@@ -42,7 +43,7 @@ export default function ResetPasswordPage() {
 
       router.replace("/auth/login?reset=success");
     } catch {
-      setError("Не вдалося оновити пароль.");
+      setError(t("errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -59,16 +60,16 @@ export default function ResetPasswordPage() {
           </div>
 
           <h1 className="mt-5 text-center font-display text-[28px] font-semibold text-[var(--color-text-primary)]">
-            Новий пароль
+            {t("title")}
           </h1>
           <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">
-            Введіть новий пароль для вашого акаунту
+            {t("subtitle")}
           </p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-5">
             <label className="block">
               <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-                Новий пароль
+                {t("newPassword")}
               </span>
               <div className="relative mt-1.5">
                 <input
@@ -77,7 +78,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  placeholder="Мінімум 8 символів"
+                  placeholder={t("newPasswordPlaceholder")}
                   className="block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 pr-11 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
                 />
                 <button
@@ -93,7 +94,7 @@ export default function ResetPasswordPage() {
 
             <label className="block">
               <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-                Підтвердіть пароль
+                {t("confirmPassword")}
               </span>
               <input
                 type="password"
@@ -101,7 +102,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={8}
-                placeholder="Повторіть пароль"
+                placeholder={t("confirmPasswordPlaceholder")}
                 className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
               />
             </label>
@@ -117,7 +118,7 @@ export default function ResetPasswordPage() {
               disabled={loading}
               className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)] disabled:opacity-60"
             >
-              {loading ? "Оновлення..." : "Оновити пароль"}
+              {loading ? t("submitting") : t("submit")}
             </button>
 
             <div className="text-center">
@@ -125,7 +126,7 @@ export default function ResetPasswordPage() {
                 href="/auth/login"
                 className="text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
               >
-                &larr; Повернутись до входу
+                {t("backToLogin")}
               </Link>
             </div>
           </form>

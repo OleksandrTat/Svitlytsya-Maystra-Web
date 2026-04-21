@@ -1,32 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthLayout } from "@/components/layout/auth-layout";
+import { Link, useRouter } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function getPasswordStrength(pw: string): { level: number; label: string; color: string } {
-  if (!pw) return { level: 0, label: "", color: "" };
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-
-  if (score <= 1) return { level: 1, label: "Слабкий", color: "bg-red-400" };
-  if (score <= 2) return { level: 2, label: "Середній", color: "bg-amber-400" };
-  if (score <= 3) return { level: 3, label: "Добрий", color: "bg-emerald-400" };
-  return { level: 4, label: "Надійний", color: "bg-emerald-600" };
-}
-
 function RegisterPageContent() {
+  const t = useTranslations("auth.registerPage");
+  const tAuth = useTranslations("auth");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
@@ -48,11 +37,23 @@ function RegisterPageContent() {
 
   const passwordHint = useMemo(() => {
     if (!password) return null;
-    if (password.length < 8) return "Мінімум 8 символів.";
+    if (password.length < 8) return t("passwordMin");
     return null;
-  }, [password]);
+  }, [password, t]);
 
-  const strength = useMemo(() => getPasswordStrength(password), [password]);
+  const strength = useMemo(() => {
+    if (!password) return { level: 0, label: "", color: "" };
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    if (score <= 1) return { level: 1, label: t("strengthWeak"), color: "bg-red-400" };
+    if (score <= 2) return { level: 2, label: t("strengthMedium"), color: "bg-amber-400" };
+    if (score <= 3) return { level: 3, label: t("strengthGood"), color: "bg-emerald-400" };
+    return { level: 4, label: t("strengthStrong"), color: "bg-emerald-600" };
+  }, [password, t]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -62,22 +63,22 @@ function RegisterPageContent() {
     const trimmedEmail = email.trim().toLowerCase();
 
     if (trimmedName.length < 2) {
-      setError("Ім'я має містити щонайменше 2 символи.");
+      setError(t("errorNameTooShort"));
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
-      setError("Вкажіть коректний email.");
+      setError(t("errorInvalidEmail"));
       return;
     }
 
     if (password.length < 8) {
-      setError("Пароль має містити щонайменше 8 символів.");
+      setError(t("errorPasswordTooShort"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Паролі не збігаються.");
+      setError(t("errorPasswordsMismatch"));
       return;
     }
 
@@ -90,7 +91,7 @@ function RegisterPageContent() {
         password,
         options: {
           data: { display_name: trimmedName },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/profile`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/${locale}/profile`,
         },
       });
 
@@ -109,7 +110,7 @@ function RegisterPageContent() {
 
       router.replace(`/auth/verify-email?email=${encodeURIComponent(trimmedEmail)}`);
     } catch {
-      setError("Не вдалося завершити реєстрацію. Спробуйте ще раз.");
+      setError(t("errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -119,48 +120,50 @@ function RegisterPageContent() {
     <AuthLayout>
       <div>
         <h1 className="font-display text-[32px] font-semibold text-[var(--color-text-primary)]">
-          Реєстрація
+          {t("title")}
         </h1>
         <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-          Уже маєте акаунт?{" "}
+          {t("hasAccountQuestion")}{" "}
           <Link
             href="/auth/login"
             className="font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
           >
-            Увійти &rarr;
+            {t("goToLogin")}
           </Link>
         </p>
       </div>
 
       {inviteToken && (
         <div className="mt-4 rounded-xl border-l-4 border-[var(--color-primary)] bg-[var(--color-primary-100)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-          Вас запрошено до особистого кабінету. Перевірте email та завершіть реєстрацію.
+          {t("inviteBanner")}
         </div>
       )}
 
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
         <label className="block">
           <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-            Ім&rsquo;я
+            {t("name")}
           </span>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            placeholder="Ваше ім'я"
+            placeholder={t("namePlaceholder")}
             className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
           />
         </label>
 
         <label className="block">
-          <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Email</span>
+          <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+            {tAuth("email")}
+          </span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="your@email.com"
+            placeholder={t("emailPlaceholder")}
             className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
           />
         </label>
@@ -168,7 +171,7 @@ function RegisterPageContent() {
         <div>
           <label className="block">
             <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-              Пароль
+              {tAuth("password")}
             </span>
             <div className="relative mt-1.5">
               <input
@@ -177,7 +180,7 @@ function RegisterPageContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                placeholder="Мінімум 8 символів"
+                placeholder={t("passwordPlaceholder")}
                 className="block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 pr-11 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
               />
               <button
@@ -211,7 +214,7 @@ function RegisterPageContent() {
 
         <label className="block">
           <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-            Підтвердьте пароль
+            {tAuth("confirmPassword")}
           </span>
           <input
             type="password"
@@ -219,7 +222,7 @@ function RegisterPageContent() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             minLength={8}
-            placeholder="Повторіть пароль"
+            placeholder={t("confirmPasswordPlaceholder")}
             className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
           />
         </label>
@@ -235,7 +238,7 @@ function RegisterPageContent() {
           disabled={loading}
           className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)] disabled:opacity-60"
         >
-          {loading ? "Реєстрація..." : "Створити акаунт"}
+          {loading ? t("submitting") : t("submit")}
         </button>
       </form>
     </AuthLayout>

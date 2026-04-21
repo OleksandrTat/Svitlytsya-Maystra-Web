@@ -36,6 +36,7 @@ export function SiteHeader() {
 
   const isHomepage = pathname === "/";
   const isTransparent = isHomepage && !scrolled;
+  const profileFallback = t("profileFallback");
 
   const links = NAV_HREFS.map((item) => ({ href: item.href, label: t(item.key) }));
 
@@ -106,7 +107,7 @@ export function SiteHeader() {
 
       setCurrentUser({
         id: user.id,
-        displayName: displayName || user.email?.split("@")[0] || "Профіль",
+        displayName: displayName || user.email?.split("@")[0] || profileFallback,
         isAdmin: isAdminUser(user),
       });
     };
@@ -123,7 +124,7 @@ export function SiteHeader() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [profileFallback]);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -311,7 +312,7 @@ export function SiteHeader() {
               ? "border-white/40 text-white"
               : "border-[var(--color-border)] text-[var(--color-primary)]",
           )}
-          aria-label="Відкрити меню"
+          aria-label={t("openMenu")}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>

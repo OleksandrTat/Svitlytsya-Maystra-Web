@@ -1,12 +1,17 @@
 "use client";
 
-import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { FormEvent, useState } from "react";
 import { Mail } from "lucide-react";
 import { Container } from "@/components/ui/container";
+import { Link } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("auth.forgotPasswordPage");
+  const tAuth = useTranslations("auth");
+  const locale = useLocale();
+
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -20,7 +25,7 @@ export default function ForgotPasswordPage() {
     try {
       const supabase = createSupabaseBrowserClient();
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/${locale}/auth/reset-password`,
       });
 
       if (resetError) {
@@ -30,7 +35,7 @@ export default function ForgotPasswordPage() {
 
       setSent(true);
     } catch {
-      setError("Не вдалося надіслати лист для відновлення.");
+      setError(t("errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -47,23 +52,23 @@ export default function ForgotPasswordPage() {
           </div>
 
           <h1 className="mt-5 text-center font-display text-[28px] font-semibold text-[var(--color-text-primary)]">
-            Відновлення пароля
+            {t("title")}
           </h1>
           <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">
-            Вкажіть email, і ми надішлемо посилання для скидання пароля
+            {t("subtitle")}
           </p>
 
           {sent ? (
             <div className="mt-6 space-y-4">
               <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-800">
-                Лист для скидання пароля надіслано на <strong>{email}</strong>
+                {t("sent", { email })}
               </div>
               <div className="text-center">
                 <Link
                   href="/auth/login"
                   className="text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
                 >
-                  &larr; Повернутись до входу
+                  {t("backToLogin")}
                 </Link>
               </div>
             </div>
@@ -71,14 +76,14 @@ export default function ForgotPasswordPage() {
             <form onSubmit={onSubmit} className="mt-6 space-y-5">
               <label className="block">
                 <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-                  Email
+                  {tAuth("email")}
                 </span>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="your@email.com"
+                  placeholder={t("emailPlaceholder")}
                   className="mt-1.5 block w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-shadow placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
                 />
               </label>
@@ -94,7 +99,7 @@ export default function ForgotPasswordPage() {
                 disabled={loading}
                 className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)] disabled:opacity-60"
               >
-                {loading ? "Надсилання..." : "Надіслати посилання"}
+                {loading ? t("submitting") : t("submit")}
               </button>
 
               <div className="text-center">
@@ -102,7 +107,7 @@ export default function ForgotPasswordPage() {
                   href="/auth/login"
                   className="text-sm font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-700)]"
                 >
-                  &larr; Повернутись до входу
+                  {t("backToLogin")}
                 </Link>
               </div>
             </form>
