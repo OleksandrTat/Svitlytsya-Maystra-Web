@@ -12,7 +12,9 @@
     "orders": "Мої замовлення",
     "support": "Підтримка",
     "adminPanel": "Адмін панель",
-    "signOut": "Вийти"
+    "signOut": "Вийти",
+    "openMenu": "Відкрити меню",
+    "profileFallback": "Профіль"
   },
   "footer": {
     "tagline": "Сімейна майстерня дерев'яних виробів. 26+ років традицій та індивідуальних рішень під ваш простір.",
@@ -186,20 +188,86 @@
   },
   "auth": {
     "login": "Увійти",
-    "register": "Зареєструватись",
     "logout": "Вийти",
     "email": "Email",
     "password": "Пароль",
-    "confirmPassword": "Підтвердіть пароль",
+    "confirmPassword": "Підтвердьте пароль",
     "forgotPassword": "Забули пароль?",
-    "resetPassword": "Відновити пароль",
-    "noAccount": "Немає акаунту?",
-    "hasAccount": "Вже є акаунт?",
-    "submit": "Увійти",
-    "submitting": "Вхід...",
     "orContinueWith": "або продовжити через",
-    "verifyEmail": "Підтвердіть email",
-    "verifyEmailDesc": "Перевірте вашу пошту та натисніть на посилання для підтвердження"
+    "loginPage": {
+      "title": "Вхід до кабінету",
+      "noAccountQuestion": "Ще немає акаунту?",
+      "goToRegister": "Зареєструватись →",
+      "passwordPlaceholder": "••••••••",
+      "emailPlaceholder": "your@email.com",
+      "submit": "Увійти",
+      "submitting": "Вхід...",
+      "errorInvalidCredentials": "Невірний email або пароль.",
+      "errorGeneric": "Не вдалося виконати вхід. Спробуйте ще раз.",
+      "errorCallback": "Не вдалося завершити авторизацію. Спробуйте ще раз.",
+      "passwordResetSuccess": "Пароль оновлено. Увійдіть з новим паролем."
+    },
+    "registerPage": {
+      "title": "Реєстрація",
+      "hasAccountQuestion": "Уже маєте акаунт?",
+      "goToLogin": "Увійти →",
+      "inviteBanner": "Вас запрошено до особистого кабінету. Перевірте email та завершіть реєстрацію.",
+      "name": "Ім'я",
+      "namePlaceholder": "Ваше ім'я",
+      "emailPlaceholder": "your@email.com",
+      "passwordPlaceholder": "Мінімум 8 символів",
+      "confirmPasswordPlaceholder": "Повторіть пароль",
+      "submit": "Створити акаунт",
+      "submitting": "Реєстрація...",
+      "errorNameTooShort": "Ім'я має містити щонайменше 2 символи.",
+      "errorInvalidEmail": "Вкажіть коректний email.",
+      "errorPasswordTooShort": "Пароль має містити щонайменше 8 символів.",
+      "errorPasswordsMismatch": "Паролі не збігаються.",
+      "errorGeneric": "Не вдалося завершити реєстрацію. Спробуйте ще раз.",
+      "passwordMin": "Мінімум 8 символів.",
+      "strengthWeak": "Слабкий",
+      "strengthMedium": "Середній",
+      "strengthGood": "Добрий",
+      "strengthStrong": "Надійний"
+    },
+    "forgotPasswordPage": {
+      "title": "Відновлення пароля",
+      "subtitle": "Вкажіть email, і ми надішлемо посилання для скидання пароля",
+      "emailPlaceholder": "your@email.com",
+      "submit": "Надіслати посилання",
+      "submitting": "Надсилання...",
+      "sent": "Лист для скидання пароля надіслано на {email}",
+      "errorGeneric": "Не вдалося надіслати лист для відновлення.",
+      "backToLogin": "← Повернутись до входу"
+    },
+    "resetPasswordPage": {
+      "title": "Новий пароль",
+      "subtitle": "Введіть новий пароль для вашого акаунту",
+      "newPassword": "Новий пароль",
+      "confirmPassword": "Підтвердіть пароль",
+      "newPasswordPlaceholder": "Мінімум 8 символів",
+      "confirmPasswordPlaceholder": "Повторіть пароль",
+      "submit": "Оновити пароль",
+      "submitting": "Оновлення...",
+      "errorPasswordTooShort": "Новий пароль має містити щонайменше 8 символів.",
+      "errorPasswordsMismatch": "Паролі не збігаються.",
+      "errorGeneric": "Не вдалося оновити пароль.",
+      "backToLogin": "← Повернутись до входу"
+    },
+    "verifyEmailPage": {
+      "title": "Перевірте пошту",
+      "descriptionWithEmail": "Ми надіслали посилання для підтвердження на {email}. Після переходу за ним ви будете автоматично авторизовані.",
+      "description": "Ми надіслали посилання для підтвердження. Після переходу за ним ви будете автоматично авторизовані.",
+      "goToLogin": "Увійти",
+      "goHome": "На головну"
+    },
+    "layout": {
+      "heading": "Ваш особистий кабінет майстерні",
+      "subheading": "Відстежуйте замовлення, спілкуйтесь з майстрами та керуйте проєктами в одному місці",
+      "benefitOrders": "Відстежуйте замовлення онлайн",
+      "benefitChat": "Спілкуйтесь з майстрами напряму",
+      "benefitSecure": "Захищений особистий кабінет"
+    }
   },
   "profile": {
     "title": "Профіль",
@@ -522,7 +590,7 @@
         "noMessages": "Повідомлень поки немає.",
         "selectChat": "Оберіть чат зі списку ліворуч",
         "selectChatDesc": "Для відповіді клієнту відкрийте потрібне замовлення. Тут буде повноцінний 3-панельний inbox.",
-        "quickNav": "Швидкий перехід: натисніть Ctrl/Cmd\u00a0+\u00a0K, введіть номер замовлення і відкрийте картку."
+        "quickNav": "Швидкий перехід: натисніть Ctrl/Cmd + K, введіть номер замовлення і відкрийте картку."
       },
       "security": {
         "title": "Безпека",

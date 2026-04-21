@@ -1,18 +1,22 @@
+"use client";
+
 import Image from "next/image";
 import { KeyRound, MessageCircle, Shield } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 type Props = {
   children: ReactNode;
 };
 
-const BENEFITS = [
-  { icon: KeyRound, text: "Відстежуйте замовлення онлайн" },
-  { icon: MessageCircle, text: "Спілкуйтесь з майстрами напряму" },
-  { icon: Shield, text: "Захищений особистий кабінет" },
-];
-
 export function AuthLayout({ children }: Props) {
+  const t = useTranslations("auth.layout");
+  const benefits = [
+    { icon: KeyRound, text: t("benefitOrders") },
+    { icon: MessageCircle, text: t("benefitChat") },
+    { icon: Shield, text: t("benefitSecure") },
+  ];
+
   return (
     <div className="grid min-h-[calc(100vh-72px)] lg:grid-cols-2">
       {/* Decorative panel — hidden on mobile */}
@@ -33,15 +37,13 @@ export function AuthLayout({ children }: Props) {
             className="rounded-lg"
           />
           <h2 className="mt-6 font-display text-4xl font-bold text-white">
-            Ваш особистий
-            <br />
-            кабінет майстерні
+            {t("heading")}
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-white/70">
-            Відстежуйте замовлення, спілкуйтесь з майстрами та керуйте проєктами в одному місці
+            {t("subheading")}
           </p>
           <div className="mt-10 space-y-4">
-            {BENEFITS.map((item) => (
+            {benefits.map((item) => (
               <div key={item.text} className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
                   <item.icon size={16} className="text-white/80" />

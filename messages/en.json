@@ -12,7 +12,9 @@
     "orders": "My orders",
     "support": "Support",
     "adminPanel": "Admin panel",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "openMenu": "Open menu",
+    "profileFallback": "Profile"
   },
   "footer": {
     "tagline": "A family woodworking workshop. 26+ years of tradition and custom solutions for your space.",
@@ -186,20 +188,86 @@
   },
   "auth": {
     "login": "Sign in",
-    "register": "Sign up",
     "logout": "Sign out",
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm password",
     "forgotPassword": "Forgot password?",
-    "resetPassword": "Reset password",
-    "noAccount": "Don't have an account?",
-    "hasAccount": "Already have an account?",
-    "submit": "Sign in",
-    "submitting": "Signing in...",
     "orContinueWith": "or continue with",
-    "verifyEmail": "Verify your email",
-    "verifyEmailDesc": "Check your inbox and click the confirmation link"
+    "loginPage": {
+      "title": "Sign in to your account",
+      "noAccountQuestion": "Don't have an account yet?",
+      "goToRegister": "Create one →",
+      "passwordPlaceholder": "••••••••",
+      "emailPlaceholder": "your@email.com",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "errorInvalidCredentials": "Invalid email or password.",
+      "errorGeneric": "Couldn't sign in. Please try again.",
+      "errorCallback": "Couldn't complete sign-in. Please try again.",
+      "passwordResetSuccess": "Password updated. Sign in with your new password."
+    },
+    "registerPage": {
+      "title": "Create an account",
+      "hasAccountQuestion": "Already have an account?",
+      "goToLogin": "Sign in →",
+      "inviteBanner": "You've been invited to a personal account. Check your email and complete registration.",
+      "name": "Name",
+      "namePlaceholder": "Your name",
+      "emailPlaceholder": "your@email.com",
+      "passwordPlaceholder": "At least 8 characters",
+      "confirmPasswordPlaceholder": "Repeat the password",
+      "submit": "Create account",
+      "submitting": "Creating...",
+      "errorNameTooShort": "Name must be at least 2 characters.",
+      "errorInvalidEmail": "Please enter a valid email.",
+      "errorPasswordTooShort": "Password must be at least 8 characters.",
+      "errorPasswordsMismatch": "Passwords don't match.",
+      "errorGeneric": "Couldn't complete registration. Please try again.",
+      "passwordMin": "At least 8 characters.",
+      "strengthWeak": "Weak",
+      "strengthMedium": "Medium",
+      "strengthGood": "Good",
+      "strengthStrong": "Strong"
+    },
+    "forgotPasswordPage": {
+      "title": "Password reset",
+      "subtitle": "Enter your email and we'll send a password reset link",
+      "emailPlaceholder": "your@email.com",
+      "submit": "Send reset link",
+      "submitting": "Sending...",
+      "sent": "Password reset email sent to {email}",
+      "errorGeneric": "Couldn't send the reset email.",
+      "backToLogin": "← Back to sign in"
+    },
+    "resetPasswordPage": {
+      "title": "New password",
+      "subtitle": "Enter a new password for your account",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "newPasswordPlaceholder": "At least 8 characters",
+      "confirmPasswordPlaceholder": "Repeat the password",
+      "submit": "Update password",
+      "submitting": "Updating...",
+      "errorPasswordTooShort": "The new password must be at least 8 characters.",
+      "errorPasswordsMismatch": "Passwords don't match.",
+      "errorGeneric": "Couldn't update the password.",
+      "backToLogin": "← Back to sign in"
+    },
+    "verifyEmailPage": {
+      "title": "Check your inbox",
+      "descriptionWithEmail": "We've sent a confirmation link to {email}. Once you follow it, you'll be signed in automatically.",
+      "description": "We've sent a confirmation link. Once you follow it, you'll be signed in automatically.",
+      "goToLogin": "Sign in",
+      "goHome": "Go to home"
+    },
+    "layout": {
+      "heading": "Your workshop personal account",
+      "subheading": "Track orders, chat with craftsmen and manage projects in one place",
+      "benefitOrders": "Track your orders online",
+      "benefitChat": "Chat with craftsmen directly",
+      "benefitSecure": "Secure personal account"
+    }
   },
   "profile": {
     "title": "Profile",
@@ -522,7 +590,7 @@
         "noMessages": "No messages yet.",
         "selectChat": "Select a chat from the list on the left",
         "selectChatDesc": "To reply to a client, open the relevant order. A full 3-panel inbox will be available here.",
-        "quickNav": "Quick navigation: press Ctrl/Cmd\u00a0+\u00a0K, type an order number and open the card."
+        "quickNav": "Quick navigation: press Ctrl/Cmd + K, type an order number and open the card."
       },
       "security": {
         "title": "Security",
