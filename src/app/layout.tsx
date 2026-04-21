@@ -35,6 +35,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         className={`${inter.variable} ${cormorant.variable} antialiased`}
       >
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
