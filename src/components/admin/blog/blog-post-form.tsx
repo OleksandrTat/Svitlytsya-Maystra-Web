@@ -20,11 +20,9 @@ import {
   Trash2,
   User,
   X,
-  Languages,
   BookOpen,
   Settings,
   Search,
-  Zap,
   Link2,
 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
@@ -125,15 +123,31 @@ function FieldLabel({
 }
 
 // ─── Google SERP preview ──────────────────────────────────────────────────────
-function SerpPreview({ title, description, slug }: { title: string; description: string; slug: string }) {
-  const displayTitle = title || "Заголовок статті";
-  const displayDesc = description || "Опис статті...";
-  const displayUrl = `svitlytsya-maystra.com/blog/${slug || "slug"}`;
+function SerpPreview({
+  title,
+  description,
+  slug,
+  urlPrefix = "blog",
+  label = "Прев'ю в Google",
+  placeholderTitle = "Заголовок статті",
+  placeholderDesc = "Опис статті...",
+}: {
+  title: string;
+  description: string;
+  slug: string;
+  urlPrefix?: string;
+  label?: string;
+  placeholderTitle?: string;
+  placeholderDesc?: string;
+}) {
+  const displayTitle = title || placeholderTitle;
+  const displayDesc = description || placeholderDesc;
+  const displayUrl = `svitlytsya-maystra.com/${urlPrefix}/${slug || "slug"}`;
 
   return (
     <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
       <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-        <Search size={9} /> Прев'ю в Google
+        <Search size={9} /> {label}
       </p>
       <div className="text-[11px] text-emerald-700">{displayUrl}</div>
       <div className="mt-0.5 text-sm font-medium leading-snug text-blue-700 hover:underline">
@@ -773,7 +787,7 @@ export function BlogPostForm({ initialData, services, products, allCategories = 
               </div>
 
               {/* Content editor */}
-              <div className="px-8 py-5">
+              <div className="border-b border-zinc-100 px-8 py-5">
                 <FieldLabel
                   label="Контент"
                   onTranslate={activeTab === "en" ? () => void translateField("content", content.replace(/<[^>]+>/g, " "), setContentEn) : undefined}
@@ -799,6 +813,137 @@ export function BlogPostForm({ initialData, services, products, allCategories = 
                   placeholder={activeTab === "uk" ? "Почніть писати статтю…" : "Write article content in English..."}
                 />
               </div>
+
+              {/* ── SEO section (per-language) ── */}
+              {activeTab === "uk" && (
+                <div className="space-y-4 px-8 py-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">SEO</span>
+                    <button
+                      type="button"
+                      onClick={() => void handleGenerateSeo()}
+                      disabled={seoLoading || (!title && !excerpt)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold transition-all",
+                        seoLoading || (!title && !excerpt)
+                          ? "cursor-not-allowed bg-zinc-100 text-zinc-300"
+                          : "bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-sm hover:opacity-90",
+                      )}
+                    >
+                      {seoLoading ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                      AI-генерація SEO
+                    </button>
+                  </div>
+
+                  <div>
+                    <SideLabel>SEO Title</SideLabel>
+                    <SideInput
+                      type="text"
+                      value={seoTitle}
+                      onChange={(e) => { setSeoTitle(e.target.value); markDirty(); }}
+                      maxLength={60}
+                      placeholder="Заголовок для пошуку..."
+                    />
+                    <CharBar value={seoTitle.length} max={60} warnAt={50} />
+                  </div>
+
+                  <div>
+                    <SideLabel>SEO Description</SideLabel>
+                    <textarea
+                      value={seoDescription}
+                      onChange={(e) => { setSeoDescription(e.target.value); markDirty(); }}
+                      maxLength={160}
+                      rows={3}
+                      placeholder="Короткий опис для пошуку..."
+                      className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none transition-all focus:border-[var(--color-primary-300)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-100)]"
+                    />
+                    <CharBar value={seoDescription.length} max={160} warnAt={140} />
+                  </div>
+
+                  {(seoTitle || title) && (
+                    <SerpPreview
+                      title={seoTitle || title}
+                      description={seoDescription || excerpt}
+                      slug={slug}
+                      urlPrefix="blog"
+                      label="Прев'ю в Google"
+                    />
+                  )}
+                </div>
+              )}
+
+              {activeTab === "en" && (
+                <div className="space-y-4 px-8 py-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">SEO (EN)</span>
+                    <button
+                      type="button"
+                      onClick={() => void (async () => {
+                        const toTranslate = [seoTitle, seoDescription].filter(Boolean);
+                        if (!toTranslate.length) { toast.info("Немає SEO для перекладу"); return; }
+                        setFieldTranslating("seo", true);
+                        const res = await aiTranslateTexts(toTranslate);
+                        setFieldTranslating("seo", false);
+                        if (res) {
+                          if (seoTitle && res[0]) setSeoTitleEn(res[0]);
+                          if (seoDescription && res[seoTitle ? 1 : 0]) setSeoDescriptionEn(res[seoTitle ? 1 : 0]!);
+                          markDirty();
+                          toast.success("SEO перекладено");
+                        } else {
+                          toast.error("Не вдалося перекласти");
+                        }
+                      })()}
+                      disabled={translating.seo || (!seoTitle && !seoDescription)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold transition-all",
+                        translating.seo || (!seoTitle && !seoDescription)
+                          ? "cursor-not-allowed bg-zinc-100 text-zinc-300"
+                          : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:shadow-sm",
+                      )}
+                    >
+                      {translating.seo ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                      Перекласти SEO з укр.
+                    </button>
+                  </div>
+
+                  <div>
+                    <SideLabel>SEO Title (EN)</SideLabel>
+                    <SideInput
+                      type="text"
+                      value={seoTitleEn}
+                      onChange={(e) => { setSeoTitleEn(e.target.value); markDirty(); }}
+                      maxLength={60}
+                      placeholder="SEO title in English..."
+                    />
+                    <CharBar value={seoTitleEn.length} max={60} warnAt={50} />
+                  </div>
+
+                  <div>
+                    <SideLabel>SEO Description (EN)</SideLabel>
+                    <textarea
+                      value={seoDescriptionEn}
+                      onChange={(e) => { setSeoDescriptionEn(e.target.value); markDirty(); }}
+                      maxLength={160}
+                      rows={3}
+                      placeholder="SEO description in English..."
+                      className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none transition-all focus:border-[var(--color-primary-300)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-100)]"
+                    />
+                    <CharBar value={seoDescriptionEn.length} max={160} warnAt={140} />
+                  </div>
+
+                  {(seoTitleEn || titleEn) && (
+                    <SerpPreview
+                      title={seoTitleEn || titleEn}
+                      description={seoDescriptionEn || excerptEn}
+                      slug={slug}
+                      urlPrefix="en/blog"
+                      label="Google Preview (EN)"
+                      placeholderTitle="Article title"
+                      placeholderDesc="Article description..."
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
           </div>
@@ -868,94 +1013,6 @@ export function BlogPostForm({ initialData, services, products, allCategories = 
                   placeholder="Додати тег..."
                 />
               </div>
-            </SideCard>
-
-            {/* SEO */}
-            <SideCard title="SEO" icon={<Search size={14} />}>
-              {/* AI button */}
-              <button
-                type="button"
-                onClick={() => void handleGenerateSeo()}
-                disabled={seoLoading || (!title && !excerpt)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:opacity-50"
-              >
-                {seoLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-                AI-генерація SEO
-              </button>
-
-              <div>
-                <SideLabel>SEO Title</SideLabel>
-                <SideInput
-                  type="text"
-                  value={seoTitle}
-                  onChange={(e) => { setSeoTitle(e.target.value); markDirty(); }}
-                  maxLength={60}
-                  placeholder="Заголовок для пошуку..."
-                />
-                <CharBar value={seoTitle.length} max={60} warnAt={50} />
-              </div>
-
-              <div>
-                <SideLabel>SEO Description</SideLabel>
-                <textarea
-                  value={seoDescription}
-                  onChange={(e) => { setSeoDescription(e.target.value); markDirty(); }}
-                  maxLength={160}
-                  rows={3}
-                  placeholder="Короткий опис для пошуку..."
-                  className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-800 outline-none transition-all focus:border-[var(--color-primary-300)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary-100)]"
-                />
-                <CharBar value={seoDescription.length} max={160} warnAt={140} />
-              </div>
-
-              {/* EN SEO */}
-              <div className="space-y-2 rounded-xl border border-indigo-100 bg-indigo-50/30 p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">🇬🇧 EN SEO</span>
-                  <button
-                    type="button"
-                    onClick={() => void (async () => {
-                      const toTranslate = [seoTitle, seoDescription].filter(Boolean);
-                      if (!toTranslate.length) return;
-                      setFieldTranslating("seo", true);
-                      const res = await aiTranslateTexts(toTranslate);
-                      setFieldTranslating("seo", false);
-                      if (res) {
-                        if (seoTitle && res[0]) setSeoTitleEn(res[0]);
-                        if (seoDescription && res[seoTitle ? 1 : 0]) setSeoDescriptionEn(res[seoTitle ? 1 : 0]!);
-                        markDirty();
-                        toast.success("SEO перекладено");
-                      }
-                    })()}
-                    disabled={translating.seo || (!seoTitle && !seoDescription)}
-                    className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-indigo-500 shadow-sm transition hover:shadow disabled:opacity-40"
-                  >
-                    {translating.seo ? <Loader2 size={9} className="animate-spin" /> : <Languages size={9} />}
-                    Перекласти
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={seoTitleEn}
-                  onChange={(e) => { setSeoTitleEn(e.target.value); markDirty(); }}
-                  maxLength={60}
-                  placeholder="SEO title in English..."
-                  className="w-full rounded-lg border border-indigo-100 bg-white px-2.5 py-2 text-xs text-zinc-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-                />
-                <textarea
-                  value={seoDescriptionEn}
-                  onChange={(e) => { setSeoDescriptionEn(e.target.value); markDirty(); }}
-                  maxLength={160}
-                  rows={2}
-                  placeholder="SEO description in English..."
-                  className="w-full resize-none rounded-lg border border-indigo-100 bg-white px-2.5 py-2 text-xs text-zinc-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-                />
-              </div>
-
-              {/* SERP preview */}
-              {(seoTitle || title) && (
-                <SerpPreview title={seoTitle || title} description={seoDescription || excerpt} slug={slug} />
-              )}
             </SideCard>
 
             {/* Author */}

@@ -9,8 +9,8 @@ import {
   Check,
   ChevronDown,
   Eye,
-  Globe,
   ImageIcon,
+  Languages,
   Layers,
   Link2,
   Loader2,
@@ -21,7 +21,6 @@ import {
   Sparkles,
   Star,
   Trash2,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { upsertProductAction, deleteProductAction } from "@/actions/admin/products";
@@ -57,7 +56,7 @@ type Props = {
 
 const STATUSES = Object.entries(PRODUCT_STATUS_LABELS) as [string, string][];
 
-type Tab = "content" | "en" | "seo";
+type Tab = "uk" | "en";
 
 function slugify(value: string) {
   return value
@@ -124,6 +123,16 @@ function CharBar({ value, max, warnAt }: { value: number; max: number; warnAt: n
   );
 }
 
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="h-px flex-1 bg-zinc-100" />
+      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">{label}</span>
+      <div className="h-px flex-1 bg-zinc-100" />
+    </div>
+  );
+}
+
 function SideCard({ title, icon, children, defaultOpen = true }: {
   title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean;
 }) {
@@ -149,7 +158,7 @@ export function ProductForm({ initialData, formulas, allStyles, allMaterials, al
   const { generate, loading: aiLoading } = useAiSeoAssist();
   const isEdit = Boolean(initialData?.id);
 
-  const [activeTab, setActiveTab] = useState<Tab>("content");
+  const [activeTab, setActiveTab] = useState<Tab>("uk");
 
   // Fields
   const [title, setTitle] = useState(initialData?.title ?? "");
@@ -184,8 +193,7 @@ export function ProductForm({ initialData, formulas, allStyles, allMaterials, al
   const [materialTransl, setMaterialTransl] = useState<Record<string, string>>(materialTranslations ?? {});
   const markDirty = useCallback(() => setIsDirty(true), []);
 
-  const hasEnTranslation = !!(titleEn || descriptionEn);
-  const hasSeo = !!(seoTitle || seoDescription);
+  const hasEnContent = !!titleEn;
 
   const handleTitleChange = (v: string) => {
     setTitle(v);
@@ -223,7 +231,6 @@ export function ProductForm({ initialData, formulas, allStyles, allMaterials, al
     setSeoDescription(result.seoDescription);
     if (!slugManual && result.slug) setSlug(result.slug);
     markDirty();
-    setActiveTab("seo");
     toast.success("AI згенерував SEO-поля та slug");
   };
 
@@ -302,12 +309,6 @@ export function ProductForm({ initialData, formulas, allStyles, allMaterials, al
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
   }, [isDirty]);
-
-  const TABS = [
-    { id: "content" as Tab, label: "Контент", icon: <Layers size={13} /> },
-    { id: "en" as Tab, label: "English", icon: <Globe size={13} />, badge: hasEnTranslation },
-    { id: "seo" as Tab, label: "SEO", icon: <Search size={13} />, badge: hasSeo },
-  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f7f5]">
@@ -429,44 +430,31 @@ export function ProductForm({ initialData, formulas, allStyles, allMaterials, al
 
               {/* Tab bar */}
               <div className="flex items-center gap-1 border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
-                {TABS.map(tab => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
-                      activeTab === tab.id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800",
-                    )}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                    {tab.badge && (
-                      <span className={cn("rounded-full px-1 py-0.5 text-[9px] font-bold", activeTab === tab.id ? "bg-emerald-100 text-emerald-700" : "bg-emerald-100 text-emerald-700")}>✓</span>
-                    )}
-                  </button>
-                ))}
-
-                <div className="ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => void handleAiGenerate()}
-                    disabled={aiLoading || (!title && !description)}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all",
-                      aiLoading || (!title && !description)
-                        ? "cursor-not-allowed text-zinc-300"
-                        : "bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-sm hover:opacity-90",
-                    )}
-                  >
-                    {aiLoading ? <Loader2 size={11} className="animate-spin" /> : <Zap size={11} />}
-                    AI SEO
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("uk")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                    activeTab === "uk" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800",
+                  )}
+                >
+                  🇺🇦 Українська
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("en")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                    activeTab === "en" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800",
+                  )}
+                >
+                  🇬🇧 English
+                  {hasEnContent && <span className="rounded-full bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-700">✓</span>}
+                </button>
               </div>
 
-              {/* ── Контент tab ── */}
-              {activeTab === "content" && (
+              {/* ── 🇺🇦 Ukrainian tab ── */}
+              {activeTab === "uk" && (
                 <div className="space-y-6 p-6">
 
                   {/* Title */}
@@ -552,96 +540,132 @@ export function ProductForm({ initialData, formulas, allStyles, allMaterials, al
                       placeholder="Додати матеріал..."
                     />
                   </div>
-                </div>
-              )}
 
-              {/* ── EN tab ── */}
-              {activeTab === "en" && (
-                <div className="space-y-5 p-6">
-                  <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Globe size={14} className="text-indigo-400" />
-                      <p className="text-xs font-semibold text-indigo-700">🇬🇧 Переклад для англомовних користувачів</p>
-                    </div>
-                    {isEdit && initialData?.id && (
-                      <TranslateButton
-                        table="products"
-                        id={initialData.id}
-                        fields={{ title, description, short_description: shortDescription, seo_title: seoTitle, seo_description: seoDescription }}
-                        onSuccess={(t) => {
-                          if (t.title_en) setTitleEn(t.title_en);
-                          if (t.description_en) setDescriptionEn(t.description_en);
-                          if (t.short_description_en) setShortDescriptionEn(t.short_description_en);
-                          if (t.seo_title_en) setSeoTitleEn(t.seo_title_en);
-                          if (t.seo_description_en) setSeoDescriptionEn(t.seo_description_en);
-                          markDirty();
-                        }}
-                      />
-                    )}
-                  </div>
+                  <SectionDivider label="SEO" />
 
-                  <div>
-                    <FieldLabel>Назва (EN)</FieldLabel>
-                    <FormInput value={titleEn} onChange={(e) => { setTitleEn(e.target.value); markDirty(); }} placeholder="Product name in English" />
-                  </div>
-                  <div>
-                    <FieldLabel>Опис (EN)</FieldLabel>
-                    <FormTextarea value={descriptionEn} onChange={(e) => { setDescriptionEn(e.target.value); markDirty(); }} rows={5} placeholder="Full description in English" />
-                  </div>
-                  <div>
-                    <FieldLabel>Короткий опис (EN)</FieldLabel>
-                    <FormTextarea value={shortDescriptionEn} onChange={(e) => { setShortDescriptionEn(e.target.value); markDirty(); }} rows={3} placeholder="Short description in English" />
-                  </div>
-
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-4 space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">SEO (EN)</p>
-                    <div>
-                      <FieldLabel>SEO Title EN</FieldLabel>
-                      <FormInput value={seoTitleEn} onChange={(e) => { setSeoTitleEn(e.target.value); markDirty(); }} maxLength={60} placeholder="SEO title in English..." />
-                      <CharBar value={seoTitleEn.length} max={60} warnAt={50} />
-                    </div>
-                    <div>
-                      <FieldLabel>SEO Description EN</FieldLabel>
-                      <FormTextarea value={seoDescriptionEn} onChange={(e) => { setSeoDescriptionEn(e.target.value); markDirty(); }} rows={2} maxLength={160} placeholder="SEO description in English..." />
-                      <CharBar value={seoDescriptionEn.length} max={160} warnAt={140} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── SEO tab ── */}
-              {activeTab === "seo" && (
-                <div className="space-y-5 p-6">
+                  {/* AI SEO button */}
                   <button
                     type="button"
                     onClick={() => void handleAiGenerate()}
                     disabled={aiLoading || (!title && !description)}
                     className={cn(
-                      "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold shadow-sm transition-all",
+                      "flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold shadow-sm transition-all",
                       aiLoading || (!title && !description)
                         ? "cursor-not-allowed bg-zinc-100 text-zinc-300"
                         : "bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:opacity-90 hover:shadow-md",
                     )}
                   >
-                    {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {aiLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                     Згенерувати SEO з AI
                   </button>
+
+                  {/* SEO Title */}
                   <div>
                     <FieldLabel>SEO Title</FieldLabel>
                     <FormInput value={seoTitle} onChange={(e) => { setSeoTitle(e.target.value); markDirty(); }} maxLength={60} placeholder="Заголовок для пошуку..." />
                     <CharBar value={seoTitle.length} max={60} warnAt={50} />
                   </div>
+
+                  {/* SEO Description */}
                   <div>
                     <FieldLabel>SEO Description</FieldLabel>
                     <FormTextarea value={seoDescription} onChange={(e) => { setSeoDescription(e.target.value); markDirty(); }} rows={4} maxLength={160} placeholder="Короткий опис для пошуку..." />
                     <CharBar value={seoDescription.length} max={160} warnAt={140} />
                   </div>
+
+                  {/* Google preview */}
                   {(seoTitle || title) && (
                     <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Прев'ю в Google</p>
+                      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        <Search size={9} /> Прев'ю в Google
+                      </p>
                       <div className="text-[11px] text-emerald-700">svitlytsya-maystra.com/products/{slug || "..."}</div>
                       <div className="mt-0.5 text-sm font-medium text-blue-700 line-clamp-1">{(seoTitle || title).slice(0, 60)}</div>
                       <div className="mt-0.5 text-xs text-zinc-500 line-clamp-2">{(seoDescription || shortDescription || description).slice(0, 160)}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── 🇬🇧 English tab ── */}
+              {activeTab === "en" && (
+                <div className="space-y-5 p-6">
+
+                  {/* AI Translate button */}
+                  {isEdit && initialData?.id ? (
+                    <TranslateButton
+                      table="products"
+                      id={initialData.id}
+                      fields={{ title, description, short_description: shortDescription, seo_title: seoTitle, seo_description: seoDescription }}
+                      onSuccess={(t) => {
+                        if (t.title_en) setTitleEn(t.title_en);
+                        if (t.description_en) setDescriptionEn(t.description_en);
+                        if (t.short_description_en) setShortDescriptionEn(t.short_description_en);
+                        if (t.seo_title_en) setSeoTitleEn(t.seo_title_en);
+                        if (t.seo_description_en) setSeoDescriptionEn(t.seo_description_en);
+                        markDirty();
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                      <Languages size={14} className="mt-0.5 text-amber-500" />
+                      <p className="text-xs text-amber-700">
+                        Збережіть продукт спочатку, щоб активувати AI-переклад.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Title EN */}
+                  <div>
+                    <FieldLabel>Назва (EN)</FieldLabel>
+                    <input
+                      value={titleEn}
+                      onChange={(e) => { setTitleEn(e.target.value); markDirty(); }}
+                      placeholder="Product name in English"
+                      className={cn(
+                        "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 font-[Cormorant,serif] text-3xl font-bold text-zinc-900 outline-none transition-all",
+                        "placeholder:text-zinc-300 focus:border-[var(--color-primary-300)] focus:ring-2 focus:ring-[var(--color-primary-100)]",
+                      )}
+                    />
+                  </div>
+
+                  {/* Short description EN */}
+                  <div>
+                    <FieldLabel>Короткий опис (EN)</FieldLabel>
+                    <FormTextarea value={shortDescriptionEn} onChange={(e) => { setShortDescriptionEn(e.target.value); markDirty(); }} rows={3} placeholder="Short description in English…" />
+                  </div>
+
+                  {/* Description EN */}
+                  <div>
+                    <FieldLabel>Повний опис (EN)</FieldLabel>
+                    <FormTextarea value={descriptionEn} onChange={(e) => { setDescriptionEn(e.target.value); markDirty(); }} rows={6} placeholder="Full description in English…" />
+                  </div>
+
+                  <SectionDivider label="SEO (EN)" />
+
+                  {/* SEO Title EN */}
+                  <div>
+                    <FieldLabel>SEO Title (EN)</FieldLabel>
+                    <FormInput value={seoTitleEn} onChange={(e) => { setSeoTitleEn(e.target.value); markDirty(); }} maxLength={60} placeholder="SEO title in English…" />
+                    <CharBar value={seoTitleEn.length} max={60} warnAt={50} />
+                  </div>
+
+                  {/* SEO Description EN */}
+                  <div>
+                    <FieldLabel>SEO Description (EN)</FieldLabel>
+                    <FormTextarea value={seoDescriptionEn} onChange={(e) => { setSeoDescriptionEn(e.target.value); markDirty(); }} rows={3} maxLength={160} placeholder="SEO description in English…" />
+                    <CharBar value={seoDescriptionEn.length} max={160} warnAt={140} />
+                  </div>
+
+                  {/* Google preview EN */}
+                  {(seoTitleEn || titleEn) && (
+                    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+                      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        <Search size={9} /> Google Preview (EN)
+                      </p>
+                      <div className="text-[11px] text-emerald-700">svitlytsya-maystra.com/en/products/{slug || "…"}</div>
+                      <div className="mt-0.5 text-sm font-medium text-blue-700 line-clamp-1">{(seoTitleEn || titleEn).slice(0, 60)}</div>
+                      <div className="mt-0.5 text-xs text-zinc-500 line-clamp-2">{(seoDescriptionEn || shortDescriptionEn).slice(0, 160)}</div>
                     </div>
                   )}
                 </div>
