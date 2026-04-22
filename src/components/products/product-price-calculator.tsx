@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Calculator, ChevronDown, ChevronUp, Minus, Plus } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   evaluatePricingCondition,
@@ -21,25 +22,35 @@ type Props = {
   contactHref?: string;
 };
 
-function fallbackBlock(priceFrom: number | null, contactHref: string) {
-  if (!priceFrom) {
-    return null;
-  }
+function useNumberLocale() {
+  const locale = useLocale();
+  return locale === "en" ? "en-US" : "uk-UA";
+}
+
+function FallbackBlock({
+  priceFrom,
+  contactHref,
+}: {
+  priceFrom: number;
+  contactHref: string;
+}) {
+  const t = useTranslations("productPage");
+  const numberLocale = useNumberLocale();
 
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-      <p className="text-xs text-[var(--color-text-secondary)]">Вартість</p>
+      <p className="text-xs text-[var(--color-text-secondary)]">{t("priceLabel")}</p>
       <p className="mt-1 font-display text-3xl text-[var(--color-primary)]">
-        від {priceFrom.toLocaleString("uk-UA")} грн
+        {t("calculatorAmountFrom", { amount: priceFrom.toLocaleString(numberLocale) })}
       </p>
       <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-        Точна вартість визначається після консультації та виміру.
+        {t("calculatorExactNote")}
       </p>
       <Link
         href={contactHref}
-        className="mt-3 inline-block rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white"
+        className="mt-3 inline-block rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
       >
-        Отримати розрахунок
+        {t("calculatorGetQuote")}
       </Link>
     </div>
   );
@@ -107,15 +118,24 @@ export function ProductPriceCalculator({
   components = [],
   contactHref = "/contact",
 }: Props) {
+  const t = useTranslations("productPage");
+  const numberLocale = useNumberLocale();
+
   const inputSchema = useMemo(() => getFormulaUserInputs(formula), [formula]);
   const [values, setValues] = useState<PricingRuntimeInputs>(() => buildDefaultValues(formula));
   const debouncedValues = useDebounce(values, 250);
   const [showBreakdown, setShowBreakdown] = useState(false);
-  const presetById = useMemo(() => new Map(presets.map((preset) => [preset.id, preset])), [presets]);
+  const presetById = useMemo(
+    () => new Map(presets.map((preset) => [preset.id, preset])),
+    [presets],
+  );
 
   const result = useMemo(() => {
     if (!formula || components.length === 0) {
-      return { total: null, breakdown: [] as { label: string; value: number; isDiscount: boolean }[] };
+      return {
+        total: null as number | null,
+        breakdown: [] as { label: string; value: number; isDiscount: boolean }[],
+      };
     }
 
     const sorted = [...components].sort((left, right) => left.sort_order - right.sort_order);
@@ -123,7 +143,9 @@ export function ProductPriceCalculator({
     let total = 0;
 
     for (const component of sorted) {
-      const presetValue = component.preset_id ? (presetById.get(component.preset_id)?.value ?? null) : null;
+      const presetValue = component.preset_id
+        ? (presetById.get(component.preset_id)?.value ?? null)
+        : null;
       const visible = evaluatePricingCondition(component.condition, {
         presets,
         inputs: debouncedValues,
@@ -159,7 +181,8 @@ export function ProductPriceCalculator({
   }, [components, debouncedValues, formula, presetById, presets]);
 
   if (!formula || components.length === 0) {
-    return fallbackBlock(priceFrom, contactHref);
+    if (!priceFrom) return null;
+    return <FallbackBlock priceFrom={priceFrom} contactHref={contactHref} />;
   }
 
   return (
@@ -170,24 +193,32 @@ export function ProductPriceCalculator({
         </div>
         <div>
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-            Калькулятор вартості
+            {t("calculatorTitle")}
           </p>
           <p className="text-[10px] text-[var(--color-text-secondary)]">
-            Вкажіть параметри для live-розрахунку
+            {t("calculatorSubtitle")}
           </p>
         </div>
       </div>
 
       <div className="space-y-4 p-4">
         {inputSchema.length > 0 ? (
-          <div className={cn("grid gap-3", inputSchema.length <= 1 ? "grid-cols-1" : "grid-cols-2")}>
+          <div
+            className={cn(
+              "grid gap-3",
+              inputSchema.length <= 1 ? "grid-cols-1" : "grid-cols-2",
+            )}
+          >
             {inputSchema.map((input) =>
               input.type === "boolean" ? (
                 <div key={input.key} className="col-span-full">
                   <button
                     type="button"
                     onClick={() =>
-                      setValues((current) => ({ ...current, [input.key]: !(current[input.key] === true) }))
+                      setValues((current) => ({
+                        ...current,
+                        [input.key]: !(current[input.key] === true),
+                      }))
                     }
                     className={cn(
                       "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition",
@@ -198,7 +229,7 @@ export function ProductPriceCalculator({
                   >
                     <span className="text-sm font-medium">{input.label}</span>
                     <span className="text-xs font-semibold">
-                      {values[input.key] === true ? "Так" : "Ні"}
+                      {values[input.key] === true ? t("calculatorYes") : t("calculatorNo")}
                     </span>
                   </button>
                 </div>
@@ -219,7 +250,7 @@ export function ProductPriceCalculator({
           </div>
         ) : (
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Для цієї формули не налаштовано user-inputs.
+            {t("calculatorNoInputs")}
           </p>
         )}
 
@@ -227,9 +258,11 @@ export function ProductPriceCalculator({
           <div className="rounded-xl border border-[var(--color-primary-300)] bg-[var(--color-primary-100)] p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs text-[var(--color-text-secondary)]">Орієнтовна вартість</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">
+                  {t("calculatorEstimate")}
+                </p>
                 <p className="mt-0.5 font-display text-3xl text-[var(--color-primary)]">
-                  {result.total.toLocaleString("uk-UA")} грн
+                  {t("calculatorAmount", { amount: result.total.toLocaleString(numberLocale) })}
                 </p>
               </div>
               {result.breakdown.length > 1 ? (
@@ -238,7 +271,7 @@ export function ProductPriceCalculator({
                   onClick={() => setShowBreakdown((current) => !current)}
                   className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-primary-300)] bg-white/80 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)]"
                 >
-                  Деталі
+                  {t("calculatorDetails")}
                   {showBreakdown ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
               ) : null}
@@ -247,7 +280,10 @@ export function ProductPriceCalculator({
             {showBreakdown && result.breakdown.length > 0 ? (
               <div className="mt-3 space-y-1 border-t border-[var(--color-primary-300)] pt-3">
                 {result.breakdown.map((row, index) => (
-                  <div key={`${row.label}-${index}`} className="flex items-center justify-between gap-2 text-sm">
+                  <div
+                    key={`${row.label}-${index}`}
+                    className="flex items-center justify-between gap-2 text-sm"
+                  >
                     <span className="text-[var(--color-text-secondary)]">{row.label}</span>
                     <span
                       className={cn(
@@ -256,7 +292,9 @@ export function ProductPriceCalculator({
                       )}
                     >
                       {row.isDiscount ? "−" : "+"}
-                      {row.value.toLocaleString("uk-UA")} грн
+                      {t("calculatorAmount", {
+                        amount: row.value.toLocaleString(numberLocale),
+                      })}
                     </span>
                   </div>
                 ))}
@@ -264,32 +302,19 @@ export function ProductPriceCalculator({
             ) : null}
 
             <p className="mt-2 text-[10px] text-[var(--color-text-secondary)]">
-              Орієнтовний розрахунок. Точна вартість після виміру та підтвердження.
+              {t("calculatorDisclaimer")}
             </p>
           </div>
         ) : priceFrom ? (
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <p className="text-xs text-[var(--color-text-secondary)]">Базова вартість</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {t("calculatorBase")}
+            </p>
             <p className="mt-1 text-2xl font-semibold text-[var(--color-primary)]">
-              від {priceFrom.toLocaleString("uk-UA")} грн
+              {t("calculatorAmountFrom", { amount: priceFrom.toLocaleString(numberLocale) })}
             </p>
           </div>
         ) : null}
-
-        <div className="flex gap-2">
-          <Link
-            href={contactHref}
-            className="flex-1 rounded-xl bg-[var(--color-primary)] py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[var(--color-primary-700)]"
-          >
-            Замовити
-          </Link>
-          <Link
-            href={contactHref}
-            className="flex-1 rounded-xl border border-[var(--color-border)] py-2.5 text-center text-sm text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface)]"
-          >
-            Консультація
-          </Link>
-        </div>
       </div>
     </div>
   );

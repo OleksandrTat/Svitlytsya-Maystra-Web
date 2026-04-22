@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayoutGrid, List } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function ProductsViewToggle({ current }: Props) {
+  const t = useTranslations("productsPage.view");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -35,7 +37,8 @@ export function ProductsViewToggle({ current }: Props) {
             ? "bg-[var(--color-primary)] text-white"
             : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]",
         )}
-        title="Сітка"
+        title={t("grid")}
+        aria-label={t("grid")}
       >
         <LayoutGrid size={16} />
       </button>
@@ -48,7 +51,8 @@ export function ProductsViewToggle({ current }: Props) {
             ? "bg-[var(--color-primary)] text-white"
             : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]",
         )}
-        title="Список"
+        title={t("list")}
+        aria-label={t("list")}
       >
         <List size={16} />
       </button>

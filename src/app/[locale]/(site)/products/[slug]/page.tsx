@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Check } from "lucide-react";
-import { Product3DViewer } from "@/components/products/product-3d-viewer";
-import { ProductConfiguratorWrapper } from "@/components/products/product-configurator-wrapper";
+import { Check, MessageCircle } from "lucide-react";
 import { ProductDetailTabs } from "@/components/products/product-detail-tabs";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { ProductPriceCalculator } from "@/components/products/product-price-calculator";
@@ -14,7 +12,7 @@ import { FinalCtaSection } from "@/components/sections/final-cta";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { isAdminUser } from "@/lib/auth/is-admin";
-import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
+import { PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import { getFormulaComponentsForProduct } from "@/lib/data/formula-queries";
 import {
   getPriceFormulaById,
@@ -36,6 +34,26 @@ export const revalidate = 3600;
 type PageParams = {
   slug: string;
 };
+
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  doors: "doors",
+  furniture: "furniture",
+  windows: "windows",
+  restoration: "restoration",
+};
+
+function localizedCategoryLabel(
+  category: string,
+  tProducts: (key: string) => string,
+) {
+  const key = CATEGORY_I18N_KEYS[category];
+  if (!key) return category;
+  try {
+    return tProducts(`categories.${key}`);
+  } catch {
+    return category;
+  }
+}
 
 function isSupportedImageSrc(value: string | null | undefined) {
   if (!value) return false;
@@ -108,10 +126,11 @@ export default async function ProductPage({
   }
 
   const locale = await getLocale();
-  const [t, tCommon, tNav] = await Promise.all([
+  const [t, tCommon, tNav, tProducts] = await Promise.all([
     getTranslations("productPage"),
     getTranslations("common"),
     getTranslations("nav"),
+    getTranslations("productsPage"),
   ]);
   const localizedProduct = localizeProduct(product, locale as "uk" | "en");
 
@@ -130,9 +149,7 @@ export default async function ProductPage({
     galleryImages.push("/window.svg");
   }
 
-  const categoryLabel =
-    PRODUCT_CATEGORY_LABELS[product.category as keyof typeof PRODUCT_CATEGORY_LABELS] ??
-    product.category;
+  const categoryLabel = localizedCategoryLabel(product.category, tProducts);
   const contactHref = `/contact?${new URLSearchParams({
     product: product.slug,
     service: categoryLabel,
@@ -160,6 +177,7 @@ export default async function ProductPage({
   ).length;
   const model3dUrl = product.model_3d_url?.trim() || null;
   const arPlacement = product.category === "windows" ? "wall" : "floor";
+  const priceLocale = locale === "en" ? "en-US" : "uk-UA";
 
   return (
     <>
@@ -186,23 +204,20 @@ export default async function ProductPage({
       {/* Main split layout */}
       <section className="py-10 md:py-14">
         <Container>
-          <div className="grid gap-8 lg:grid-cols-[1fr_480px]">
-            {/* Left — Gallery */}
+          <div className="grid gap-8 lg:grid-cols-[1fr_460px] xl:grid-cols-[1fr_480px]">
+            {/* Left — Gallery (with optional 3D tile) */}
             <div className="space-y-6">
-              <ProductGallery images={galleryImages} title={localizedProduct.title} />
-
-              {model3dUrl && (
-                <Product3DViewer
-                  modelUrl={model3dUrl}
-                  productTitle={localizedProduct.title}
-                  arPlacement={arPlacement}
-                />
-              )}
+              <ProductGallery
+                images={galleryImages}
+                title={localizedProduct.title}
+                model3dUrl={model3dUrl}
+                arPlacement={arPlacement}
+              />
             </div>
 
             {/* Right — Info panel (sticky) */}
             <div className="lg:sticky lg:top-24 lg:h-fit">
-              <div className="space-y-5 rounded-2xl border border-[var(--color-border)] bg-white p-6">
+              <div className="space-y-5 rounded-3xl border border-[var(--color-border)] bg-white/95 p-6 shadow-sm backdrop-blur">
                 {/* Badges */}
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-[var(--color-bg-warm)] px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
@@ -226,7 +241,7 @@ export default async function ProductPage({
                     {localizedProduct.title}
                   </h2>
                   {localizedProduct.short_description && (
-                    <p className="mt-2 text-[15px] text-[var(--color-text-secondary)]">
+                    <p className="mt-2 text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
                       {localizedProduct.short_description}
                     </p>
                   )}
@@ -283,7 +298,9 @@ export default async function ProductPage({
                   </p>
                   <p className="mt-1 font-display text-3xl font-bold text-[var(--color-primary)]">
                     {product.price_from
-                      ? t("priceFromValue", { amount: product.price_from.toLocaleString(locale === "en" ? "en-US" : "uk-UA") })
+                      ? t("priceFromValue", {
+                          amount: product.price_from.toLocaleString(priceLocale),
+                        })
                       : t("priceOnRequest")}
                   </p>
                 </div>
@@ -299,21 +316,14 @@ export default async function ProductPage({
 
                 <div className="border-t border-[var(--color-border)]" />
 
-                {/* CTA buttons */}
-                <div className="space-y-3">
-                  <Link
-                    href={contactHref}
-                    className="flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
-                  >
-                    {t("orderButton")}
-                  </Link>
-                  <Link
-                    href="/contact"
-                    className="flex w-full items-center justify-center rounded-full border border-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
-                  >
-                    {t("consultButton")}
-                  </Link>
-                </div>
+                {/* CTA — single consult button (no more separate order button) */}
+                <Link
+                  href={contactHref}
+                  className="group flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-primary)] px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--color-primary-700)] hover:shadow-md"
+                >
+                  <MessageCircle size={16} />
+                  {t("consultButton")}
+                </Link>
 
                 <div className="border-t border-[var(--color-border)]" />
 
@@ -326,8 +336,6 @@ export default async function ProductPage({
                     </div>
                   ))}
                 </div>
-
-                <ProductConfiguratorWrapper product={localizedProduct} />
               </div>
             </div>
           </div>

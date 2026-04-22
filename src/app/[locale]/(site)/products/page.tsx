@@ -108,7 +108,7 @@ export default async function ProductsPage({
       <section className="relative flex h-[280px] items-end overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1541123437800-1bb1317badc2?auto=format&fit=crop&w=1920&q=80"
-          alt="Деревина"
+          alt={t("woodAlt")}
           fill
           priority
           className="object-cover"
@@ -126,7 +126,7 @@ export default async function ProductsPage({
             className="text-white/60 [&_a]:text-white/60 [&_a:hover]:text-white [&_span]:text-white/80"
           />
           <h1 className="mt-3 font-display text-4xl font-bold text-white md:text-5xl">
-            {filters.wishlist ? "Вподобані товари" : t("heroTitle")}
+            {filters.wishlist ? t("heroTitleWishlist") : t("heroTitle")}
           </h1>
           <p className="mt-2 max-w-xl text-base text-white/75">
             {t("heroSubtitle")}
@@ -176,18 +176,16 @@ export default async function ProductsPage({
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--color-border)] py-20">
                   <PackageSearch size={48} className="text-[var(--color-border)]" />
                   <h3 className="mt-4 font-display text-xl font-semibold text-[var(--color-text-primary)]">
-                    {filters.wishlist ? "Немає вподобаних товарів" : t("noResults")}
+                    {filters.wishlist ? t("wishlistEmpty") : t("noResults")}
                   </h3>
                   <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                    {filters.wishlist
-                      ? "Додайте товари до вподобаних, натиснувши ♡ на картці товару"
-                      : t("noResultsHint")}
+                    {filters.wishlist ? t("wishlistEmptyHint") : t("noResultsHint")}
                   </p>
                   <Link
                     href="/products"
                     className="mt-4 rounded-full border border-[var(--color-primary)] px-5 py-2 text-sm font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
                   >
-                    {filters.wishlist ? "Всі товари" : t("resetFilters")}
+                    {filters.wishlist ? t("allProducts") : t("resetFilters")}
                   </Link>
                 </div>
               )}
