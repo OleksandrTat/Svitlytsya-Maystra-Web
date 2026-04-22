@@ -11,11 +11,31 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import { PRODUCT_CATEGORY_LABELS } from "@/lib/constants";
+import { useTranslations } from "next-intl";
 import type { AttributeOption, CategoryOption, ProductFilters } from "@/lib/data/queries";
 import { cn } from "@/lib/utils";
 
 const ATTR_DISPLAY_LIMIT = 8;
+
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  doors: "doors",
+  furniture: "furniture",
+  windows: "windows",
+  restoration: "restoration",
+};
+
+function useCategoryLabel() {
+  const tCategories = useTranslations("productsPage.categories");
+  return (value: string) => {
+    const key = CATEGORY_I18N_KEYS[value];
+    if (!key) return value;
+    try {
+      return tCategories(key);
+    } catch {
+      return value;
+    }
+  };
+}
 
 type Props = {
   filters: ProductFilters;
@@ -161,6 +181,8 @@ export function ProductsFilterDrawer({
   materialOptions,
   wishlistCount = null,
 }: Props) {
+  const t = useTranslations("productsPage.filters");
+  const categoryLabel = useCategoryLabel();
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -291,7 +313,7 @@ export function ProductsFilterDrawer({
         className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-medium text-white shadow-lg transition-transform hover:scale-105 lg:hidden"
       >
         <SlidersHorizontal size={16} />
-        Фільтри
+        {t("mobileTrigger")}
         {activeFilterCount > 0 && (
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-[var(--color-primary)]">
             {activeFilterCount}
@@ -319,14 +341,14 @@ export function ProductsFilterDrawer({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white"
+              className="sidebar-scrollbar fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white"
             >
               {/* Header */}
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-white px-6 pb-4 pt-4">
                 <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--color-border)]" />
                 <div className="flex w-full items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-display text-lg font-semibold">Фільтри</h3>
+                    <h3 className="font-display text-lg font-semibold">{t("mobileTitle")}</h3>
                     {activeFilterCount > 0 && (
                       <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[11px] font-semibold text-white">
                         {activeFilterCount}
@@ -350,7 +372,7 @@ export function ProductsFilterDrawer({
                     type="text"
                     value={searchValue}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    placeholder="Пошук за назвою..."
+                    placeholder={t("searchPlaceholder")}
                     className="w-full border-b border-[var(--color-border)] bg-transparent pb-2 pl-6 pr-6 text-sm outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)]"
                   />
                   {searchValue && (
@@ -358,7 +380,7 @@ export function ProductsFilterDrawer({
                       type="button"
                       onClick={handleSearchClear}
                       className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--color-text-muted)]"
-                      aria-label="Очистити пошук"
+                      aria-label={t("clearSearch")}
                     >
                       <X size={14} />
                     </button>
@@ -384,7 +406,7 @@ export function ProductsFilterDrawer({
                       size={15}
                       className={cn(filters.wishlist ? "fill-red-500 text-red-500" : "")}
                     />
-                    <span>Вподобані</span>
+                    <span>{t("wishlist")}</span>
                     {wishlistCount > 0 && (
                       <span
                         className={cn(
@@ -405,24 +427,20 @@ export function ProductsFilterDrawer({
                   <div className="space-y-2 border-b border-[var(--color-border)] pb-4">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                        Активні ({activeFilterCount})
+                        {t("active", { count: activeFilterCount })}
                       </span>
                       <button
                         type="button"
                         onClick={() => router.push(pathname)}
                         className="text-[11px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
                       >
-                        Очистити
+                        {t("clearAll")}
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {filters.category && (
                         <ActiveChip
-                          label={
-                            PRODUCT_CATEGORY_LABELS[
-                              filters.category as keyof typeof PRODUCT_CATEGORY_LABELS
-                            ] ?? filters.category
-                          }
+                          label={categoryLabel(filters.category)}
                           onRemove={() => setParam("category", undefined)}
                         />
                       )}
@@ -460,7 +478,7 @@ export function ProductsFilterDrawer({
                 )}
 
                 {/* Category */}
-                <FilterBlock title="Категорія">
+                <FilterBlock title={t("category")}>
                   <div className="space-y-0.5">
                     <label
                       className={cn(
@@ -491,7 +509,7 @@ export function ProductsFilterDrawer({
                             </svg>
                           )}
                         </span>
-                        Всі вироби
+                        {t("allProducts")}
                       </span>
                       <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
                         {totalCategories}
@@ -537,9 +555,7 @@ export function ProductsFilterDrawer({
                                 </svg>
                               )}
                             </span>
-                            {PRODUCT_CATEGORY_LABELS[
-                              cat.value as keyof typeof PRODUCT_CATEGORY_LABELS
-                            ] ?? cat.value}
+                            {categoryLabel(cat.value)}
                           </span>
                           <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
                             {cat.count}
@@ -559,7 +575,7 @@ export function ProductsFilterDrawer({
 
                 {/* Material */}
                 {materialOptions.length > 0 && (
-                  <FilterBlock title="Матеріал" count={filters.materials.length}>
+                  <FilterBlock title={t("material")} count={filters.materials.length}>
                     <div className="flex flex-wrap gap-1.5">
                       {visibleMaterials.map((material) => (
                         <AttributePill
@@ -578,8 +594,10 @@ export function ProductsFilterDrawer({
                         className="mt-2.5 text-xs font-medium text-[var(--color-primary)]"
                       >
                         {showAllMaterials
-                          ? "Згорнути"
-                          : `Показати ще ${materialOptions.length - ATTR_DISPLAY_LIMIT}`}
+                          ? t("showLess")
+                          : t("showMore", {
+                              count: materialOptions.length - ATTR_DISPLAY_LIMIT,
+                            })}
                       </button>
                     )}
                   </FilterBlock>
@@ -587,7 +605,7 @@ export function ProductsFilterDrawer({
 
                 {/* Style */}
                 {styleOptions.length > 0 && (
-                  <FilterBlock title="Стиль" count={filters.styles.length}>
+                  <FilterBlock title={t("style")} count={filters.styles.length}>
                     <div className="flex flex-wrap gap-1.5">
                       {visibleStyles.map((style) => (
                         <AttributePill
@@ -606,22 +624,24 @@ export function ProductsFilterDrawer({
                         className="mt-2.5 text-xs font-medium text-[var(--color-primary)]"
                       >
                         {showAllStyles
-                          ? "Згорнути"
-                          : `Показати ще ${styleOptions.length - ATTR_DISPLAY_LIMIT}`}
+                          ? t("showLess")
+                          : t("showMore", {
+                              count: styleOptions.length - ATTR_DISPLAY_LIMIT,
+                            })}
                       </button>
                     )}
                   </FilterBlock>
                 )}
 
                 {/* Price */}
-                <FilterBlock title="Ціна" defaultOpen={false}>
+                <FilterBlock title={t("price")} defaultOpen={false}>
                   <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                       <input
                         type="number"
                         value={priceMin}
                         onChange={(e) => handlePriceChange("price_min", e.target.value)}
-                        placeholder="від"
+                        placeholder={t("priceMin")}
                         min={0}
                         className="w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 pr-7 text-sm outline-none focus:border-[var(--color-primary)]"
                       />
@@ -635,7 +655,7 @@ export function ProductsFilterDrawer({
                         type="number"
                         value={priceMax}
                         onChange={(e) => handlePriceChange("price_max", e.target.value)}
-                        placeholder="до"
+                        placeholder={t("priceMax")}
                         min={0}
                         className="w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 pr-7 text-sm outline-none focus:border-[var(--color-primary)]"
                       />
@@ -657,7 +677,7 @@ export function ProductsFilterDrawer({
                     className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
                   >
                     <RotateCcw size={14} />
-                    Скинути фільтри
+                    {t("reset")}
                   </button>
                 )}
               </div>
@@ -669,7 +689,7 @@ export function ProductsFilterDrawer({
                   onClick={() => setOpen(false)}
                   className="w-full rounded-full bg-[var(--color-primary)] py-3 text-sm font-semibold text-white"
                 >
-                  Показати результати
+                  {t("showResults")}
                 </button>
               </div>
             </motion.div>

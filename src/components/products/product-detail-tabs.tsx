@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -9,22 +10,23 @@ type Props = {
   materials: string[];
 };
 
-const TABS = [
-  { id: "description", label: "Опис" },
-  { id: "materials", label: "Матеріали" },
-  { id: "delivery", label: "Доставка і гарантія" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+type TabId = "description" | "materials" | "delivery";
 
 export function ProductDetailTabs({ description, materials }: Props) {
+  const t = useTranslations("productPage");
   const [active, setActive] = useState<TabId>("description");
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "description", label: t("tabDescription") },
+    { id: "materials", label: t("tabMaterials") },
+    { id: "delivery", label: t("tabDelivery") },
+  ];
 
   return (
     <div>
       {/* Tab headers */}
       <div className="flex gap-6 border-b border-[var(--color-border)]">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -84,7 +86,7 @@ export function ProductDetailTabs({ description, materials }: Props) {
                 </div>
               ) : (
                 <p className="text-sm text-[var(--color-text-muted)]">
-                  Інформація про матеріали відсутня.
+                  {t("materialsEmpty")}
                 </p>
               )}
             </div>
@@ -93,26 +95,22 @@ export function ProductDetailTabs({ description, materials }: Props) {
           {active === "delivery" && (
             <div className="space-y-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
               <div>
-                <h3 className="font-semibold text-[var(--color-text-primary)]">Доставка</h3>
-                <p className="mt-1">
-                  Доставка здійснюється по всій Україні. Вартість та терміни доставки
-                  розраховуються індивідуально залежно від габаритів виробу та адреси.
-                  Можливий самовивіз з майстерні.
-                </p>
+                <h3 className="font-semibold text-[var(--color-text-primary)]">
+                  {t("deliveryTitle")}
+                </h3>
+                <p className="mt-1">{t("deliveryDesc")}</p>
               </div>
               <div>
-                <h3 className="font-semibold text-[var(--color-text-primary)]">Монтаж</h3>
-                <p className="mt-1">
-                  Пропонуємо професійний монтаж нашою командою. Вартість монтажу
-                  узгоджується окремо після виміру на об&rsquo;єкті.
-                </p>
+                <h3 className="font-semibold text-[var(--color-text-primary)]">
+                  {t("installationTitle")}
+                </h3>
+                <p className="mt-1">{t("installationDesc")}</p>
               </div>
               <div>
-                <h3 className="font-semibold text-[var(--color-text-primary)]">Гарантія</h3>
-                <p className="mt-1">
-                  На всі вироби надається гарантія 3 роки. Гарантія покриває дефекти
-                  матеріалів та виготовлення. За детальними умовами зверніться до менеджера.
-                </p>
+                <h3 className="font-semibold text-[var(--color-text-primary)]">
+                  {t("warrantyTitle")}
+                </h3>
+                <p className="mt-1">{t("warrantyDesc")}</p>
               </div>
             </div>
           )}

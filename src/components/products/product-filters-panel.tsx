@@ -4,11 +4,31 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Heart, RotateCcw, Search, X } from "lucide-react";
-import { PRODUCT_CATEGORY_LABELS } from "@/lib/constants";
+import { useTranslations } from "next-intl";
 import type { AttributeOption, CategoryOption, ProductFilters } from "@/lib/data/queries";
 import { cn } from "@/lib/utils";
 
 const ATTR_DISPLAY_LIMIT = 8;
+
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  doors: "doors",
+  furniture: "furniture",
+  windows: "windows",
+  restoration: "restoration",
+};
+
+function useCategoryLabel() {
+  const tCategories = useTranslations("productsPage.categories");
+  return (value: string) => {
+    const key = CATEGORY_I18N_KEYS[value];
+    if (!key) return value;
+    try {
+      return tCategories(key);
+    } catch {
+      return value;
+    }
+  };
+}
 
 function parseCsv(value: string | null) {
   if (!value) return [];
@@ -156,6 +176,8 @@ export function ProductFiltersPanel({
   materialOptions,
   wishlistCount = null,
 }: Props) {
+  const t = useTranslations("productsPage.filters");
+  const categoryLabel = useCategoryLabel();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -271,7 +293,7 @@ export function ProductFiltersPanel({
   const totalCategories = categoryOptions.reduce((sum, c) => sum + c.count, 0);
 
   return (
-    <aside className="sticky top-24 hidden max-h-[calc(100vh-120px)] space-y-4 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-warm)] p-5 lg:block">
+    <aside className="sidebar-scrollbar sticky top-24 hidden max-h-[calc(100vh-120px)] space-y-4 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-warm)] p-5 lg:block">
       {/* Wishlist filter — only for authenticated users */}
       {wishlistCount !== null && (
         <button
@@ -288,7 +310,7 @@ export function ProductFiltersPanel({
             size={15}
             className={cn(filters.wishlist ? "fill-red-500 text-red-500" : "")}
           />
-          <span>Вподобані</span>
+          <span>{t("wishlist")}</span>
           {wishlistCount > 0 && (
             <span
               className={cn(
@@ -316,24 +338,20 @@ export function ProductFiltersPanel({
           >
             <div className="flex items-center justify-between pb-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                Активні ({activeFilterCount})
+                {t("active", { count: activeFilterCount })}
               </span>
               <button
                 type="button"
                 onClick={() => router.push(pathname)}
                 className="text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
               >
-                Очистити
+                {t("clearAll")}
               </button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {filters.category && (
                 <ActiveChip
-                  label={
-                    PRODUCT_CATEGORY_LABELS[
-                      filters.category as keyof typeof PRODUCT_CATEGORY_LABELS
-                    ] ?? filters.category
-                  }
+                  label={categoryLabel(filters.category)}
                   onRemove={() => setParam("category", undefined)}
                 />
               )}
@@ -381,7 +399,7 @@ export function ProductFiltersPanel({
           type="text"
           value={searchValue}
           onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Пошук за назвою..."
+          placeholder={t("searchPlaceholder")}
           className="w-full border-b border-[var(--color-border)] bg-transparent pb-2 pl-6 pr-6 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)]"
         />
         {searchValue && (
@@ -389,7 +407,7 @@ export function ProductFiltersPanel({
             type="button"
             onClick={handleSearchClear}
             className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]"
-            aria-label="Очистити пошук"
+            aria-label={t("clearSearch")}
           >
             <X size={14} />
           </button>
@@ -397,7 +415,7 @@ export function ProductFiltersPanel({
       </div>
 
       {/* Category */}
-      <FilterBlock title="Категорія">
+      <FilterBlock title={t("category")}>
         <div className="space-y-0.5">
           <label
             className={cn(
@@ -428,7 +446,7 @@ export function ProductFiltersPanel({
                   </svg>
                 )}
               </span>
-              Всі вироби
+              {t("allProducts")}
             </span>
             <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
               {totalCategories}
@@ -474,9 +492,7 @@ export function ProductFiltersPanel({
                       </svg>
                     )}
                   </span>
-                  {PRODUCT_CATEGORY_LABELS[
-                    cat.value as keyof typeof PRODUCT_CATEGORY_LABELS
-                  ] ?? cat.value}
+                  {categoryLabel(cat.value)}
                 </span>
                 <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
                   {cat.count}
@@ -496,7 +512,7 @@ export function ProductFiltersPanel({
 
       {/* Material */}
       {materialOptions.length > 0 && (
-        <FilterBlock title="Матеріал" count={filters.materials.length}>
+        <FilterBlock title={t("material")} count={filters.materials.length}>
           <div className="flex flex-wrap gap-1.5">
             {visibleMaterials.map((material) => (
               <AttributePill
@@ -515,8 +531,8 @@ export function ProductFiltersPanel({
               className="mt-2.5 text-xs font-medium text-[var(--color-primary)] transition-opacity hover:opacity-80"
             >
               {showAllMaterials
-                ? "Згорнути"
-                : `Показати ще ${materialOptions.length - ATTR_DISPLAY_LIMIT}`}
+                ? t("showLess")
+                : t("showMore", { count: materialOptions.length - ATTR_DISPLAY_LIMIT })}
             </button>
           )}
         </FilterBlock>
@@ -524,7 +540,7 @@ export function ProductFiltersPanel({
 
       {/* Style */}
       {styleOptions.length > 0 && (
-        <FilterBlock title="Стиль" count={filters.styles.length}>
+        <FilterBlock title={t("style")} count={filters.styles.length}>
           <div className="flex flex-wrap gap-1.5">
             {visibleStyles.map((style) => (
               <AttributePill
@@ -543,22 +559,22 @@ export function ProductFiltersPanel({
               className="mt-2.5 text-xs font-medium text-[var(--color-primary)] transition-opacity hover:opacity-80"
             >
               {showAllStyles
-                ? "Згорнути"
-                : `Показати ще ${styleOptions.length - ATTR_DISPLAY_LIMIT}`}
+                ? t("showLess")
+                : t("showMore", { count: styleOptions.length - ATTR_DISPLAY_LIMIT })}
             </button>
           )}
         </FilterBlock>
       )}
 
       {/* Price */}
-      <FilterBlock title="Ціна" defaultOpen={false}>
+      <FilterBlock title={t("price")} defaultOpen={false}>
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <input
               type="number"
               value={priceMin}
               onChange={(e) => handlePriceChange("price_min", e.target.value)}
-              placeholder="від"
+              placeholder={t("priceMin")}
               min={0}
               className="w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 pr-7 text-sm outline-none focus:border-[var(--color-primary)]"
             />
@@ -572,7 +588,7 @@ export function ProductFiltersPanel({
               type="number"
               value={priceMax}
               onChange={(e) => handlePriceChange("price_max", e.target.value)}
-              placeholder="до"
+              placeholder={t("priceMax")}
               min={0}
               className="w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 pr-7 text-sm outline-none focus:border-[var(--color-primary)]"
             />
@@ -591,7 +607,7 @@ export function ProductFiltersPanel({
           className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-white/50 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
         >
           <RotateCcw size={14} />
-          Скинути всі фільтри
+          {t("reset")}
         </button>
       )}
     </aside>
