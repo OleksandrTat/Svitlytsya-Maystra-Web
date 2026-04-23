@@ -196,6 +196,52 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
     process_steps_en: parseJsonArray(formData.get("process_steps_en")) as Json || null,
   };
 
+  // Seed service_categories BEFORE the services upsert so the
+  // services.category FK (services_category_fkey / fk_services_category)
+  // always resolves — even when admins type a brand-new slug.
+  //
+  // 1. Parse any admin-provided label overrides from the form.
+  // 2. Ensure the row for payload.category exists (using overrides if any,
+  //    otherwise falling back to the slug as label_uk).
+  // 3. Upsert every other slug present in the overrides JSON as well.
+  let categoryLabelOverrides: Record<string, { uk?: string; en?: string }> = {};
+  const rawCatLabels = formData.get("category_labels");
+  if (rawCatLabels) {
+    try {
+      categoryLabelOverrides = JSON.parse(String(rawCatLabels)) as Record<
+        string,
+        { uk?: string; en?: string }
+      >;
+    } catch { /* ignore malformed JSON */ }
+  }
+
+  const seedCategorySlugs = new Set<string>();
+  if (payload.category) seedCategorySlugs.add(payload.category);
+  for (const slug of Object.keys(categoryLabelOverrides)) {
+    if (slug) seedCategorySlugs.add(slug);
+  }
+
+  for (const slug of seedCategorySlugs) {
+    const override = categoryLabelOverrides[slug];
+    const row: { slug: string; label_uk: string; label_en?: string | null } = {
+      slug,
+      label_uk: override?.uk || slug,
+    };
+    if (override && override.en !== undefined) {
+      row.label_en = override.en || null;
+    }
+    const { error: catError } = await supabase
+      .from("service_categories")
+      .upsert(row, { onConflict: "slug", ignoreDuplicates: false });
+    if (catError) {
+      console.error("[upsertServiceAction] service_categories upsert error:", catError);
+      return {
+        ok: false,
+        message: `Не вдалося зберегти категорію послуги: ${catError.message}`,
+      };
+    }
+  }
+
   const { error } = await supabase.from("services").upsert(payload);
 
   if (error) {
@@ -204,25 +250,6 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
       ok: false,
       message: `Не вдалося зберегти послугу: ${error.message}`,
     };
-  }
-
-  // Persist admin-provided category label overrides directly on the
-  // service_categories lookup. Missing rows are auto-created with the
-  // slug as a fallback label_uk.
-  const rawCatLabels = formData.get("category_labels");
-  if (rawCatLabels) {
-    try {
-      const labels = JSON.parse(String(rawCatLabels)) as Record<string, { uk?: string; en?: string }>;
-      for (const [slug, v] of Object.entries(labels)) {
-        if (!slug || !v) continue;
-        const row: { slug: string; label_uk: string; label_en?: string | null } = {
-          slug,
-          label_uk: v.uk || slug,
-        };
-        if (v.en !== undefined) row.label_en = v.en || null;
-        await supabase.from("service_categories").upsert(row, { onConflict: "slug" });
-      }
-    } catch { /* ignore */ }
   }
 
   await logActivity(parsed.data.id ? "update" : "create", "service", payload.id, payload);
