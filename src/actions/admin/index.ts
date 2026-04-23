@@ -199,7 +199,11 @@ export async function upsertServiceAction(formData: FormData): Promise<ActionRes
   const { error } = await supabase.from("services").upsert(payload);
 
   if (error) {
-    return { ok: false, message: "Не вдалося зберегти послугу." };
+    console.error("[upsertServiceAction] supabase error:", error);
+    return {
+      ok: false,
+      message: `Не вдалося зберегти послугу: ${error.message}`,
+    };
   }
 
   // Persist admin-provided category label overrides directly on the
