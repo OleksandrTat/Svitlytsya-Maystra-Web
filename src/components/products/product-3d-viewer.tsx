@@ -25,6 +25,73 @@ const AR_DEVICE_PATTERN = /android|iphone|ipad|ipod/i;
 const DEFAULT_CAMERA_ORBIT = "32deg 72deg 110%";
 const DEFAULT_CAMERA_TARGET = "auto auto auto";
 const DEFAULT_FIELD_OF_VIEW = "30deg";
+const MODEL_VIEWER_RUNTIME_SRC = "/vendor/model-viewer.min.js";
+
+let modelViewerRuntimePromise: Promise<void> | null = null;
+
+function ensureModelViewerRuntime() {
+  if (typeof window === "undefined") {
+    return Promise.resolve();
+  }
+
+  if (customElements.get("model-viewer")) {
+    return Promise.resolve();
+  }
+
+  if (modelViewerRuntimePromise) {
+    return modelViewerRuntimePromise;
+  }
+
+  modelViewerRuntimePromise = new Promise<void>((resolve, reject) => {
+    const runtimeUrl = new URL(MODEL_VIEWER_RUNTIME_SRC, window.location.origin).toString();
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      `script[data-model-viewer-runtime="true"]`,
+    );
+
+    const finish = () => {
+      customElements
+        .whenDefined("model-viewer")
+        .then(() => resolve())
+        .catch(reject);
+    };
+
+    if (existingScript) {
+      if (existingScript.src !== runtimeUrl) {
+        existingScript.remove();
+      } else {
+        if (customElements.get("model-viewer")) {
+          resolve();
+          return;
+        }
+
+        existingScript.addEventListener("load", finish, { once: true });
+        existingScript.addEventListener(
+          "error",
+          () => reject(new Error("Failed to load model-viewer runtime.")),
+          { once: true },
+        );
+        return;
+      }
+    }
+
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = runtimeUrl;
+    script.dataset.modelViewerRuntime = "true";
+    script.addEventListener("load", finish, { once: true });
+    script.addEventListener(
+      "error",
+      () => reject(new Error("Failed to load model-viewer runtime.")),
+      { once: true },
+    );
+    document.head.appendChild(script);
+  }).catch((error) => {
+    modelViewerRuntimePromise = null;
+    throw error;
+  });
+
+  return modelViewerRuntimePromise;
+}
 
 function resetViewerCamera(viewer: ModelViewerElement | null) {
   if (!viewer) {
@@ -108,8 +175,7 @@ export function Product3DViewer({
 
     let cancelled = false;
 
-    void import("@google/model-viewer")
-      .then(() => customElements.whenDefined("model-viewer"))
+    void ensureModelViewerRuntime()
       .then(() => {
         if (cancelled) {
           return;

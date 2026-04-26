@@ -1,0 +1,41 @@
+
+> sm@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.154:3000
+- Environments: .env.local
+
+✓ Starting...
+Creating turbopack project { dir: 'D:\\sm', testMode: true }
+✓ Ready in 6.1s
+○ Compiling /[locale]/products/[slug] ...
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. A panic log has been written to C:\Users\Admin\AppData\Local\Temp\next-panic-c7ac9a3cc0ec544fd4f7cc3c00d11eaa.log.
+
+To help make Turbopack better, report this error by clicking here: https://github.com/vercel/next.js/discussions/new?category=turbopack-error-report&title=Turbopack%20Error%3A%20Failed%20to%20write%20app%20endpoint%20%2Fadmin%2F%28protected%29%2Fproducts%2F%5Bid%5D%2Fedit%2Fpage&body=Turbopack%20version%3A%20%6023c46498%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0ATurbopack%20Error%3A%20Failed%20to%20write%20app%20endpoint%20%2Fadmin%2F%28protected%29%2Fproducts%2F%5Bid%5D%2Fedit%2Fpage%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace
+-----
+
+ GET /en/products/%D0%BA%D0%BE%D0%BB%D0%BE%D0%B4%D1%8F%D0%B7%D1%8C-%D0%B4%D0%B5%D0%BA%D0%BE%D1%80%D0%B0%D1%82%D0%B8%D0%B2%D0%BD%D0%B8%D0%B9-%D1%81%D0%BE%D1%81%D0%BD%D0%BE%D0%B2%D0%B8%D0%B9 500 in 18.0s (compile: 17.8s, proxy.ts: 137ms, render: 116ms)
+ GET /admin/products/e09c6dd8-ca1f-4407-943c-b8c8cee5a3c3/edit 500 in 18.9s (compile: 17.7s, proxy.ts: 1217ms, render: 60ms)
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. A panic log has been written to C:\Users\Admin\AppData\Local\Temp\next-panic-c7ac9a3cc0ec544fd4f7cc3c00d11eaa.log.
+
+To help make Turbopack better, report this error by clicking here: https://github.com/vercel/next.js/discussions/new?category=turbopack-error-report&title=Turbopack%20Error%3A%20Failed%20to%20write%20app%20endpoint%20%2F%5Blocale%5D%2F%28site%29%2Fpage&body=Turbopack%20version%3A%20%6023c46498%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0ATurbopack%20Error%3A%20Failed%20to%20write%20app%20endpoint%20%2F%5Blocale%5D%2F%28site%29%2Fpage%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace
+-----
+
+ GET /uk 500 in 111ms (compile: 58ms, proxy.ts: 22ms, render: 31ms)
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. A panic log has been written to C:\Users\Admin\AppData\Local\Temp\next-panic-c7ac9a3cc0ec544fd4f7cc3c00d11eaa.log.
+
+To help make Turbopack better, report this error by clicking here: https://github.com/vercel/next.js/discussions/new?category=turbopack-error-report&title=Turbopack%20Error%3A%20Failed%20to%20write%20app%20endpoint%20%2F%5Blocale%5D%2F%28site%29%2Fpage&body=Turbopack%20version%3A%20%6023c46498%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0ATurbopack%20Error%3A%20Failed%20to%20write%20app%20endpoint%20%2F%5Blocale%5D%2F%28site%29%2Fpage%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace
+-----
+
+ GET /uk 500 in 47ms (compile: 20ms, proxy.ts: 8ms, render: 19ms)
+ GET /uk 200 in 1135ms (proxy.ts: 38ms)
+ GET /uk 200 in 843ms (compile: 233ms, proxy.ts: 125ms, generate-params: 14ms, render: 485ms)
+ GET /uk/debug-viewer.html 404 in 910ms (compile: 738ms, proxy.ts: 5ms, render: 166ms)

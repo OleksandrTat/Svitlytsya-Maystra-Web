@@ -10,7 +10,7 @@ const intlMiddleware = createIntlMiddleware(routing);
 // `[locale]/(site)/auth/*` and must go through the intl middleware so they get
 // the correct `/uk/...` or `/en/...` prefix. Only the bare `/auth/callback`
 // route handler (used by Supabase email links) should skip i18n.
-const PUBLIC_PREFIXES = ["/auth/callback", "/api", "/_next", "/favicon", "/robots", "/sitemap"];
+const PUBLIC_PREFIXES = ["/auth/callback", "/api", "/_next", "/favicon", "/robots", "/sitemap", "/vendor"];
 const ADMIN_PREFIX = "/admin";
 
 function isPublicPath(pathname: string) {
@@ -101,6 +101,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|js|css|map|txt|xml|ico|woff|woff2)$).*)",
   ],
 };
