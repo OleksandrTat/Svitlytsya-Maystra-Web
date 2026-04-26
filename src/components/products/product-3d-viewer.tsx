@@ -5,187 +5,78 @@ import type { ModelViewerElement } from "@google/model-viewer";
 import { Box, RotateCcw, Smartphone } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import {
-  ACESFilmicToneMapping,
-  Box3,
-  Clock,
-  Color,
-  DirectionalLight,
-  Group,
-  HemisphereLight,
-  Mesh,
-  MeshStandardMaterial,
-  Object3D,
-  PCFSoftShadowMap,
-  PMREMGenerator,
-  PerspectiveCamera,
-  Scene,
-  SRGBColorSpace,
-  Texture,
-  Vector3,
-  WebGLRenderer,
-} from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 type Props = {
   modelUrl: string;
   productTitle: string;
   arPlacement?: "floor" | "wall";
   /**
-   * When true the viewer is rendered inside the gallery frame — removes its own
-   * header / hint text and fills the parent container.
+   * When true the viewer is rendered inside the gallery frame and fills the
+   * parent container without its own section chrome.
    */
   embedded?: boolean;
   className?: string;
 };
 
 type ViewerState = "loading" | "ready" | "error";
-
-type ViewerRuntime = {
-  camera: PerspectiveCamera;
-  controls: OrbitControls;
-  renderFrame: () => void;
-  focusModel: () => void;
-};
+type ProgressDetail = { totalProgress?: number };
 
 const AR_DEVICE_PATTERN = /android|iphone|ipad|ipod/i;
+const DEFAULT_CAMERA_ORBIT = "32deg 72deg 110%";
+const DEFAULT_CAMERA_TARGET = "auto auto auto";
+const DEFAULT_FIELD_OF_VIEW = "30deg";
 
-function isMesh(value: Object3D): value is Mesh {
-  return "isMesh" in value && Boolean(value.isMesh);
-}
-
-function disposeObject(root: Object3D) {
-  root.traverse((child: Object3D) => {
-    if (!isMesh(child)) {
-      return;
-    }
-
-    child.geometry.dispose();
-
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    for (const material of materials) {
-      material.dispose();
-    }
-  });
-}
-
-function prepareStandardMaterial(material: MeshStandardMaterial, maxAnisotropy: number) {
-  const textureMaps = [
-    material.map,
-    material.emissiveMap,
-    material.normalMap,
-    material.roughnessMap,
-    material.metalnessMap,
-    material.aoMap,
-    material.alphaMap,
-    material.bumpMap,
-  ].filter((texture): texture is Texture => texture !== null);
-
-  for (const texture of textureMaps) {
-    texture.anisotropy = Math.max(texture.anisotropy, maxAnisotropy);
-  }
-
-  if (material.map) {
-    material.map.colorSpace = SRGBColorSpace;
-    material.map.needsUpdate = true;
-  }
-
-  if (material.emissiveMap) {
-    material.emissiveMap.colorSpace = SRGBColorSpace;
-    material.emissiveMap.needsUpdate = true;
-  }
-
-  const isSuspiciousTexturedPbrExport =
-    Boolean(material.map) &&
-    !material.metalnessMap &&
-    !material.roughnessMap &&
-    material.metalness >= 0.95 &&
-    material.roughness >= 0.95;
-
-  if (isSuspiciousTexturedPbrExport) {
-    material.metalness = 0.08;
-    material.roughness = 0.9;
-  }
-
-  const hasAnyTextureMap = textureMaps.length > 0;
-  const fallbackName = material.name.trim().toLowerCase();
-  const isFallbackBlackMaterial =
-    fallbackName.includes("fallback") &&
-    !hasAnyTextureMap &&
-    material.color.r <= 0.02 &&
-    material.color.g <= 0.02 &&
-    material.color.b <= 0.02;
-
-  if (isFallbackBlackMaterial) {
-    material.color.set("#efe8df");
-    material.roughness = 0.86;
-    material.metalness = 0.04;
-  }
-
-  material.needsUpdate = true;
-}
-
-function prepareModel(root: Object3D, maxAnisotropy: number) {
-  root.traverse((child: Object3D) => {
-    if (!isMesh(child)) {
-      return;
-    }
-
-    child.castShadow = true;
-    child.receiveShadow = true;
-
-    if (!child.geometry.attributes.normal) {
-      child.geometry.computeVertexNormals();
-    }
-
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    for (const material of materials) {
-      if (material instanceof MeshStandardMaterial) {
-        prepareStandardMaterial(material, maxAnisotropy);
-      } else {
-        material.needsUpdate = true;
-      }
-    }
-  });
-}
-
-function fitCameraToObject(camera: PerspectiveCamera, controls: OrbitControls, object: Object3D) {
-  const box = new Box3().setFromObject(object);
-  if (box.isEmpty()) {
+function resetViewerCamera(viewer: ModelViewerElement | null) {
+  if (!viewer) {
     return;
   }
 
-  const size = box.getSize(new Vector3());
-  const center = box.getCenter(new Vector3());
-  const maxDimension = Math.max(size.x, size.y, size.z, 0.25);
-  const fov = (camera.fov * Math.PI) / 180;
-  const distance = (maxDimension / (2 * Math.tan(fov / 2))) * 1.8;
-  const direction = new Vector3(1, 0.55, 1).normalize();
-
-  camera.position.copy(center).add(direction.multiplyScalar(distance));
-  camera.near = Math.max(distance / 100, 0.01);
-  camera.far = Math.max(distance * 25, 100);
-  camera.updateProjectionMatrix();
-
-  controls.target.copy(center);
-  controls.minDistance = Math.max(maxDimension * 0.45, 0.5);
-  controls.maxDistance = Math.max(maxDimension * 9, 8);
-  controls.update();
+  viewer.cameraOrbit = DEFAULT_CAMERA_ORBIT;
+  viewer.cameraTarget = DEFAULT_CAMERA_TARGET;
+  viewer.fieldOfView = DEFAULT_FIELD_OF_VIEW;
+  viewer.jumpCameraToGoal();
 }
 
-function setRendererSize(
-  renderer: WebGLRenderer,
-  camera: PerspectiveCamera,
-  container: HTMLDivElement,
-) {
-  const width = Math.max(container.clientWidth, 1);
-  const height = Math.max(container.clientHeight, 1);
-
-  renderer.setSize(width, height, false);
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
+function ModelCanvas({
+  viewerRef,
+  modelUrl,
+  productTitle,
+  arPlacement,
+}: {
+  viewerRef: React.RefObject<ModelViewerElement | null>;
+  modelUrl: string;
+  productTitle: string;
+  arPlacement: "floor" | "wall";
+}) {
+  return (
+    <model-viewer
+      key={modelUrl}
+      ref={viewerRef}
+      src={modelUrl}
+      alt={productTitle}
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-placement={arPlacement}
+      loading="eager"
+      reveal="auto"
+      camera-controls
+      interaction-prompt="none"
+      touch-action="pan-y"
+      xr-environment
+      camera-orbit={DEFAULT_CAMERA_ORBIT}
+      camera-target={DEFAULT_CAMERA_TARGET}
+      field-of-view={DEFAULT_FIELD_OF_VIEW}
+      environment-image="neutral"
+      shadow-intensity="1"
+      exposure="1"
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "block",
+        background: "transparent",
+      }}
+    />
+  );
 }
 
 export function Product3DViewer({
@@ -196,11 +87,10 @@ export function Product3DViewer({
   className,
 }: Props) {
   const t = useTranslations("productPage");
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const runtimeRef = useRef<ViewerRuntime | null>(null);
-  const arViewerRef = useRef<ModelViewerElement | null>(null);
+  const viewerRef = useRef<ModelViewerElement | null>(null);
   const [viewerState, setViewerState] = useState<ViewerState>("loading");
   const [progress, setProgress] = useState(0);
+  const [isViewerRuntimeReady, setIsViewerRuntimeReady] = useState(false);
   const [isArEligibleDevice, setIsArEligibleDevice] = useState(false);
   const [isArReady, setIsArReady] = useState(false);
   const [isArLaunching, setIsArLaunching] = useState(false);
@@ -216,23 +106,24 @@ export function Product3DViewer({
     setIsArEligibleDevice(isEligibleDevice);
     setIsArReady(false);
 
-    if (!isEligibleDevice) {
-      return;
-    }
-
     let cancelled = false;
 
     void import("@google/model-viewer")
       .then(() => customElements.whenDefined("model-viewer"))
       .then(() => {
-        if (!cancelled) {
-          setIsArReady(true);
+        if (cancelled) {
+          return;
         }
+
+        setIsViewerRuntimeReady(true);
+        setIsArReady(isEligibleDevice);
       })
       .catch((error) => {
-        console.error("Failed to load model-viewer AR runtime", error);
+        console.error("Failed to load model-viewer runtime", error);
         if (!cancelled) {
+          setViewerState("error");
           setIsArEligibleDevice(false);
+          setIsArReady(false);
         }
       });
 
@@ -242,165 +133,61 @@ export function Product3DViewer({
   }, []);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
+    setViewerState("loading");
+    setProgress(0);
+  }, [modelUrl]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !isViewerRuntimeReady) {
       return;
     }
 
-    let isDisposed = false;
-    let currentModel: Group | null = null;
+    const handleLoad = () => {
+      resetViewerCamera(viewer);
+      setProgress(100);
+      setViewerState("ready");
+    };
 
-    const scene = new Scene();
-    scene.background = new Color("#f2eadf");
+    const handleError = () => {
+      setViewerState("error");
+    };
 
-    const camera = new PerspectiveCamera(36, 1, 0.1, 1000);
-    const renderer = new WebGLRenderer({
-      antialias: true,
-      alpha: false,
-      powerPreference: "high-performance",
-    });
-    renderer.outputColorSpace = SRGBColorSpace;
-    renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = PCFSoftShadowMap;
-    renderer.domElement.className = "h-full w-full";
-    const maxAnisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
-    const pmremGenerator = new PMREMGenerator(renderer);
-    const environmentTarget = pmremGenerator.fromScene(new RoomEnvironment(), 0.04);
-    scene.environment = environmentTarget.texture;
-    container.innerHTML = "";
-    container.appendChild(renderer.domElement);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.07;
-    controls.screenSpacePanning = false;
-    controls.minPolarAngle = Math.PI * 0.18;
-    controls.maxPolarAngle = Math.PI * 0.48;
-
-    const hemiLight = new HemisphereLight("#fff5e6", "#7b624f", 1.7);
-    scene.add(hemiLight);
-
-    const keyLight = new DirectionalLight("#fff8ef", 2.6);
-    keyLight.position.set(5, 8, 6);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(1024, 1024);
-    scene.add(keyLight);
-
-    const fillLight = new DirectionalLight("#f5e6d3", 1.2);
-    fillLight.position.set(-5, 3, -4);
-    scene.add(fillLight);
-
-    const loader = new GLTFLoader();
-    loader.setCrossOrigin("anonymous");
-
-    const clock = new Clock();
-
-    const renderFrame = () => {
-      if (isDisposed) {
-        return;
+    const handleProgress = (event: Event) => {
+      const detail = (event as CustomEvent<ProgressDetail>).detail;
+      const totalProgress = detail?.totalProgress;
+      if (typeof totalProgress === "number") {
+        setProgress(Math.min(100, Math.round(totalProgress * 100)));
       }
-
-      controls.update();
-      renderer.render(scene, camera);
     };
 
-    const animationLoop = () => {
-      if (isDisposed) {
-        return;
-      }
+    viewer.addEventListener("load", handleLoad);
+    viewer.addEventListener("error", handleError);
+    viewer.addEventListener("progress", handleProgress as EventListener);
 
-      clock.getDelta();
-      renderFrame();
-      window.requestAnimationFrame(animationLoop);
-    };
-
-    const focusModel = () => {
-      if (!currentModel) {
-        return;
-      }
-
-      fitCameraToObject(camera, controls, currentModel);
-      renderFrame();
-    };
-
-    runtimeRef.current = {
-      camera,
-      controls,
-      renderFrame,
-      focusModel,
-    };
-
-    const handleResize = () => {
-      setRendererSize(renderer, camera, container);
-      renderFrame();
-    };
-
-    handleResize();
-
-    const resizeObserver = new ResizeObserver(handleResize);
-    resizeObserver.observe(container);
-
-    loader.load(
-      modelUrl,
-      (gltf: GLTF) => {
-        if (isDisposed) {
-          return;
-        }
-
-        currentModel = gltf.scene;
-        prepareModel(currentModel, maxAnisotropy);
-        scene.add(currentModel);
-        focusModel();
-        setProgress(100);
-        setViewerState("ready");
-      },
-      (event: ProgressEvent<EventTarget>) => {
-        if (isDisposed) {
-          return;
-        }
-
-        if (event.total > 0) {
-          setProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
-        }
-      },
-      () => {
-        if (!isDisposed) {
-          setViewerState("error");
-        }
-      },
-    );
-
-    window.requestAnimationFrame(animationLoop);
+    if (viewer.loaded) {
+      handleLoad();
+    }
 
     return () => {
-      isDisposed = true;
-      resizeObserver.disconnect();
-      controls.dispose();
-      runtimeRef.current = null;
-
-      if (currentModel) {
-        scene.remove(currentModel);
-        disposeObject(currentModel);
-      }
-
-      renderer.dispose();
-      environmentTarget.dispose();
-      pmremGenerator.dispose();
-      container.innerHTML = "";
+      viewer.removeEventListener("load", handleLoad);
+      viewer.removeEventListener("error", handleError);
+      viewer.removeEventListener("progress", handleProgress as EventListener);
     };
-  }, [modelUrl]);
+  }, [isViewerRuntimeReady, modelUrl]);
+
+  const handleResetView = () => {
+    resetViewerCamera(viewerRef.current);
+  };
 
   const handleActivateAr = async () => {
-    const arViewer = arViewerRef.current;
-    if (!arViewer) {
+    const viewer = viewerRef.current;
+    if (!viewer) {
       toast.error(t("arNotReady"));
       return;
     }
 
-    if (!arViewer.canActivateAR) {
+    if (!viewer.canActivateAR) {
       toast.error(t("arUnsupported"));
       return;
     }
@@ -408,7 +195,7 @@ export function Product3DViewer({
     setIsArLaunching(true);
 
     try {
-      await arViewer.activateAR();
+      await viewer.activateAR();
     } catch (error) {
       console.error("Failed to activate AR", error);
       toast.error(t("arError"));
@@ -438,11 +225,16 @@ export function Product3DViewer({
   if (embedded) {
     return (
       <div className={className ?? "relative h-full w-full"}>
-        <div
-          ref={containerRef}
-          className="h-full w-full"
-          aria-label={productTitle}
-        />
+        {isViewerRuntimeReady ? (
+          <ModelCanvas
+            viewerRef={viewerRef}
+            modelUrl={modelUrl}
+            productTitle={productTitle}
+            arPlacement={arPlacement}
+          />
+        ) : (
+          <div className="h-full w-full" />
+        )}
 
         {viewerState === "loading" ? (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]/82 backdrop-blur-sm">
@@ -457,7 +249,6 @@ export function Product3DViewer({
           </div>
         ) : null}
 
-        {/* Floating controls */}
         <div className="pointer-events-none absolute inset-x-0 top-3 flex items-center justify-between px-3">
           <span className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-primary)] shadow-sm backdrop-blur">
             <Box size={12} />
@@ -466,7 +257,7 @@ export function Product3DViewer({
 
           <button
             type="button"
-            onClick={() => runtimeRef.current?.focusModel()}
+            onClick={handleResetView}
             disabled={viewerState !== "ready"}
             className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-[11px] font-medium text-[var(--color-text-secondary)] shadow-sm backdrop-blur transition hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -479,7 +270,7 @@ export function Product3DViewer({
           <button
             type="button"
             onClick={handleActivateAr}
-            disabled={!isArReady || isArLaunching}
+            disabled={!isArReady || isArLaunching || viewerState !== "ready"}
             className="pointer-events-auto absolute bottom-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-[var(--color-primary-700)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Smartphone size={14} />
@@ -489,30 +280,6 @@ export function Product3DViewer({
                 ? t("arButton")
                 : t("arPreparing")}
           </button>
-        ) : null}
-
-        {isArEligibleDevice ? (
-          <model-viewer
-            ref={arViewerRef}
-            src={modelUrl}
-            alt={productTitle}
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            ar-placement={arPlacement}
-            interaction-prompt="none"
-            loading="eager"
-            reveal="auto"
-            aria-hidden="true"
-            tabIndex={-1}
-            style={{
-              position: "absolute",
-              width: "1px",
-              height: "1px",
-              opacity: 0,
-              pointerEvents: "none",
-              overflow: "hidden",
-            }}
-          />
         ) : null}
       </div>
     );
@@ -533,7 +300,7 @@ export function Product3DViewer({
             <button
               type="button"
               onClick={handleActivateAr}
-              disabled={!isArReady || isArLaunching}
+              disabled={!isArReady || isArLaunching || viewerState !== "ready"}
               className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Smartphone size={12} />
@@ -547,7 +314,7 @@ export function Product3DViewer({
 
           <button
             type="button"
-            onClick={() => runtimeRef.current?.focusModel()}
+            onClick={handleResetView}
             disabled={viewerState !== "ready"}
             className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -558,7 +325,16 @@ export function Product3DViewer({
       </div>
 
       <div className="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[radial-gradient(circle_at_top,#fff7ee_0%,#f4ebdf_55%,#eadfce_100%)]">
-        <div ref={containerRef} className="h-[480px] w-full" aria-label={productTitle} />
+        <div className="h-[480px] w-full" aria-label={productTitle}>
+          {isViewerRuntimeReady ? (
+            <ModelCanvas
+              viewerRef={viewerRef}
+              modelUrl={modelUrl}
+              productTitle={productTitle}
+              arPlacement={arPlacement}
+            />
+          ) : null}
+        </div>
 
         {viewerState === "loading" ? (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface)]/82 backdrop-blur-sm">
@@ -582,30 +358,6 @@ export function Product3DViewer({
         <p className="text-center text-[11px] text-[var(--color-text-secondary)]">
           {t("arHint")}
         </p>
-      ) : null}
-
-      {isArEligibleDevice ? (
-        <model-viewer
-          ref={arViewerRef}
-          src={modelUrl}
-          alt={productTitle}
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-placement={arPlacement}
-          interaction-prompt="none"
-          loading="eager"
-          reveal="auto"
-          aria-hidden="true"
-          tabIndex={-1}
-          style={{
-            position: "absolute",
-            width: "1px",
-            height: "1px",
-            opacity: 0,
-            pointerEvents: "none",
-            overflow: "hidden",
-          }}
-        />
       ) : null}
     </div>
   );
