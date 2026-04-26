@@ -17,6 +17,7 @@ import {
   MeshStandardMaterial,
   Object3D,
   PCFSoftShadowMap,
+  PMREMGenerator,
   PerspectiveCamera,
   Scene,
   SRGBColorSpace,
@@ -24,6 +25,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 
@@ -93,6 +95,18 @@ function prepareStandardMaterial(material: MeshStandardMaterial, maxAnisotropy: 
   if (material.emissiveMap) {
     material.emissiveMap.colorSpace = SRGBColorSpace;
     material.emissiveMap.needsUpdate = true;
+  }
+
+  const isSuspiciousTexturedPbrExport =
+    Boolean(material.map) &&
+    !material.metalnessMap &&
+    !material.roughnessMap &&
+    material.metalness >= 0.95 &&
+    material.roughness >= 0.95;
+
+  if (isSuspiciousTexturedPbrExport) {
+    material.metalness = 0.08;
+    material.roughness = 0.9;
   }
 
   const hasAnyTextureMap = textureMaps.length > 0;
@@ -253,6 +267,9 @@ export function Product3DViewer({
     renderer.shadowMap.type = PCFSoftShadowMap;
     renderer.domElement.className = "h-full w-full";
     const maxAnisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+    const pmremGenerator = new PMREMGenerator(renderer);
+    const environmentTarget = pmremGenerator.fromScene(new RoomEnvironment(), 0.04);
+    scene.environment = environmentTarget.texture;
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
@@ -370,6 +387,8 @@ export function Product3DViewer({
       }
 
       renderer.dispose();
+      environmentTarget.dispose();
+      pmremGenerator.dispose();
       container.innerHTML = "";
     };
   }, [modelUrl]);
