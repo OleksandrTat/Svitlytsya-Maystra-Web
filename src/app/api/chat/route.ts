@@ -1,7 +1,10 @@
 import { env, hasOpenAi } from "@/lib/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
-export const runtime = "nodejs";
+// Edge runtime guarantees true response streaming on Vercel — the Node.js
+// runtime sometimes buffers the entire ReadableStream until completion,
+// which made the chatbot reply appear all at once instead of token-by-token.
+export const runtime = "edge";
 export const maxDuration = 60;
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
