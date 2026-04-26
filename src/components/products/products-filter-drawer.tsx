@@ -292,6 +292,28 @@ export function ProductsFilterDrawer({
   const hasActiveFilters = activeFilterCount > 0;
   const totalCategories = categoryOptions.reduce((sum, c) => sum + c.count, 0);
 
+  // Slug → localized label maps used for chips while the URL keeps slugs.
+  const materialLabelBySlug = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const o of materialOptions) {
+      map[o.value.toLowerCase()] = o.label;
+      map[o.value] = o.label;
+    }
+    return map;
+  }, [materialOptions]);
+  const styleLabelBySlug = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const o of styleOptions) {
+      map[o.value.toLowerCase()] = o.label;
+      map[o.value] = o.label;
+    }
+    return map;
+  }, [styleOptions]);
+  const labelForMaterial = (slug: string) =>
+    materialLabelBySlug[slug] ?? materialLabelBySlug[slug.toLowerCase()] ?? slug;
+  const labelForStyle = (slug: string) =>
+    styleLabelBySlug[slug] ?? styleLabelBySlug[slug.toLowerCase()] ?? slug;
+
   // Lock body scroll when open
   useEffect(() => {
     if (open) {
@@ -456,14 +478,14 @@ export function ProductsFilterDrawer({
                       {filters.materials.map((m) => (
                         <ActiveChip
                           key={`m-${m}`}
-                          label={m}
+                          label={labelForMaterial(m)}
                           onRemove={() => toggleParamValue("material", m)}
                         />
                       ))}
                       {filters.styles.map((s) => (
                         <ActiveChip
                           key={`s-${s}`}
-                          label={s}
+                          label={labelForStyle(s)}
                           onRemove={() => toggleParamValue("style", s)}
                         />
                       ))}
@@ -580,7 +602,7 @@ export function ProductsFilterDrawer({
                       {visibleMaterials.map((material) => (
                         <AttributePill
                           key={material.value}
-                          label={material.value}
+                          label={material.label}
                           count={material.count}
                           active={includesIgnoreCase(filters.materials, material.value)}
                           onClick={() => toggleParamValue("material", material.value)}
@@ -610,7 +632,7 @@ export function ProductsFilterDrawer({
                       {visibleStyles.map((style) => (
                         <AttributePill
                           key={style.value}
-                          label={style.value}
+                          label={style.label}
                           count={style.count}
                           active={includesIgnoreCase(filters.styles, style.value)}
                           onClick={() => toggleParamValue("style", style.value)}
