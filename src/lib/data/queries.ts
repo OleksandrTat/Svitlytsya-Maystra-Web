@@ -114,13 +114,16 @@ export function parseProductFilters(
 }
 
 export type CategoryOption = { value: string; count: number };
-export type AttributeOption = { value: string; count: number };
+export type AttributeOption = { value: string; label: string; count: number };
 
 // Case-insensitive aggregator — merges "Дуб" + "дуб" into one, picks the most
-// "proper" display form (prefers capitalized), and counts actual product usage.
+// "proper" display form (prefers capitalized), counts actual product usage,
+// and resolves a localized label from the supplied lookup map (falling back
+// to the display form if the slug isn't present in the lookup table).
 function aggregateAttribute(
   products: Array<{ materials?: unknown; style?: unknown }>,
   field: "materials" | "style",
+  labelBySlug: Record<string, string>,
 ): AttributeOption[] {
   const map = new Map<string, { display: string; count: number }>();
 
@@ -138,7 +141,6 @@ function aggregateAttribute(
 
       if (existing) {
         existing.count += 1;
-        // Prefer the form that starts with an uppercase letter for display
         const currentIsCapitalized = /^[\p{Lu}]/u.test(existing.display);
         const candidateIsCapitalized = /^[\p{Lu}]/u.test(value);
         if (!currentIsCapitalized && candidateIsCapitalized) {
@@ -150,27 +152,76 @@ function aggregateAttribute(
     }
   }
 
-  return Array.from(map.values())
-    .map((v) => ({ value: v.display, count: v.count }))
-    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, "uk"));
+  return Array.from(map.entries())
+    .map(([key, v]) => ({
+      value: v.display,
+      label: labelBySlug[key] ?? labelBySlug[v.display] ?? v.display,
+      count: v.count,
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
-export async function getProductFilterOptions(): Promise<{
+export type LocaleCode = "uk" | "en";
+
+export async function getProductFilterOptions(
+  locale: LocaleCode = "uk",
+): Promise<{
   styles: AttributeOption[];
   materials: AttributeOption[];
   categories: CategoryOption[];
+  /** Slug → localized label maps for downstream consumers (cards, chips). */
+  materialLabelsBySlug: Record<string, string>;
+  styleLabelsBySlug: Record<string, string>;
 }> {
   const supabase = createSupabaseServiceClient() ?? (await createSupabaseServerClient());
   if (!supabase) {
-    return { styles: [], materials: [], categories: [] };
+    return {
+      styles: [],
+      materials: [],
+      categories: [],
+      materialLabelsBySlug: {},
+      styleLabelsBySlug: {},
+    };
   }
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("category, materials, style")
-    .eq("status", "active");
+  // Run product scan + lookup tables in parallel.
+  const [productsRes, materialsLookupRes, stylesLookupRes] = await Promise.all([
+    supabase.from("products").select("category, materials, style").eq("status", "active"),
+    supabase.from("materials").select("slug, label_uk, label_en"),
+    supabase.from("styles").select("slug, label_uk, label_en"),
+  ]);
 
-  const rows = products ?? [];
+  const rows = productsRes.data ?? [];
+
+  const pickLabel = (
+    slug: string,
+    label_uk: string | null | undefined,
+    label_en: string | null | undefined,
+  ) => {
+    if (locale === "en") {
+      const en = (label_en ?? "").trim();
+      if (en) return en;
+    }
+    const uk = (label_uk ?? "").trim();
+    return uk || slug;
+  };
+
+  const buildMap = (
+    rows: Array<{ slug: string; label_uk: string | null; label_en: string | null }> | null,
+  ) => {
+    const out: Record<string, string> = {};
+    for (const r of rows ?? []) {
+      const slug = (r.slug ?? "").trim();
+      if (!slug) continue;
+      const label = pickLabel(slug, r.label_uk, r.label_en);
+      out[slug] = label;
+      out[slug.toLowerCase()] = label;
+    }
+    return out;
+  };
+
+  const materialLabelsBySlug = buildMap(materialsLookupRes.data);
+  const styleLabelsBySlug = buildMap(stylesLookupRes.data);
 
   const categoryCounts = new Map<string, number>();
   for (const product of rows) {
@@ -183,11 +234,13 @@ export async function getProductFilterOptions(): Promise<{
   const materialsShaped = rows.map((r) => ({ materials: r.materials, style: r.style }));
 
   return {
-    styles: aggregateAttribute(materialsShaped, "style"),
-    materials: aggregateAttribute(materialsShaped, "materials"),
+    styles: aggregateAttribute(materialsShaped, "style", styleLabelsBySlug),
+    materials: aggregateAttribute(materialsShaped, "materials", materialLabelsBySlug),
     categories: Array.from(categoryCounts.entries())
       .map(([value, count]) => ({ value, count }))
       .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, "uk")),
+    materialLabelsBySlug,
+    styleLabelsBySlug,
   };
 }
 

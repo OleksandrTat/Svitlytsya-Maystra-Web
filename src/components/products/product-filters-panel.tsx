@@ -292,6 +292,30 @@ export function ProductFiltersPanel({
 
   const totalCategories = categoryOptions.reduce((sum, c) => sum + c.count, 0);
 
+  // Slug → localized label maps used to render active filter chips for
+  // materials/styles. The URL stores the raw slug; the chip should still
+  // show the localized label.
+  const materialLabelBySlug = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const o of materialOptions) {
+      map[o.value.toLowerCase()] = o.label;
+      map[o.value] = o.label;
+    }
+    return map;
+  }, [materialOptions]);
+  const styleLabelBySlug = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const o of styleOptions) {
+      map[o.value.toLowerCase()] = o.label;
+      map[o.value] = o.label;
+    }
+    return map;
+  }, [styleOptions]);
+  const labelForMaterial = (slug: string) =>
+    materialLabelBySlug[slug] ?? materialLabelBySlug[slug.toLowerCase()] ?? slug;
+  const labelForStyle = (slug: string) =>
+    styleLabelBySlug[slug] ?? styleLabelBySlug[slug.toLowerCase()] ?? slug;
+
   return (
     <aside className="sidebar-scrollbar sticky top-24 hidden max-h-[calc(100vh-120px)] space-y-4 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-warm)] p-5 lg:block">
       {/* Wishlist filter — only for authenticated users */}
@@ -367,14 +391,14 @@ export function ProductFiltersPanel({
               {filters.materials.map((m) => (
                 <ActiveChip
                   key={`m-${m}`}
-                  label={m}
+                  label={labelForMaterial(m)}
                   onRemove={() => toggleParamValue("material", m)}
                 />
               ))}
               {filters.styles.map((s) => (
                 <ActiveChip
                   key={`s-${s}`}
-                  label={s}
+                  label={labelForStyle(s)}
                   onRemove={() => toggleParamValue("style", s)}
                 />
               ))}
@@ -517,7 +541,7 @@ export function ProductFiltersPanel({
             {visibleMaterials.map((material) => (
               <AttributePill
                 key={material.value}
-                label={material.value}
+                label={material.label}
                 count={material.count}
                 active={includesIgnoreCase(filters.materials, material.value)}
                 onClick={() => toggleParamValue("material", material.value)}
@@ -545,7 +569,7 @@ export function ProductFiltersPanel({
             {visibleStyles.map((style) => (
               <AttributePill
                 key={style.value}
-                label={style.value}
+                label={style.label}
                 count={style.count}
                 active={includesIgnoreCase(filters.styles, style.value)}
                 onClick={() => toggleParamValue("style", style.value)}

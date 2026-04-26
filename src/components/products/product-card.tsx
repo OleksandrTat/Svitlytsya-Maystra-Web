@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { GitCompare } from "lucide-react";
 import { useComparison } from "@/hooks/use-comparison";
+import { useMaterialLabel } from "@/components/products/attribute-labels-context";
 import { WishlistButton } from "@/components/products/wishlist-button";
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_STATUS_LABELS } from "@/lib/constants";
 import type { Product } from "@/lib/types";
@@ -18,6 +19,7 @@ type Props = {
 export function ProductCard({ product, showStatus = false }: Props) {
   const { toggle, isInComparison, isFull } = useComparison();
   const inComparison = isInComparison(product.id);
+  const materialLabel = useMaterialLabel();
 
   const categoryLabel =
     PRODUCT_CATEGORY_LABELS[product.category as keyof typeof PRODUCT_CATEGORY_LABELS] ??
@@ -117,7 +119,7 @@ export function ProductCard({ product, showStatus = false }: Props) {
                 key={material}
                 className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]"
               >
-                {material}
+                {materialLabel(material)}
               </span>
             ))}
             {product.materials.length > 3 && (

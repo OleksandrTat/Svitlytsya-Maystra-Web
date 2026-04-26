@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { PackageSearch } from "lucide-react";
+import { AttributeLabelsProvider } from "@/components/products/attribute-labels-context";
 import { ComparisonBar } from "@/components/products/comparison-bar";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductFiltersPanel } from "@/components/products/product-filters-panel";
@@ -87,23 +88,28 @@ export default async function ProductsPage({
     ? { ...filters, wishlistIds }
     : filters;
 
-  const [{ items: rawItems, total }, filterOptions, rawComparisonProducts, locale, t, tCommon, tNav] =
+  const localeRaw = await getLocale();
+  const locale: "uk" | "en" = localeRaw === "en" ? "en" : "uk";
+
+  const [{ items: rawItems, total }, filterOptions, rawComparisonProducts, t, tCommon, tNav] =
     await Promise.all([
       getProducts(filtersResolved),
-      getProductFilterOptions(),
+      getProductFilterOptions(locale),
       getAllActiveProducts(),
-      getLocale(),
       getTranslations("productsPage"),
       getTranslations("common"),
       getTranslations("nav"),
     ]);
 
-  const items = rawItems.map((p) => localizeProduct(p, locale as "uk" | "en"));
-  const comparisonProducts = rawComparisonProducts.map((p) => localizeProduct(p, locale as "uk" | "en"));
+  const items = rawItems.map((p) => localizeProduct(p, locale));
+  const comparisonProducts = rawComparisonProducts.map((p) => localizeProduct(p, locale));
   const totalPages = Math.ceil(total / filters.pageSize);
 
   return (
-    <>
+    <AttributeLabelsProvider
+      materials={filterOptions.materialLabelsBySlug}
+      styles={filterOptions.styleLabelsBySlug}
+    >
       {/* Hero strip */}
       <section className="relative flex h-[280px] items-end overflow-hidden">
         <Image
@@ -217,6 +223,6 @@ export default async function ProductsPage({
       {comparisonProducts.length > 0 ? (
         <ComparisonBar products={comparisonProducts} />
       ) : null}
-    </>
+    </AttributeLabelsProvider>
   );
 }
