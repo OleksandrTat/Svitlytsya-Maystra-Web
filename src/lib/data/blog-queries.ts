@@ -18,7 +18,7 @@ export const getPublishedBlogPosts = cache(
     let query = supabase
       .from("blog_posts")
       .select(
-        "id,title,slug,excerpt,cover_image,category,tags,reading_time_min,published_at,author_name,author_avatar,is_featured,views_count,likes_count",
+        "id,title,title_en,slug,excerpt,excerpt_en,cover_image,category,tags,reading_time_min,published_at,author_name,author_avatar,is_featured,views_count,likes_count",
         { count: "exact" },
       )
       .eq("is_published", true)
@@ -42,7 +42,7 @@ export const getFeaturedBlogPosts = cache(async (limit = 3): Promise<BlogPost[]>
   const { data } = await supabase
     .from("blog_posts")
     .select(
-      "id,title,slug,excerpt,cover_image,category,tags,reading_time_min,published_at,author_name,author_avatar,is_featured,views_count,likes_count",
+      "id,title,title_en,slug,excerpt,excerpt_en,cover_image,category,tags,reading_time_min,published_at,author_name,author_avatar,is_featured,views_count,likes_count",
     )
     .eq("is_published", true)
     .eq("is_featured", true)
@@ -72,14 +72,46 @@ export const getRelatedBlogPosts = cache(
     const supabase = await getSupabase();
     if (!supabase) return [];
 
-    const { data } = await supabase.rpc("get_related_blog_posts", {
-      current_slug: slug,
-      post_category: category,
-      post_tags: tags,
-      result_limit: 3,
-    });
+    // Implemented in TS (rather than the get_related_blog_posts RPC)
+    // because the RPC's RETURNS TABLE shape only has UK columns; we need
+    // title_en / excerpt_en for proper localization on the post page.
+    const safeTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
 
-    return (data ?? []) as BlogPost[];
+    const filters: string[] = [];
+    if (category) filters.push(`category.eq.${category}`);
+    if (safeTags.length) filters.push(`tags.ov.{${safeTags.map((t) => `"${t.replace(/"/g, "\\\"")}"`).join(",")}}`);
+
+    let query = supabase
+      .from("blog_posts")
+      .select(
+        "id,title,title_en,slug,excerpt,excerpt_en,cover_image,category,tags,reading_time_min,published_at,author_name,author_avatar,is_featured,views_count,likes_count",
+      )
+      .eq("is_published", true)
+      .neq("slug", slug);
+
+    if (filters.length) {
+      query = query.or(filters.join(","));
+    }
+
+    const { data } = await query
+      .order("published_at", { ascending: false })
+      .limit(12);
+
+    const rows = (data ?? []) as BlogPost[];
+
+    const score = (post: BlogPost) => {
+      const categoryMatch = post.category === category ? 1 : 0;
+      const overlap = safeTags.length
+        ? (post.tags ?? []).filter((tag) => safeTags.includes(tag)).length
+        : 0;
+      return categoryMatch + overlap;
+    };
+
+    return rows
+      .map((post) => ({ post, s: score(post) }))
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 3)
+      .map((entry) => entry.post);
   },
 );
 

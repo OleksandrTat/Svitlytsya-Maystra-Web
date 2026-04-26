@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Clock } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { BLOG_CATEGORY_LABELS } from "@/lib/constants";
 import type { BlogPost } from "@/lib/types";
 import { formatInquiryDate } from "@/lib/utils";
 
 export function BlogFeaturedHero({ post }: { post: BlogPost }) {
+  const t = useTranslations("blog");
   const categoryLabel = BLOG_CATEGORY_LABELS[post.category] ?? post.category;
 
   return (
@@ -60,7 +62,7 @@ export function BlogFeaturedHero({ post }: { post: BlogPost }) {
             <span>·</span>
             <span className="flex items-center gap-1">
               <Clock size={13} />
-              {post.reading_time_min} хв
+              {t("readingTime", { minutes: post.reading_time_min })}
             </span>
           </div>
 
@@ -68,7 +70,7 @@ export function BlogFeaturedHero({ post }: { post: BlogPost }) {
             href={`/blog/${post.slug}`}
             className="mt-8 inline-flex w-fit items-center rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
           >
-            Читати статтю &rarr;
+            {t("readMore")} &rarr;
           </Link>
         </div>
       </div>

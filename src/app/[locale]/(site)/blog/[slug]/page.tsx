@@ -64,7 +64,8 @@ export default async function BlogPostPage({
     getTranslations("nav"),
   ]);
 
-  const related = await getRelatedBlogPosts(post.slug, post.category, post.tags);
+  const rawRelated = await getRelatedBlogPosts(post.slug, post.category, post.tags);
+  const related = rawRelated.map((p) => localizeBlogPost(p, locale as "uk" | "en"));
 
   // Fire and forget
   void incrementBlogPostViews(slug);
