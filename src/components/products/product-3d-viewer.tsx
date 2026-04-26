@@ -11,7 +11,6 @@ import {
   Clock,
   Color,
   DirectionalLight,
-  DoubleSide,
   Group,
   HemisphereLight,
   Mesh,
@@ -21,6 +20,7 @@ import {
   PerspectiveCamera,
   Scene,
   SRGBColorSpace,
+  Texture,
   Vector3,
   WebGLRenderer,
 } from "three";
@@ -69,7 +69,51 @@ function disposeObject(root: Object3D) {
   });
 }
 
-function prepareModel(root: Object3D) {
+function prepareStandardMaterial(material: MeshStandardMaterial, maxAnisotropy: number) {
+  const textureMaps = [
+    material.map,
+    material.emissiveMap,
+    material.normalMap,
+    material.roughnessMap,
+    material.metalnessMap,
+    material.aoMap,
+    material.alphaMap,
+    material.bumpMap,
+  ].filter((texture): texture is Texture => texture !== null);
+
+  for (const texture of textureMaps) {
+    texture.anisotropy = Math.max(texture.anisotropy, maxAnisotropy);
+  }
+
+  if (material.map) {
+    material.map.colorSpace = SRGBColorSpace;
+    material.map.needsUpdate = true;
+  }
+
+  if (material.emissiveMap) {
+    material.emissiveMap.colorSpace = SRGBColorSpace;
+    material.emissiveMap.needsUpdate = true;
+  }
+
+  const hasAnyTextureMap = textureMaps.length > 0;
+  const fallbackName = material.name.trim().toLowerCase();
+  const isFallbackBlackMaterial =
+    fallbackName.includes("fallback") &&
+    !hasAnyTextureMap &&
+    material.color.r <= 0.02 &&
+    material.color.g <= 0.02 &&
+    material.color.b <= 0.02;
+
+  if (isFallbackBlackMaterial) {
+    material.color.set("#efe8df");
+    material.roughness = 0.86;
+    material.metalness = 0.04;
+  }
+
+  material.needsUpdate = true;
+}
+
+function prepareModel(root: Object3D, maxAnisotropy: number) {
   root.traverse((child: Object3D) => {
     if (!isMesh(child)) {
       return;
@@ -84,12 +128,10 @@ function prepareModel(root: Object3D) {
 
     const materials = Array.isArray(child.material) ? child.material : [child.material];
     for (const material of materials) {
-      material.side = DoubleSide;
-      material.needsUpdate = true;
-
       if (material instanceof MeshStandardMaterial) {
-        material.roughness = Math.max(material.roughness, 0.38);
-        material.metalness = Math.min(material.metalness, 0.32);
+        prepareStandardMaterial(material, maxAnisotropy);
+      } else {
+        material.needsUpdate = true;
       }
     }
   });
@@ -210,6 +252,7 @@ export function Product3DViewer({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
     renderer.domElement.className = "h-full w-full";
+    const maxAnisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
@@ -291,7 +334,7 @@ export function Product3DViewer({
         }
 
         currentModel = gltf.scene;
-        prepareModel(currentModel);
+        prepareModel(currentModel, maxAnisotropy);
         scene.add(currentModel);
         focusModel();
         setProgress(100);
