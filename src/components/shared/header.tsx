@@ -166,6 +166,7 @@ export function SiteHeader() {
   );
 
   return (
+    <>
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-40 transition-all duration-300",
@@ -317,11 +318,13 @@ export function SiteHeader() {
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
+    </header>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay — outside <header> so backdrop-blur on the header
+          doesn't pull this into a new stacking/containing context */}
       {open && (
         <div
-          className="fixed inset-0 top-[72px] z-30 bg-black/40 md:hidden"
+          className="fixed inset-0 top-[72px] z-[60] bg-black/40 md:hidden"
           onClick={() => setOpen(false)}
         />
       )}
@@ -329,7 +332,7 @@ export function SiteHeader() {
       {/* Mobile menu */}
       <div
         className={cn(
-          "fixed top-[72px] right-0 bottom-0 z-40 w-80 max-w-[85vw] border-l border-[var(--color-border)] shadow-2xl transition-transform duration-300 md:hidden",
+          "fixed top-[72px] right-0 bottom-0 z-[70] w-80 max-w-[85vw] border-l border-[var(--color-border)] shadow-2xl transition-transform duration-300 md:hidden",
           open ? "translate-x-0" : "translate-x-full",
         )}
         style={{ backgroundColor: "#FAF7F2" }}
@@ -395,6 +398,6 @@ export function SiteHeader() {
           </Link>
         </div>
       </div>
-    </header>
+    </>
   );
 }
