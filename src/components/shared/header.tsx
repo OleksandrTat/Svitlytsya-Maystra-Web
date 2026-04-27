@@ -329,9 +329,10 @@ export function SiteHeader() {
       {/* Mobile menu */}
       <div
         className={cn(
-          "fixed top-[72px] right-0 bottom-0 z-40 w-80 max-w-[85vw] bg-[var(--color-bg)] shadow-xl transition-transform duration-300 md:hidden",
+          "fixed top-[72px] right-0 bottom-0 z-40 w-80 max-w-[85vw] border-l border-[var(--color-border)] shadow-2xl transition-transform duration-300 md:hidden",
           open ? "translate-x-0" : "translate-x-full",
         )}
+        style={{ backgroundColor: "#FAF7F2" }}
       >
         <div className="flex flex-col gap-1 p-4">
           {links.map((link) => (
