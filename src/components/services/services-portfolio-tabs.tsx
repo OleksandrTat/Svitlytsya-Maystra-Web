@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { PRODUCT_CATEGORY_LABELS } from "@/lib/constants";
+import { useTranslations } from "next-intl";
 import type { Service } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,8 @@ type Props = {
 const CATEGORY_ORDER = ["doors", "furniture", "windows", "restoration"] as const;
 
 export function ServicesPortfolioTabs({ services }: Props) {
+  const tServices = useTranslations("servicesPage");
+  const tProducts = useTranslations("productsPage");
   const availableTabs = CATEGORY_ORDER.filter((cat) =>
     services.some((s) => s.category === cat && s.gallery.length > 0),
   );
@@ -26,6 +28,12 @@ export function ServicesPortfolioTabs({ services }: Props) {
     (s) => s.category === activeTab && s.gallery.length > 0,
   );
   const images = activeService?.gallery ?? [];
+  const categoryLabels = {
+    doors: tProducts("categories.doors"),
+    furniture: tProducts("categories.furniture"),
+    windows: tProducts("categories.windows"),
+    restoration: tProducts("categories.restoration"),
+  } as const;
 
   return (
     <div>
@@ -43,7 +51,7 @@ export function ServicesPortfolioTabs({ services }: Props) {
                 : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
             )}
           >
-            {PRODUCT_CATEGORY_LABELS[cat as keyof typeof PRODUCT_CATEGORY_LABELS] ?? cat}
+            {categoryLabels[cat]}
             {activeTab === cat && (
               <motion.div
                 layoutId="portfolio-tab-indicator"
@@ -72,7 +80,10 @@ export function ServicesPortfolioTabs({ services }: Props) {
             >
               <Image
                 src={src}
-                alt={`${activeService?.title ?? ""} — фото ${i + 1}`}
+                alt={tServices("portfolioPhotoAlt", {
+                  title: activeService?.title ?? "",
+                  index: i + 1,
+                })}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -84,7 +95,7 @@ export function ServicesPortfolioTabs({ services }: Props) {
 
       {images.length === 0 && (
         <p className="py-12 text-center text-sm text-[var(--color-text-muted)]">
-          Поки що немає фото для цієї категорії
+          {tServices("portfolioCategoryEmpty")}
         </p>
       )}
     </div>

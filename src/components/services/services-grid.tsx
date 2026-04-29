@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { Service } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +33,11 @@ const SERVICE_ICONS: Record<string, string> = {
 };
 
 export function ServicesAccordion({ services, className }: Props) {
+  const locale = useLocale();
+  const t = useTranslations("servicesPage");
   const [openId, setOpenId] = useState<string | null>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const numberLocale = locale === "uk" ? "uk-UA" : "en-US";
 
   const toggle = (id: string) => {
     setOpenId((prev) => (prev === id ? null : id));
@@ -60,6 +64,10 @@ export function ServicesAccordion({ services, className }: Props) {
         const icon = service.icon ?? SERVICE_ICONS[service.category] ?? "🔨";
         const image =
           service.cover_image ?? FALLBACK_IMAGES[service.category] ?? FALLBACK_IMAGES.doors;
+        const priceUnit =
+          locale === "en" && (service.price_unit ?? "грн") === "грн"
+            ? "UAH"
+            : (service.price_unit ?? (locale === "en" ? "UAH" : "грн"));
 
         return (
           <div
@@ -89,8 +97,10 @@ export function ServicesAccordion({ services, className }: Props) {
               </span>
               {service.price_from && (
                 <span className="hidden text-sm text-[var(--color-text-muted)] md:block">
-                  від {service.price_from.toLocaleString("uk-UA")}{" "}
-                  {service.price_unit ?? "грн"}
+                  {t("accordionPriceFrom", {
+                    amount: service.price_from.toLocaleString(numberLocale),
+                    unit: priceUnit,
+                  })}
                 </span>
               )}
               <ChevronDown
@@ -159,7 +169,7 @@ export function ServicesAccordion({ services, className }: Props) {
                           <div className="border-t border-[var(--color-border)]" />
                           <div>
                             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                              Процес роботи
+                              {t("accordionProcessTitle")}
                             </p>
                             <div className="flex flex-wrap items-center gap-2">
                               {service.process_steps.map((step, i) => (
@@ -189,13 +199,13 @@ export function ServicesAccordion({ services, className }: Props) {
                           href="/contact"
                           className="rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
                         >
-                          Замовити консультацію →
+                          {t("accordionConsultationCta")}
                         </Link>
                         <Link
-                          href={`/services/${service.slug}`}
+                          href={`/services/${service.slug}` as "/services/[slug]"}
                           className="rounded-full border border-[var(--color-primary)] px-6 py-2.5 text-sm font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
                         >
-                          Детальніше про послугу
+                          {t("accordionServiceDetailsCta")}
                         </Link>
                       </div>
                     </div>

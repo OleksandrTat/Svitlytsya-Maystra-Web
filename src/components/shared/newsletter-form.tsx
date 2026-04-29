@@ -76,7 +76,7 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
           <input
             type="email"
             required
-            placeholder="Email"
+            placeholder={t("newsletterPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="h-9 flex-1 rounded-lg border border-white/20 bg-white/5 px-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
@@ -84,9 +84,9 @@ export function NewsletterForm({ variant = "inline", className }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-9 items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+            className="flex h-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-700)] disabled:opacity-50"
           >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : "OK"}
+            {loading ? <Loader2 size={14} className="animate-spin" /> : t("newsletterSubmit")}
           </button>
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}

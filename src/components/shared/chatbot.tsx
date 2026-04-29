@@ -436,6 +436,8 @@ export function Chatbot() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const streamContentRef = useRef("");    // accumulates streamed text
+  const streamMessageIdRef = useRef<string | null>(null);
+  const streamFlushFrameRef = useRef<number | null>(null);
   const assistantCountRef = useRef(0);    // total completed assistant replies
   const lastFormAtRef = useRef(-999);     // assistantCount when form last shown
 
@@ -480,6 +482,14 @@ export function Chatbot() {
     }
   }, [open]);
 
+  useEffect(() => {
+    return () => {
+      if (streamFlushFrameRef.current !== null) {
+        window.cancelAnimationFrame(streamFlushFrameRef.current);
+      }
+    };
+  }, []);
+
   // ── Textarea auto-grow ────────────────────────────────
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -487,6 +497,37 @@ export function Chatbot() {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   };
+
+  const flushStreamToUi = useCallback((content?: string) => {
+    const streamId = streamMessageIdRef.current;
+    const nextContent = content ?? streamContentRef.current;
+    if (!streamId) return;
+
+    setStreamingId(streamId);
+    setMessages((prev) => {
+      const index = prev.findIndex((m) => m.id === streamId);
+      if (index === -1) {
+        return [...prev, { id: streamId, role: "assistant", content: nextContent }];
+      }
+
+      if (prev[index]?.content === nextContent) {
+        return prev;
+      }
+
+      const next = [...prev];
+      next[index] = { ...next[index], content: nextContent };
+      return next;
+    });
+  }, []);
+
+  const scheduleStreamFlush = useCallback(() => {
+    if (streamFlushFrameRef.current !== null) return;
+
+    streamFlushFrameRef.current = window.requestAnimationFrame(() => {
+      streamFlushFrameRef.current = null;
+      flushStreamToUi();
+    });
+  }, [flushStreamToUi]);
 
   // ── Core send (with streaming + offline fallback) ─────
   const send = useCallback(async (text?: string) => {
@@ -501,13 +542,16 @@ export function Chatbot() {
     setRelated([]);
     setShowForm(false);
     streamContentRef.current = "";
+    streamMessageIdRef.current = null;
+    if (streamFlushFrameRef.current !== null) {
+      window.cancelAnimationFrame(streamFlushFrameRef.current);
+      streamFlushFrameRef.current = null;
+    }
     if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
 
-    // Typing delay — TypingIndicator shows for at least ~500ms
-    await new Promise((r) => setTimeout(r, 500));
-
     const streamId = `stream-${Date.now()}`;
+    streamMessageIdRef.current = streamId;
     let firstChunk = true;
 
     try {
@@ -555,17 +599,9 @@ export function Chatbot() {
               streamContentRef.current += ev.c;
               if (firstChunk) {
                 firstChunk = false;
-                setStreamingId(streamId);
-                setMessages((prev) => [
-                  ...prev,
-                  { id: streamId, role: "assistant", content: ev.c! },
-                ]);
+                flushStreamToUi(streamContentRef.current);
               } else {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === streamId ? { ...m, content: m.content + ev.c } : m,
-                  ),
-                );
+                scheduleStreamFlush();
               }
             }
 
@@ -573,25 +609,20 @@ export function Chatbot() {
             else if (ev.reply) {
               streamContentRef.current = ev.reply;
               firstChunk = false;
-              setStreamingId(streamId);
-              setMessages((prev) => [
-                ...prev,
-                { id: streamId, role: "assistant", content: ev.reply! },
-              ]);
+              flushStreamToUi(ev.reply);
             }
 
             // ── error chunk ──
             else if (ev.error && firstChunk) {
               firstChunk = false;
               const offline = findStaticAnswer(content, locale);
-              setMessages((prev) => [
-                ...prev,
-                { id: streamId, role: "assistant", content: offline },
-              ]);
+              streamContentRef.current = offline;
+              flushStreamToUi(offline);
             }
 
             // ── done event ──
             else if (ev.done) {
+              flushStreamToUi();
               const relItems = extractRelated(streamContentRef.current);
               setRelated(relItems);
               setSuggestions(ev.suggestions ?? []);
@@ -615,22 +646,24 @@ export function Chatbot() {
     } catch {
       // Full network failure → offline static answer
       const offline = findStaticAnswer(content, locale);
+      streamContentRef.current = offline;
       if (firstChunk) {
-        setMessages((prev) => [
-          ...prev,
-          { id: streamId, role: "assistant", content: offline },
-        ]);
+        flushStreamToUi(offline);
       } else {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === streamId ? { ...m, content: m.content || offline } : m)),
-        );
+        flushStreamToUi(streamContentRef.current || offline);
       }
       assistantCountRef.current++;
     } finally {
+      if (streamFlushFrameRef.current !== null) {
+        window.cancelAnimationFrame(streamFlushFrameRef.current);
+        streamFlushFrameRef.current = null;
+      }
+      flushStreamToUi();
+      streamMessageIdRef.current = null;
       setLoading(false);
       setStreamingId(null);
     }
-  }, [input, loading, locale, pathname, messages, open]);
+  }, [flushStreamToUi, input, loading, locale, open, pathname, messages, scheduleStreamFlush]);
 
   // ── Regenerate last assistant reply ──────────────────
   const handleRegenerate = useCallback(() => {
@@ -681,8 +714,6 @@ export function Chatbot() {
   };
 
   const isOnlyWelcome = messages.length === 1 && messages[0]?.id === "welcome";
-  const lastMsg = messages[messages.length - 1];
-
   return (
     <>
       {/* ── Chat window ─────────────────────────────────── */}

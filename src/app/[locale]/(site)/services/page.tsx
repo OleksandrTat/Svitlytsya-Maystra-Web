@@ -24,10 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ServicesPage() {
-  const [rawServices, locale, t, tSp, tCommon, tNav] = await Promise.all([
+  const [rawServices, locale, tSp, tCommon, tNav] = await Promise.all([
     getServices(),
     getLocale(),
-    getTranslations("services"),
     getTranslations("servicesPage"),
     getTranslations("common"),
     getTranslations("nav"),
@@ -63,7 +62,7 @@ export default async function ServicesPage() {
       <section className="relative flex h-[280px] items-end overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1590856029826-c7a73142bbf1?auto=format&fit=crop&w=1920&q=80"
-          alt="Майстерня"
+          alt={tSp("workshopAlt")}
           fill
           priority
           className="object-cover"

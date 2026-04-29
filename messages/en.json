@@ -449,6 +449,12 @@
     "statsWarranty": "Years of warranty on all work",
     "accordionEyebrow": "Our services",
     "accordionTitle": "From consultation to installation",
+    "accordionPriceFrom": "from {amount} {unit}",
+    "accordionProcessTitle": "Work process",
+    "accordionConsultationCta": "Request a consultation →",
+    "accordionServiceDetailsCta": "Learn more about the service",
+    "portfolioPhotoAlt": "{title} — photo {index}",
+    "portfolioCategoryEmpty": "No photos for this category yet",
     "whyUs": {
       "guarantee": {
         "title": "3-year warranty",

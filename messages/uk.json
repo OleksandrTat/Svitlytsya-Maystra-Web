@@ -30,9 +30,9 @@
     "scheduleSat": "Сб: 10:00–15:00",
     "copyright": "© 2026 Svitlytsya Maystra",
     "madeWith": "Зроблено з ♥ в Україні",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Use",
-    "cookies": "Cookies"
+    "privacy": "Політика конфіденційності",
+    "terms": "Умови використання",
+    "cookies": "Файли cookie"
   },
   "home": {
     "hero": {
@@ -449,6 +449,12 @@
     "statsWarranty": "Роки гарантії на всі роботи",
     "accordionEyebrow": "Наші послуги",
     "accordionTitle": "Від консультації до монтажу",
+    "accordionPriceFrom": "від {amount} {unit}",
+    "accordionProcessTitle": "Процес роботи",
+    "accordionConsultationCta": "Замовити консультацію →",
+    "accordionServiceDetailsCta": "Детальніше про послугу",
+    "portfolioPhotoAlt": "{title} — фото {index}",
+    "portfolioCategoryEmpty": "Поки що немає фото для цієї категорії",
     "whyUs": {
       "guarantee": {
         "title": "Гарантія 3 роки",
