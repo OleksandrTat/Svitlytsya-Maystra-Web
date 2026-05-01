@@ -12,6 +12,19 @@ import { posthog } from "@/lib/posthog/client";
 const STORAGE_KEY = "product_wishlist";
 const WISHLIST_EVENT = "product-wishlist:change";
 
+let didInitialSync = false;
+let cachedUserPromise: Promise<{ id: string } | null> | null = null;
+
+function getCurrentUserOnce(supabase: ReturnType<typeof createSupabaseBrowserClient>) {
+  if (!cachedUserPromise) {
+    cachedUserPromise = supabase.auth
+      .getUser()
+      .then(({ data }) => (data.user ? { id: data.user.id } : null))
+      .catch(() => null);
+  }
+  return cachedUserPromise;
+}
+
 function readWishlistIds(): string[] {
   if (typeof window === "undefined") return [];
   try {
@@ -57,12 +70,11 @@ export function useWishlist() {
     const supabase = createSupabaseBrowserClient();
 
     const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUserOnce(supabase);
       setUserId(user?.id ?? null);
 
-      if (user) {
+      if (user && !didInitialSync) {
+        didInitialSync = true;
         const localIds = readWishlistIds();
         if (localIds.length > 0) {
           await syncWishlistFromLocalStorage(localIds);
@@ -89,12 +101,11 @@ export function useWishlist() {
     } = supabase.auth.onAuthStateChange((_event: string, session: { user?: { id: string } } | null) => {
       if (session?.user) {
         setUserId(session.user.id);
-        const localIds = readWishlistIds();
-        if (localIds.length > 0) {
-          void syncWishlistFromLocalStorage(localIds);
-        }
+        cachedUserPromise = Promise.resolve({ id: session.user.id });
       } else {
         setUserId(null);
+        didInitialSync = false;
+        cachedUserPromise = null;
       }
     });
 

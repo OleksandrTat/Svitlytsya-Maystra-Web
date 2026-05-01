@@ -68,5 +68,4 @@ export async function syncWishlistFromLocalStorage(productIds: string[]) {
   await supabase
     .from("wishlist_items")
     .upsert(rows, { onConflict: "user_id,product_id" });
-  revalidatePath("/profile/wishlist");
 }
