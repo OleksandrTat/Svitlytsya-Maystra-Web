@@ -166,12 +166,13 @@ export function SiteHeader() {
   );
 
   return (
-    <header
+    <>
+      <header
       className={cn(
         "fixed top-0 left-0 right-0 z-40 transition-all duration-300",
         isTransparent
           ? "border-b border-transparent bg-transparent"
-          : "border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 shadow-sm backdrop-blur",
+          : "border-b border-[var(--color-border)] bg-[var(--color-bg)] shadow-sm backdrop-blur",
       )}
     >
       <div className="mx-auto flex h-18 max-w-[1280px] items-center justify-between px-4 md:px-6">
@@ -317,6 +318,7 @@ export function SiteHeader() {
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
+    </header>
 
       {/* Mobile overlay */}
       {open && (
@@ -329,7 +331,7 @@ export function SiteHeader() {
       {/* Mobile menu */}
       <div
         className={cn(
-          "fixed top-[72px] right-0 bottom-0 z-40 w-80 max-w-[85vw] bg-[var(--color-bg)] shadow-xl transition-transform duration-300 md:hidden",
+          "fixed top-[72px] right-0 bottom-0 z-50 w-80 max-w-[85vw] bg-[var(--color-bg)] shadow-xl transition-transform duration-300 md:hidden",
           open ? "translate-x-0" : "translate-x-full",
         )}
       >
@@ -394,6 +396,6 @@ export function SiteHeader() {
           </Link>
         </div>
       </div>
-    </header>
+    </>
   );
 }
