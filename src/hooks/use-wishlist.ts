@@ -17,10 +17,15 @@ let cachedUserPromise: Promise<{ id: string } | null> | null = null;
 
 function getCurrentUserOnce(supabase: ReturnType<typeof createSupabaseBrowserClient>) {
   if (!cachedUserPromise) {
-    cachedUserPromise = supabase.auth
-      .getUser()
-      .then(({ data }) => (data.user ? { id: data.user.id } : null))
-      .catch(() => null);
+    cachedUserPromise = (async () => {
+      try {
+        const result = await supabase.auth.getUser();
+        const user = result?.data?.user as { id: string } | null | undefined;
+        return user ? { id: user.id } : null;
+      } catch {
+        return null;
+      }
+    })();
   }
   return cachedUserPromise;
 }
