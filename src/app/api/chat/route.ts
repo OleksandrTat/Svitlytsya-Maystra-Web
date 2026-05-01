@@ -1,8 +1,8 @@
 import { env, hasOpenAi } from "@/lib/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
+export const runtime = "edge";
+export const maxDuration = 30;
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type ChatRequest = {
@@ -386,8 +386,8 @@ export async function POST(request: Request) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     },
