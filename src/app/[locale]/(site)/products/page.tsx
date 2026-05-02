@@ -175,7 +175,7 @@ export default async function ProductsPage({
               {items.length > 0 ? (
                 <ProductsGridClient view={filters.view}>
                   {items.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                    <ProductCard key={product.id} product={product} view={filters.view} />
                   ))}
                 </ProductsGridClient>
               ) : (

@@ -14,9 +14,10 @@ import { cn } from "@/lib/utils";
 type Props = {
   product: Product;
   showStatus?: boolean;
+  view?: "grid" | "list";
 };
 
-export function ProductCard({ product, showStatus = false }: Props) {
+export function ProductCard({ product, showStatus = false, view = "grid" }: Props) {
   const { toggle, isInComparison, isFull } = useComparison();
   const inComparison = isInComparison(product.id);
   const materialLabel = useMaterialLabel();
@@ -25,6 +26,150 @@ export function ProductCard({ product, showStatus = false }: Props) {
     PRODUCT_CATEGORY_LABELS[product.category as keyof typeof PRODUCT_CATEGORY_LABELS] ??
     product.category;
 
+  const priceLabel = product.price_from
+    ? `від ${product.price_from.toLocaleString("uk-UA")} грн`
+    : "Ціна за запитом";
+
+  const statusBadge = showStatus ? (
+    <span
+      className={cn(
+        "rounded-full px-2 py-0.5 text-xs font-semibold",
+        product.status === "active"
+          ? "bg-emerald-100 text-emerald-800"
+          : product.status === "draft"
+            ? "bg-amber-100 text-amber-800"
+            : "bg-zinc-100 text-zinc-500",
+      )}
+    >
+      {PRODUCT_STATUS_LABELS[product.status]}
+    </span>
+  ) : null;
+
+  const orderCta = (
+    <Link
+      href="/contact"
+      className="rounded-full border border-[var(--color-primary)] px-3 py-1 text-sm text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+    >
+      Замовити
+    </Link>
+  );
+
+  const compareButton = (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggle(product.id);
+      }}
+      disabled={isFull && !inComparison}
+      className={cn(
+        "rounded-full p-1.5 text-xs transition",
+        inComparison
+          ? "bg-[var(--color-primary)] text-white"
+          : "bg-white/90 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]",
+        isFull && !inComparison && "cursor-not-allowed opacity-50",
+      )}
+      title={inComparison ? "Прибрати з порівняння" : "Додати до порівняння"}
+    >
+      <GitCompare size={14} />
+    </button>
+  );
+
+  const materialTags = product.materials.length > 0 && (
+    <div className="flex flex-wrap gap-1">
+      {product.materials.slice(0, 3).map((material) => (
+        <span
+          key={material}
+          className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]"
+        >
+          {materialLabel(material)}
+        </span>
+      ))}
+      {product.materials.length > 3 && (
+        <span className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
+          +{product.materials.length - 3}
+        </span>
+      )}
+    </div>
+  );
+
+  // ─── List view ─────────────────────────────────────────────
+  if (view === "list") {
+    return (
+      <motion.article
+        layout
+        className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg sm:flex-row"
+      >
+        {/* Image */}
+        <Link
+          href={`/products/${product.slug}`}
+          className="relative block aspect-[4/3] w-full shrink-0 overflow-hidden bg-[var(--color-bg-section)] sm:aspect-auto sm:h-44 sm:w-56 md:h-48 md:w-64"
+        >
+          {product.cover_image ? (
+            <Image
+              src={product.cover_image}
+              alt={product.title}
+              fill
+              className="object-cover transition-transform duration-[400ms] ease-out group-hover:scale-[1.04]"
+              sizes="(max-width: 640px) 100vw, 256px"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-xs text-[var(--color-text-secondary)]">
+              Немає зображення
+            </div>
+          )}
+
+          <WishlistButton
+            productId={product.id}
+            productTitle={product.title}
+            className="absolute left-3 top-3 z-20"
+          />
+
+          {product.is_featured && (
+            <span className="absolute left-3 top-12 z-10 rounded-full bg-[var(--color-primary)] px-2.5 py-0.5 text-[10px] font-semibold text-white">
+              Популярне
+            </span>
+          )}
+        </Link>
+
+        {/* Body */}
+        <div className="flex flex-1 flex-col gap-3 p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-text-secondary)]">
+                  {categoryLabel}
+                </span>
+                {statusBadge}
+              </div>
+              <h3 className="font-display text-lg font-semibold leading-tight text-[var(--color-text-primary)] md:text-xl">
+                <Link href={`/products/${product.slug}`} className="hover:text-[var(--color-primary)]">
+                  {product.title}
+                </Link>
+              </h3>
+            </div>
+            <div className="shrink-0">{compareButton}</div>
+          </div>
+
+          {product.short_description && (
+            <p className="line-clamp-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+              {product.short_description}
+            </p>
+          )}
+
+          {materialTags}
+
+          <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-3">
+            <span className="font-semibold text-[var(--color-primary)]">{priceLabel}</span>
+            {!showStatus && orderCta}
+          </div>
+        </div>
+      </motion.article>
+    );
+  }
+
+  // ─── Grid view ─────────────────────────────────────────────
   return (
     <motion.article
       layout
@@ -83,25 +228,7 @@ export function ProductCard({ product, showStatus = false }: Props) {
       </Link>
 
       {/* Comparison button */}
-      <button
-        type="button"
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          toggle(product.id);
-        }}
-        disabled={isFull && !inComparison}
-        className={cn(
-          "absolute right-3 top-3 z-20 rounded-full p-1.5 text-xs transition",
-          inComparison
-            ? "bg-[var(--color-primary)] text-white"
-            : "bg-white/90 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]",
-          isFull && !inComparison && "cursor-not-allowed opacity-50",
-        )}
-        title={inComparison ? "Прибрати з порівняння" : "Додати до порівняння"}
-      >
-        <GitCompare size={14} />
-      </button>
+      <div className="absolute right-3 top-3 z-20">{compareButton}</div>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -111,57 +238,15 @@ export function ProductCard({ product, showStatus = false }: Props) {
           </Link>
         </h3>
 
-        {/* Material tags */}
-        {product.materials.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {product.materials.slice(0, 3).map((material) => (
-              <span
-                key={material}
-                className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]"
-              >
-                {materialLabel(material)}
-              </span>
-            ))}
-            {product.materials.length > 3 && (
-              <span className="rounded-full bg-[var(--color-bg-warm)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
-                +{product.materials.length - 3}
-              </span>
-            )}
-          </div>
-        )}
+        {materialTags}
 
         {/* Divider */}
         <div className="mt-auto border-t border-[var(--color-border)]" />
 
         {/* Price + Order */}
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-[var(--color-primary)]">
-            {product.price_from
-              ? `від ${product.price_from.toLocaleString("uk-UA")} грн`
-              : "Ціна за запитом"}
-          </span>
-
-          {showStatus ? (
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs font-semibold",
-                product.status === "active"
-                  ? "bg-emerald-100 text-emerald-800"
-                  : product.status === "draft"
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-zinc-100 text-zinc-500",
-              )}
-            >
-              {PRODUCT_STATUS_LABELS[product.status]}
-            </span>
-          ) : (
-            <Link
-              href="/contact"
-              className="rounded-full border border-[var(--color-primary)] px-3 py-1 text-sm text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
-            >
-              Замовити
-            </Link>
-          )}
+          <span className="font-semibold text-[var(--color-primary)]">{priceLabel}</span>
+          {showStatus ? statusBadge : orderCta}
         </div>
       </div>
     </motion.article>
