@@ -4,10 +4,8 @@ import { useEffect, useRef, useState, useCallback, useTransition } from "react";
 import { useLocale } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import {
-  MessageCircle,
   X,
   Send,
-  Bot,
   User,
   Loader2,
   RotateCcw,
@@ -17,6 +15,19 @@ import {
   Package,
   Wrench,
 } from "lucide-react";
+
+function BotAvatar({ size }: { size: number }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo.png"
+      alt=""
+      width={size}
+      height={size}
+      className="object-contain brightness-0 invert"
+    />
+  );
+}
 import { cn } from "@/lib/utils";
 import { submitChatInquiryAction } from "@/actions/chat-inquiry";
 
@@ -247,7 +258,7 @@ function TypingIndicator() {
   return (
     <div className="flex gap-2.5">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-white">
-        <Bot className="h-3.5 w-3.5" />
+        <BotAvatar size={16} />
       </div>
       <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-[var(--color-surface)] px-4 py-3">
         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-text-muted)] [animation-delay:0ms]" />
@@ -274,7 +285,7 @@ function MessageBubble({
         "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white",
         isUser ? "bg-[var(--color-primary)]" : "bg-[var(--color-accent)]",
       )}>
-        {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+        {isUser ? <User className="h-3.5 w-3.5" /> : <BotAvatar size={16} />}
       </div>
       <div className="flex flex-col gap-1 min-w-0 max-w-[82%]">
         <div className={cn(
@@ -729,7 +740,7 @@ export function Chatbot() {
         {/* Header */}
         <div className="flex shrink-0 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-primary)] px-4 py-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20">
-            <Bot className="h-5 w-5 text-white" />
+            <BotAvatar size={22} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-white leading-tight">{ui.title}</p>
@@ -878,7 +889,7 @@ export function Chatbot() {
           <X className="h-6 w-6" />
         ) : (
           <>
-            <MessageCircle className="h-6 w-6" />
+            <BotAvatar size={28} />
             {unread > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                 {unread}
