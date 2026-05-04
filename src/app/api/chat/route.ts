@@ -195,6 +195,7 @@ async function fetchSiteContext(locale: string) {
 
 function buildSystemPrompt(
   context: string,
+  replyLanguage: string,
   pathname?: string,
 ) {
   const pageCtx = pathname && pathname !== "/"
@@ -203,21 +204,71 @@ function buildSystemPrompt(
 
   return `You are a helpful sales assistant for Svitlytsya Maystra — a family woodworking workshop specializing in custom furniture, doors, and windows made from natural materials.
 
-LANGUAGE RULE: Always reply in the EXACT same language the user wrote their last message in. If they write in Ukrainian — reply in Ukrainian. If in English — reply in English. If in Polish, German, French, or any other language — reply in that same language. Never switch languages unless the user does first.${pageCtx}
+>>> REPLY LANGUAGE: ${replyLanguage} <<<
+Every word of your reply must be written in ${replyLanguage}. Translate any quoted product titles, descriptions, FAQ answers, or testimonial text from the context into ${replyLanguage}. Proper nouns (brand "Svitlytsya Maystra", model names like "Modern Oak", customer names) stay as-is.${pageCtx}
 
 Guidelines:
 - Be concise, warm, and professional
-- Address the customer formally (e.g. "ви" in Ukrainian, "Sie" in German, "vous" in French)
+- Address the customer formally (e.g. "ви" in Ukrainian, "Sie" in German, "vous" in French, "usted" in Spanish)
 - Base answers ONLY on the context below. If something is not there, say you don't have that info and suggest calling or writing us
 - Never make up prices, availability, or timelines — say it's calculated individually
-- When mentioning a product or service, include its link as a markdown link using the ACTUAL name as label, e.g. [Дубові двері](/products/oak-door) — NEVER use generic labels like "Детальніше", "тут", "here", "more"
+- When mentioning a product or service, include its link as a markdown link using the ACTUAL name as label, e.g. [Oak Doors](/products/oak-door) — NEVER use generic labels like "more", "here", "click", "Детальніше"
 - Format lists with bullet points when listing multiple items
 - Use **bold** for product/service names
-- When the customer asks about pricing, timelines or wants to order — end your reply with a call-to-action link to /contact in their language (e.g. "👉 [Залишити заявку](/contact)" or "👉 [Get a quote](/contact)" etc.)
+- When the customer asks about pricing, timelines or wants to order — end your reply with a call-to-action link to /contact in their language (e.g. "👉 [Get a quote](/contact)" or "👉 [Залишити заявку](/contact)" or "👉 [Solicitar presupuesto](/contact)" etc.)
 
 ---
 ${context}
----`;
+---
+
+CRITICAL OUTPUT LANGUAGE: Your entire reply MUST be written in ${replyLanguage}. The context above may be in a different language — translate any titles, descriptions, FAQ answers, or testimonial text you quote into ${replyLanguage}. Proper nouns (brand "Svitlytsya Maystra", model names like "Modern Oak", customer names like "Сергій М.") stay as-is. Do NOT switch to any other language even if the context content is in another language.`;
+}
+
+// ─── Reply language detector ─────────────────────────────
+// Tiny classifier call. Returns the English name of the language
+// (e.g. "English", "Spanish", "Ukrainian", "Chinese (Simplified)").
+
+async function detectReplyLanguage(message: string, fallbackLocale: string): Promise<string> {
+  const fallback = fallbackLocale === "en" ? "English" : "Ukrainian";
+  if (!message.trim()) return fallback;
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.openAiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0,
+        max_tokens: 30,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              'Identify the natural language of the user\'s message. Pay attention to script: "你"/"们"/"什么" → Chinese; "ですか"/hiragana/katakana → Japanese; "는"/hangul → Korean; Cyrillic with "ї"/"є"/"ґ" → Ukrainian; Cyrillic without those → Russian. Return JSON: {"language":"<English name of the language>"}. Examples: {"language":"English"}, {"language":"Chinese"}, {"language":"Japanese"}, {"language":"Spanish"}, {"language":"Ukrainian"}.',
+          },
+          { role: "user", content: message.slice(0, 300) },
+        ],
+      }),
+    });
+    if (!res.ok) return fallback;
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const raw = data.choices?.[0]?.message?.content ?? "";
+    try {
+      const parsed = JSON.parse(raw) as { language?: unknown };
+      if (typeof parsed.language === "string" && parsed.language.trim()) {
+        return parsed.language.trim();
+      }
+    } catch {
+      // fall through
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 // ─── SSE helper ───────────────────────────────────────────
@@ -306,9 +357,13 @@ export async function POST(request: Request) {
   // Use detectDbLang only to decide which DB locale to load (uk fields vs _en fields)
   const lastUserMsg = [...history].reverse().find((m) => m.role === "user");
   const dbLang = lastUserMsg ? detectDbLang(lastUserMsg.content) : (locale === "en" ? "en" : "uk");
-  const context = await fetchSiteContext(dbLang);
 
-  const systemPrompt = buildSystemPrompt(context, pathname);
+  const [context, replyLanguage] = await Promise.all([
+    fetchSiteContext(dbLang),
+    detectReplyLanguage(lastUserMsg?.content ?? "", locale),
+  ]);
+
+  const systemPrompt = buildSystemPrompt(context, replyLanguage, pathname);
 
   const stream = new ReadableStream({
     async start(controller) {
