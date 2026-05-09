@@ -1,0 +1,60 @@
+# Compose file for local development.
+#
+# Two profiles:
+#   default        → just the Next.js app, talking to a remote Supabase
+#                    project configured via .env.local
+#   --profile db   → adds a local Postgres so you can run migrations
+#                    against your own database without using Supabase Cloud
+#
+# Quick start:
+#   cp .env.example .env.local      # fill in your secrets
+#   docker compose up --build       # http://localhost:3000
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+        NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY:-}
+    image: svitlytsya-maystra-web:latest
+    container_name: sm-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+
+  # Optional local Postgres. Use `docker compose --profile db up` to enable.
+  # Apply the SQL migrations under supabase/migrations once it's healthy:
+  #   for f in supabase/migrations/*.sql; do
+  #     docker compose exec -T db psql -U postgres -d svitlytsya < "$f"
+  #   done
+  db:
+    image: postgres:16-alpine
+    container_name: sm-db
+    profiles: ["db"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: svitlytsya
+    ports:
+      - "5432:5432"
+    volumes:
+      - sm-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d svitlytsya"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sm-db-data:
